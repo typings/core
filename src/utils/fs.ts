@@ -18,7 +18,7 @@ import tch = require('touch')
 import { EOL } from 'os'
 import { join, dirname } from 'path'
 import template = require('string-template')
-import { CONFIG_FILE, TYPINGS_DIR, DTS_MAIN_FILE, DTS_BROWSER_FILE, CACHE_DIR, PRETTY_PROJECT_NAME, HOMEPAGE } from './config'
+import { CONFIG_FILE, TYPINGS_DIR, DTS_MAIN_FILE, DTS_BROWSER_FILE, PRETTY_PROJECT_NAME, HOMEPAGE } from './config'
 import { isHttp, toDefinition } from './path'
 import { parseReferences, stringifyReferences } from './references'
 import { ConfigJson } from '../interfaces/main'
@@ -312,8 +312,8 @@ export function getDependencyLocation (options: DefinitionOptions) {
 
   const mainPath = join(options.cwd, mainDir, options.name)
   const browserPath = join(options.cwd, browserDir, options.name)
-  const mainFile = join(mainPath, toDefinition(options.name))
-  const browserFile = join(browserPath, toDefinition(options.name))
+  const mainFile = join(mainPath, 'index.d.ts')
+  const browserFile = join(browserPath, 'index.d.ts')
 
   return {
     mainFile,

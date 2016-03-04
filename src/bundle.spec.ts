@@ -5,15 +5,21 @@ import { join } from 'path'
 import { bundle } from './bundle'
 import { VERSION } from './typings'
 import { PROJECT_NAME } from './utils/config'
+import { rimraf } from './utils/fs'
 
 test('bundle', t => {
   t.test('bundle everything', t => {
     const FIXTURE_DIR = join(__dirname, '__test__/bundle')
 
-    return bundle({
-      source: FIXTURE_DIR,
-      name: 'example'
-    })
+    return rimraf(join(FIXTURE_DIR, 'out'))
+      .then(() => {
+        return bundle({
+          cwd: FIXTURE_DIR,
+          name: 'example',
+          out: join(FIXTURE_DIR, 'out'),
+          ambient: false
+        })
+      })
       .then(function (data) {
         t.equal(data.main, [
           `// Compiled using ${PROJECT_NAME}@${VERSION}`,

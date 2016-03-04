@@ -312,8 +312,8 @@ export function getDependencyLocation (options: DefinitionOptions) {
 
   const mainPath = join(options.cwd, mainDir, options.name)
   const browserPath = join(options.cwd, browserDir, options.name)
-  const mainFile = join(mainPath, toDefinition(options.name))
-  const browserFile = join(browserPath, toDefinition(options.name))
+  const mainFile = join(mainPath, 'index.d.ts')
+  const browserFile = join(browserPath, 'index.d.ts')
 
   return {
     mainFile,

@@ -3,7 +3,7 @@ import Promise = require('any-promise')
 import { EOL } from 'os'
 import { join, relative } from 'path'
 import { install, installDependency } from './install'
-import { readFile, readConfig, touch } from './utils/fs'
+import { readFile, readConfig, writeFile, rimraf } from './utils/fs'
 import { CONFIG_FILE } from './utils/config'
 import { VERSION } from './typings'
 
@@ -11,28 +11,31 @@ test('install', t => {
   t.test('install everything', t => {
     const FIXTURE_DIR = join(__dirname, '__test__/install-fixture')
 
-    return install({
-      cwd: FIXTURE_DIR,
-      production: false
-    })
+    return rimraf(join(FIXTURE_DIR, 'typings'))
+      .then(() => {
+        return install({
+          cwd: FIXTURE_DIR,
+          production: false
+        })
+      })
       .then(function () {
         return Promise.all([
           readFile(join(FIXTURE_DIR, 'typings/main.d.ts'), 'utf8'),
           readFile(join(FIXTURE_DIR, 'typings/browser.d.ts'), 'utf8'),
-          readFile(join(FIXTURE_DIR, 'typings/main/definitions/test/test.d.ts'), 'utf8'),
-          readFile(join(FIXTURE_DIR, 'typings/browser/definitions/test/test.d.ts'), 'utf8'),
-          readFile(join(FIXTURE_DIR, 'typings/main/ambient/test/test.d.ts'), 'utf8'),
+          readFile(join(FIXTURE_DIR, 'typings/main/definitions/test/index.d.ts'), 'utf8'),
+          readFile(join(FIXTURE_DIR, 'typings/browser/definitions/test/index.d.ts'), 'utf8'),
+          readFile(join(FIXTURE_DIR, 'typings/main/ambient/test/index.d.ts'), 'utf8'),
         ])
       })
       .then(function ([mainDts, browserDts, mainFile, browserFile, ambientMainFile]) {
         t.equal(mainDts, [
-          `/// <reference path="main/ambient/test/test.d.ts" />`,
-          `/// <reference path="main/definitions/test/test.d.ts" />`,
+          `/// <reference path="main/ambient/test/index.d.ts" />`,
+          `/// <reference path="main/definitions/test/index.d.ts" />`,
           ``
         ].join(EOL))
         t.equal(browserDts, [
-          `/// <reference path="browser/ambient/test/test.d.ts" />`,
-          `/// <reference path="browser/definitions/test/test.d.ts" />`,
+          `/// <reference path="browser/ambient/test/index.d.ts" />`,
+          `/// <reference path="browser/definitions/test/index.d.ts" />`,
           ``
         ].join(EOL))
 
@@ -61,13 +64,16 @@ test('install', t => {
     const FIXTURE_DIR = join(__dirname, '__test__/install-dependency-fixture')
     const CONFIG = join(FIXTURE_DIR, CONFIG_FILE)
 
-    return touch(CONFIG, {})
+    return writeFile(CONFIG, '{}')
+      .then(function () {
+        return rimraf(join(FIXTURE_DIR, 'typings'))
+      })
       .then(function () {
         return Promise.all([
           installDependency(DEPENDENCY, {
             cwd: FIXTURE_DIR,
             saveDev: true,
-            name: 'test'
+            name: '@scope/test'
           }),
           installDependency(AMBIENT_DEPENDENCY, {
             cwd: FIXTURE_DIR,
@@ -83,7 +89,7 @@ test('install', t => {
       .then(function (config) {
         t.deepEqual(config, {
           devDependencies: {
-            test: DEPENDENCY
+            '@scope/test': DEPENDENCY
           },
           ambientDevDependencies: {
             'ambient-test': AMBIENT_DEPENDENCY

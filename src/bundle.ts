@@ -1,23 +1,31 @@
 import Promise = require('any-promise')
+import { resolve, join } from 'path'
 import { resolveAllDependencies } from './lib/dependencies'
 import compile, { CompiledOutput } from './lib/compile'
+import { writeFile, mkdirp } from './utils/fs'
 
 /**
  * Bundle configuration options.
  */
 export interface BundleOptions {
   name?: string
-  source: string
+  cwd: string
+  ambient: boolean
+  out: string
 }
 
 /**
  * Bundle the current typings project into a single ambient definition.
  */
 export function bundle (options: BundleOptions): Promise<CompiledOutput> {
-  const { source: cwd } = options
+  const { cwd, ambient, out } = options
 
-  return resolveAllDependencies({ cwd, dev: false, ambient: false })
-    .then(function (tree) {
+  if (out == null) {
+    return Promise.reject(new TypeError('Out directory is required for bundle'))
+  }
+
+  return resolveAllDependencies({ cwd, dev: false, ambient })
+    .then(tree => {
       const name = options.name || tree.name
 
       if (name == null) {
@@ -26,6 +34,18 @@ export function bundle (options: BundleOptions): Promise<CompiledOutput> {
         ))
       }
 
-      return compile(tree, { cwd, name, ambient: false, meta: true })
+      return compile(tree, { cwd, name, ambient, meta: true })
+    })
+    .then((output: CompiledOutput) => {
+      const path = resolve(cwd, out)
+
+      return mkdirp(path)
+        .then(() => {
+          return Promise.all([
+            writeFile(join(path, 'main.d.ts'), output.main),
+            writeFile(join(path, 'browser.d.ts'), output.browser)
+          ])
+        })
+        .then(() => output)
     })
 }

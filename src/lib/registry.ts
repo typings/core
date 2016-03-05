@@ -1,13 +1,10 @@
 import invariant = require('invariant')
 import Promise = require('any-promise')
 import { stringify } from 'querystring'
+import { resolve } from 'url'
 import pick = require('object.pick')
 import { readJsonFrom } from '../utils/fs'
-
-/**
- * The registry base URL.
- */
-const REGISTRY_URL = 'https://api.typings.org'
+import rc from '../utils/rc'
 
 /**
  * Valid sources in the registry.
@@ -34,6 +31,8 @@ export interface SearchOptions {
   offset?: string
   limit?: string
   ambient?: boolean
+  order?: string
+  sort?: string
 }
 
 /**
@@ -41,7 +40,14 @@ export interface SearchOptions {
  */
 export interface SearchResults {
   total: number
-  results: Array<{ name: string; source: string; homepage: string; description: string; }>
+  results: Array<{
+    name: string
+    source: string
+    homepage: string
+    description: string
+    updated: string
+    versions: number
+  }>
 }
 
 /**
@@ -52,9 +58,9 @@ export function search (options: SearchOptions): Promise<SearchResults> {
     return Promise.reject(new TypeError(`Invalid registry source: ${options.source}`))
   }
 
-  const query = pick(options, ['query', 'name', 'source', 'offset', 'limit', 'ambient'])
+  const query = pick(options, ['query', 'name', 'source', 'offset', 'limit', 'ambient', 'order', 'sort'])
 
-  return readJsonFrom(`${REGISTRY_URL}/search?${stringify(query)}`)
+  return readJsonFrom(resolve(rc.registryURL, `search?${stringify(query)}`))
 }
 
 /**
@@ -68,37 +74,33 @@ export interface ProjectVersion {
 }
 
 /**
- * Get matching project versions.
+ * Get the latest matching registry version.
  */
-export function getVersions (source: string, name: string, version?: string): Promise<{ versions: ProjectVersion[] }> {
+export function getVersion (source: string, name: string, version?: string): Promise<ProjectVersion> {
   if (!isValidSource(source)) {
     return Promise.reject(new TypeError(`Invalid registry source: ${source}`))
   }
 
   const sourceParam = encodeURIComponent(source)
   const nameParam = encodeURIComponent(name)
+  const versionParam = encodeURIComponent(version || '*')
 
-  if (version == null) {
-    return readJsonFrom(`${REGISTRY_URL}/versions/${sourceParam}/${nameParam}`)
+  return readJsonFrom(resolve(rc.registryURL, `entries/${sourceParam}/${nameParam}/versions/${versionParam}/latest`))
+}
+
+/**
+ * Get matching registry tag.
+ */
+export function getTag (source: string, name: string, tag: string): Promise<ProjectVersion> {
+  if (!isValidSource(source)) {
+    return Promise.reject(new TypeError(`Invalid registry source: ${source}`))
   }
 
-  return readJsonFrom(`${REGISTRY_URL}/versions/${sourceParam}/${nameParam}/${encodeURIComponent(version)}`)
-}
+  const sourceParam = encodeURIComponent(source)
+  const nameParam = encodeURIComponent(name)
+  const tagParam = encodeURIComponent(tag)
 
-/**
- * Check if a dependency looks like a registry reference.
- */
-export function isRegistryPath (path: string) {
-  return path.indexOf(':') === -1
-}
-
-/**
- * Parse the dependency into parts.
- */
-export function parseRegistryPath (dep: string) {
-  const [name, version] = dep.split('@')
-
-  return { name, version }
+  return readJsonFrom(resolve(rc.registryURL, `entries/${sourceParam}/${nameParam}/tags/${tagParam}`))
 }
 
 /**

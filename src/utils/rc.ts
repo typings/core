@@ -12,6 +12,7 @@ export interface RcConfig {
   key?: string
   cert?: string
   userAgent?: string
+  githubToken?: string
 }
 
 export const DEFAULTS = {

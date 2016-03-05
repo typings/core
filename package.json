@@ -15,7 +15,7 @@
     "test-spec": "ts-node node_modules/blue-tape/bin/blue-tape.js \"src/**/*.spec.ts\" | tap-spec",
     "test-cov": "ts-node node_modules/istanbul/lib/cli.js cover -e .ts --print none -x \"*.d.ts\" -x \"*.spec.ts\" blue-tape -- \"src/**/*.spec.ts\" | tap-spec",
     "test": "npm run lint && npm run build && npm run dependency-check && npm run test-cov",
-    "bootstrap": "mkdir -p typings && touch typings/main.d.ts && SKIP_PREPUBLISH=true npm install && npm run build 2> /dev/null; cat dist/init.js > /dev/null && node -e 'require(\"./\").install({ cwd: process.cwd() })'",
+    "bootstrap": "mkdir -p typings && touch typings/main.d.ts && SKIP_PREPUBLISH=true npm install && npm run build > /dev/null 2>&1; cat dist/init.js > /dev/null && node -e 'require(\"./\").install({ cwd: process.cwd() })' && echo 'Success!'",
     "prepublish": "if [ ! $SKIP_PREPUBLISH ]; then npm run build; fi"
   },
   "repository": {

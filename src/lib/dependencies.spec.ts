@@ -11,8 +11,9 @@ test('dependencies', t => {
       const expected: DependencyTree = {
         raw: undefined,
         name: 'foobar',
-        src: join(RESOLVE_FIXTURE_DIR, 'package.json'),
-        main: 'index.js',
+        src: join(RESOLVE_FIXTURE_DIR, 'typings.json'),
+        main: 'foo.d.ts',
+        version: undefined,
         browser: undefined,
         typings: undefined,
         browserTypings: undefined,
@@ -39,7 +40,7 @@ test('dependencies', t => {
 
       const exampleDep: DependencyTree = {
         raw: 'bower:example',
-        src: join(RESOLVE_FIXTURE_DIR, 'bower_components/example/bower.json'),
+        src: undefined,
         main: undefined,
         browser: undefined,
         version: undefined,
@@ -56,6 +57,10 @@ test('dependencies', t => {
         raw: 'file:typings/dep.d.ts',
         src: join(RESOLVE_FIXTURE_DIR, 'typings/dep.d.ts'),
         typings: join(RESOLVE_FIXTURE_DIR, 'typings/dep.d.ts'),
+        main: undefined,
+        browser: undefined,
+        version: undefined,
+        browserTypings: undefined,
         dependencies: {},
         devDependencies: {},
         ambientDependencies: {},
@@ -87,7 +92,7 @@ test('dependencies', t => {
         main: undefined,
         name: 'dep',
         raw: 'bower:dep',
-        src: join(RESOLVE_FIXTURE_DIR, 'bower_components/dep/bower.json'),
+        src: undefined,
         typings: undefined,
         version: undefined
       }

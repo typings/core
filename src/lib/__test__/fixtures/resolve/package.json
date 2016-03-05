@@ -1,5 +1,6 @@
 {
   "name": "foobar",
+  "main": "file.js",
   "dependencies": {
     "npm-dep": "*"
   }

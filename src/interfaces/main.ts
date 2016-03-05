@@ -21,10 +21,11 @@ export type Browser = string | Overrides
  */
 export interface ConfigJson {
   // Typing information.
-  main?: string
+  main?: string | boolean
   browser?: Browser
-  typings?: string
+  typings?: string | boolean
   browserTypings?: string | Browser
+  version?: string
 
   // Meta information.
   name?: string
@@ -44,7 +45,7 @@ export interface ConfigJson {
  * Dependencies can be an array for graceful degradation over services.
  */
 export interface Dependencies {
-  [name: string]: DependencyString | DependencyString[]
+  [name: string]: DependencyString
 }
 
 /**

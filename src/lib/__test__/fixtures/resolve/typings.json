@@ -1,4 +1,5 @@
 {
+  "main": "foo.d.ts",
   "dependencies": {
     "dep": "file:typings/dep.d.ts"
   },

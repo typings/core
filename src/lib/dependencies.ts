@@ -18,6 +18,11 @@ import TypingsError from './error'
 const DEFAULT_DEPENDENCY: DependencyTree = {
   src: undefined,
   raw: undefined,
+  main: undefined,
+  browser: undefined,
+  typings: undefined,
+  browserTypings: undefined,
+  version: undefined,
   dependencies: {},
   devDependencies: {},
   ambientDependencies: {},
@@ -42,7 +47,7 @@ export function resolveAllDependencies (options: Options): Promise<DependencyTre
     resolveNpmDependencies(options).catch(() => extend(DEFAULT_DEPENDENCY)),
     resolveTypeDependencies(options).catch(() => extend(DEFAULT_DEPENDENCY))
   ])
-    .then(mergeDependencies)
+    .then((trees) => mergeDependencies(...trees))
 }
 
 /**
@@ -181,10 +186,10 @@ function resolveBowerDependencyFrom (
           maybeResolveTypeDependencyFrom(join(src, '..', CONFIG_FILE), raw, options, tree)
         ])
           .then(function ([dependencies, devDependencies, typedPackage]) {
-            tree.dependencies = extend(dependencies, typedPackage.dependencies)
-            tree.devDependencies = extend(devDependencies, typedPackage.devDependencies)
+            tree.dependencies = dependencies
+            tree.devDependencies = devDependencies
 
-            return tree
+            return mergeDependencies(tree, typedPackage)
           })
       },
       function (error) {
@@ -273,10 +278,10 @@ function resolveNpmDependencyFrom (src: string, raw: string, options: Options, p
           maybeResolveTypeDependencyFrom(join(src, '..', CONFIG_FILE), raw, options, tree)
         ])
           .then(function ([dependencies, devDependencies, typedPackage]) {
-            tree.dependencies = extend(dependencies, typedPackage.dependencies)
-            tree.devDependencies = extend(devDependencies, typedPackage.devDependencies)
+            tree.dependencies = dependencies
+            tree.devDependencies = devDependencies
 
-            return tree
+            return mergeDependencies(tree, typedPackage)
           })
       },
       function (error) {
@@ -288,7 +293,7 @@ function resolveNpmDependencyFrom (src: string, raw: string, options: Options, p
 /**
  * Recursively resolve dependencies from a list and component path.
  */
-function resolveNpmDependencyMap (src: string, dependencies: any, options: Options, parent: DependencyTree) {
+function resolveNpmDependencyMap (src: string, dependencies: any, options: Options, parent: DependencyTree): Promise<DependencyBranch> {
   const cwd = dirname(src)
   const keys = Object.keys(dependencies)
 
@@ -327,6 +332,7 @@ function resolveTypeDependencyFrom (src: string, raw: string, options: Options, 
         const tree = extend(DEFAULT_DEPENDENCY, {
           name: config.name,
           main: config.main,
+          version: config.version,
           browser: config.browser,
           typings: config.typings,
           browserTypings: config.browserTypings,
@@ -415,25 +421,27 @@ function resolveError (raw: string, cause: Error, parent?: DependencyTree) {
 /**
  * Merge dependency trees together.
  */
-function mergeDependencies (trees: DependencyTree[]): DependencyTree {
+function mergeDependencies (...trees: DependencyTree[]): DependencyTree {
   const dependency = extend(DEFAULT_DEPENDENCY)
 
-  trees.forEach(function (dependencyTree) {
+  for (const tree of trees) {
     // Skip empty dependency trees.
-    if (dependencyTree == null) {
-      return
+    if (tree == null) {
+      continue
     }
 
-    const { name, src, main, browser, typings, browserTypings } = dependencyTree
+    const { name, raw, src, main, browser, typings, browserTypings } = tree
+
+    if (typeof name === 'string') {
+      dependency.name = name
+    }
+
+    if (typeof raw === 'string') {
+      dependency.raw = raw
+    }
 
     // Handle `main` and `typings` overrides all together.
-    if (
-      typeof main === 'string' ||
-      typeof browser === 'string' ||
-      typeof typings === 'string' ||
-      typeof browserTypings === 'string'
-    ) {
-      dependency.name = name
+    if (main != null || browser != null || typings != null || browserTypings != null) {
       dependency.src = src
       dependency.main = main
       dependency.browser = browser
@@ -441,11 +449,11 @@ function mergeDependencies (trees: DependencyTree[]): DependencyTree {
       dependency.browserTypings = browserTypings
     }
 
-    dependency.dependencies = extend(dependency.dependencies, dependencyTree.dependencies)
-    dependency.devDependencies = extend(dependency.devDependencies, dependencyTree.devDependencies)
-    dependency.ambientDependencies = extend(dependency.ambientDependencies, dependencyTree.ambientDependencies)
-    dependency.ambientDevDependencies = extend(dependency.ambientDevDependencies, dependencyTree.ambientDevDependencies)
-  })
+    dependency.dependencies = extend(dependency.dependencies, tree.dependencies)
+    dependency.devDependencies = extend(dependency.devDependencies, tree.devDependencies)
+    dependency.ambientDependencies = extend(dependency.ambientDependencies, tree.ambientDependencies)
+    dependency.ambientDevDependencies = extend(dependency.ambientDevDependencies, tree.ambientDevDependencies)
+  }
 
   return dependency
 }

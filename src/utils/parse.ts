@@ -4,6 +4,7 @@ import { normalize, join, basename, dirname } from 'path'
 import { Dependency } from '../interfaces/main'
 import { CONFIG_FILE } from './config'
 import { isDefinition, normalizeSlashes, inferDefinitionName, sanitizeDefinitionName } from './path'
+import rc from './rc'
 
 /**
  * Parse the git host options from the raw string.
@@ -64,24 +65,30 @@ export function parseDependency (raw: string): Dependency {
   if (type === 'github') {
     const meta = gitFromPath(src)
     const { org, repo, path, sha } = meta
+    let location = `https://raw.githubusercontent.com/${org}/${repo}/${sha}/${path}`
+
+    if (rc.githubToken) {
+      location += `?token=${encodeURIComponent(rc.githubToken)}`
+    }
 
     return {
       raw,
       meta,
       type,
-      location: `https://raw.githubusercontent.com/${org}/${repo}/${sha}/${path}`
+      location
     }
   }
 
   if (type === 'bitbucket') {
     const meta = gitFromPath(src)
     const { org, repo, path, sha } = meta
+    const location = `https://bitbucket.org/${org}/${repo}/raw/${sha}/${path}`
 
     return {
       raw,
       meta,
       type,
-      location: `https://bitbucket.org/${org}/${repo}/raw/${sha}/${path}`
+      location
     }
   }
 

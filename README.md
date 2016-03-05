@@ -22,6 +22,9 @@ import * as typings from 'typings-core'
 cd typings-core
 npm run bootstrap
 
+# You will see errors such as "src/bundle.ts(1,26): error TS2307: Cannot find module 'any-promise'"
+# Just ignore them and run "npm run build" and "npm run test"
+
 # Build
 npm run build
 

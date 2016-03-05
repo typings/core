@@ -42,7 +42,7 @@ test('dependencies', t => {
 
       const exampleDep: DependencyTree = {
         raw: 'bower:example',
-        src: undefined,
+        src: join(RESOLVE_FIXTURE_DIR, 'bower_components/example/bower.json'),
         main: undefined,
         browser: undefined,
         version: undefined,
@@ -98,7 +98,7 @@ test('dependencies', t => {
         main: undefined,
         name: 'dep',
         raw: 'bower:dep',
-        src: undefined,
+        src: join(RESOLVE_FIXTURE_DIR, 'bower_components/dep/bower.json'),
         typings: undefined,
         version: undefined
       }
@@ -126,10 +126,16 @@ test('dependencies', t => {
 
             removeParentReferenceFromDependencies(tree.dependencies)
             removeParentReferenceFromDependencies(tree.devDependencies)
+            removeParentReferenceFromDependencies(tree.peerDependencies)
             removeParentReferenceFromDependencies(tree.ambientDependencies)
+            removeParentReferenceFromDependencies(tree.ambientDevDependencies)
 
             return tree
           }
+
+          t.equal(result.parent, undefined)
+          t.ok((result.dependencies as any).dep.parent != null)
+          t.ok((result.dependencies as any)['npm-dep'].parent != null)
 
           removeParentReference(result)
 

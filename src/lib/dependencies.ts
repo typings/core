@@ -49,7 +49,7 @@ export function resolveAllDependencies (options: Options): Promise<DependencyTre
     resolveNpmDependencies(options).catch(() => extend(DEFAULT_DEPENDENCY)),
     resolveTypeDependencies(options).catch(() => extend(DEFAULT_DEPENDENCY))
   ])
-    .then((trees) => mergeDependencies(...trees))
+    .then((trees) => mergeDependencies(DEFAULT_DEPENDENCY, ...trees))
 }
 
 /**
@@ -185,7 +185,7 @@ function resolveBowerDependencyFrom (
         return Promise.all([
           resolveBowerDependencyMap(componentPath, dependencyMap, options, tree),
           resolveBowerDependencyMap(componentPath, devDependencyMap, options, tree),
-          maybeResolveTypeDependencyFrom(join(src, '..', CONFIG_FILE), raw, options, tree)
+          maybeResolveTypeDependencyFrom(join(src, '..', CONFIG_FILE), raw, options, parent)
         ])
           .then(function ([dependencies, devDependencies, typedPackage]) {
             tree.dependencies = dependencies
@@ -280,7 +280,7 @@ function resolveNpmDependencyFrom (src: string, raw: string, options: Options, p
           resolveNpmDependencyMap(src, dependencyMap, options, tree),
           resolveNpmDependencyMap(src, devDependencyMap, options, tree),
           resolveNpmDependencyMap(src, peerDependencyMap, options, tree),
-          maybeResolveTypeDependencyFrom(join(src, '..', CONFIG_FILE), raw, options, tree)
+          maybeResolveTypeDependencyFrom(join(src, '..', CONFIG_FILE), raw, options, parent)
         ])
           .then(function ([dependencies, devDependencies, peerDependencies, typedPackage]) {
             tree.dependencies = dependencies
@@ -430,8 +430,8 @@ function resolveError (raw: string, cause: Error, parent?: DependencyTree) {
 /**
  * Merge dependency trees together.
  */
-function mergeDependencies (...trees: DependencyTree[]): DependencyTree {
-  const dependency = extend(DEFAULT_DEPENDENCY)
+function mergeDependencies (root: DependencyTree, ...trees: DependencyTree[]): DependencyTree {
+  const dependency = extend(root)
 
   for (const tree of trees) {
     // Skip empty dependency trees.
@@ -439,7 +439,12 @@ function mergeDependencies (...trees: DependencyTree[]): DependencyTree {
       continue
     }
 
-    const { name, raw, src, main, browser, typings, browserTypings } = tree
+    const { name, raw, src, main, browser, typings, browserTypings, parent } = tree
+
+    // The parent needs to always be set.
+    if (parent != null) {
+      dependency.parent = parent
+    }
 
     if (typeof name === 'string') {
       dependency.name = name

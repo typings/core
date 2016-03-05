@@ -37,6 +37,7 @@ export interface ConfigJson {
   // Dependencies.
   dependencies?: Dependencies
   devDependencies?: Dependencies
+  peerDependencies?: Dependencies
   ambientDependencies?: Dependencies
   ambientDevDependencies?: Dependencies
 }
@@ -73,6 +74,7 @@ export interface DependencyTree {
   raw: string
   dependencies: DependencyBranch
   devDependencies: DependencyBranch
+  peerDependencies: DependencyBranch
   ambientDependencies: DependencyBranch
   ambientDevDependencies: DependencyBranch
 }

@@ -24,6 +24,7 @@ test('compile', t => {
         },
         dependencies: {},
         devDependencies: {},
+        peerDependencies: {},
         ambientDependencies: {},
         ambientDevDependencies: {}
       }
@@ -36,6 +37,7 @@ test('compile', t => {
         browserTypings: 'typed.browser.d.ts',
         dependencies: {},
         devDependencies: {},
+        peerDependencies: {},
         ambientDependencies: {},
         ambientDevDependencies: {}
       }
@@ -47,6 +49,7 @@ test('compile', t => {
         typings: 'typings/b.d.ts',
         dependencies: {},
         devDependencies: {},
+        peerDependencies: {},
         ambientDependencies: {},
         ambientDevDependencies: {}
       }
@@ -58,6 +61,7 @@ test('compile', t => {
         typings: 'browser.d.ts',
         dependencies: {},
         devDependencies: {},
+        peerDependencies: {},
         ambientDependencies: {},
         ambientDevDependencies: {}
       }
@@ -68,6 +72,7 @@ test('compile', t => {
         raw: undefined,
         dependencies: {},
         devDependencies: {},
+        peerDependencies: {},
         ambientDependencies: {},
         ambientDevDependencies: {}
       }
@@ -174,6 +179,7 @@ test('compile', t => {
         raw: undefined,
         dependencies: {},
         devDependencies: {},
+        peerDependencies: {},
         ambientDependencies: {},
         ambientDevDependencies: {}
       }
@@ -211,6 +217,7 @@ test('compile', t => {
         raw: undefined,
         dependencies: {},
         devDependencies: {},
+        peerDependencies: {},
         ambientDependencies: {},
         ambientDevDependencies: {}
       }
@@ -239,6 +246,7 @@ test('compile', t => {
         raw: undefined,
         dependencies: {},
         devDependencies: {},
+        peerDependencies: {},
         ambientDependencies: {},
         ambientDevDependencies: {}
       }
@@ -279,6 +287,7 @@ test('compile', t => {
         typings: join(FIXTURE_DIR, 'node.d.ts'),
         dependencies: {},
         devDependencies: {},
+        peerDependencies: {},
         ambientDependencies: {},
         ambientDevDependencies: {}
       }
@@ -290,6 +299,7 @@ test('compile', t => {
         typings: join(FIXTURE_DIR, 'fs.d.ts'),
         dependencies: {},
         devDependencies: {},
+        peerDependencies: {},
         ambientDependencies: {},
         ambientDevDependencies: {}
       }
@@ -319,6 +329,7 @@ test('compile', t => {
         typings,
         dependencies: {},
         devDependencies: {},
+        peerDependencies: {},
         ambientDependencies: {},
         ambientDevDependencies: {}
       }
@@ -352,6 +363,7 @@ test('compile', t => {
       typings: 'http://example.com/typings/index.d.ts',
       dependencies: {},
       devDependencies: {},
+      peerDependencies: {},
       ambientDependencies: {},
       ambientDevDependencies: {}
     }
@@ -372,6 +384,7 @@ test('compile', t => {
       raw: undefined,
       dependencies: {},
       devDependencies: {},
+      peerDependencies: {},
       ambientDependencies: {},
       ambientDevDependencies: {}
     }
@@ -393,6 +406,7 @@ test('compile', t => {
       raw: undefined,
       dependencies: {},
       devDependencies: {},
+      peerDependencies: {},
       ambientDependencies: {},
       ambientDevDependencies: {}
     }
@@ -403,6 +417,7 @@ test('compile', t => {
       src: join(FIXTURE_DIR, 'node_modules/test/package.json'),
       dependencies: {},
       devDependencies: {},
+      peerDependencies: {},
       ambientDependencies: {},
       ambientDevDependencies: {}
     }
@@ -487,6 +502,7 @@ test('compile', t => {
       typings: 'http://example.com/index.d.ts',
       dependencies: {},
       devDependencies: {},
+      peerDependencies: {},
       ambientDependencies: {},
       ambientDevDependencies: {}
     }

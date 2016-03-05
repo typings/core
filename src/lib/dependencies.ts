@@ -25,6 +25,7 @@ const DEFAULT_DEPENDENCY: DependencyTree = {
   version: undefined,
   dependencies: {},
   devDependencies: {},
+  peerDependencies: {},
   ambientDependencies: {},
   ambientDevDependencies: {}
 }
@@ -35,6 +36,7 @@ const DEFAULT_DEPENDENCY: DependencyTree = {
 export interface Options {
   cwd: string
   dev?: boolean
+  peer?: boolean
   ambient?: boolean
 }
 
@@ -223,10 +225,11 @@ function resolveBowerDependencyMap (
   parent: DependencyTree
 ): Promise<DependencyBranch> {
   const keys = Object.keys(dependencies)
+  const { cwd } = options
 
   return Promise.all(keys.map(function (name) {
     const modulePath = resolve(componentPath, name, 'bower.json')
-    const resolveOptions = extend(options, { dev: false, ambient: false })
+    const resolveOptions: Options = { dev: false, ambient: false, peer: false, cwd }
 
     return resolveBowerDependencyFrom(modulePath, `bower:${name}`, componentPath, resolveOptions, parent)
   }))
@@ -271,15 +274,18 @@ function resolveNpmDependencyFrom (src: string, raw: string, options: Options, p
 
         const dependencyMap = extend(packageJson.dependencies, packageJson.peerDependencies)
         const devDependencyMap = extend(options.dev ? packageJson.devDependencies : {})
+        const peerDependencyMap = extend(options.peer ? packageJson.peerDependencies : {})
 
         return Promise.all([
           resolveNpmDependencyMap(src, dependencyMap, options, tree),
           resolveNpmDependencyMap(src, devDependencyMap, options, tree),
+          resolveNpmDependencyMap(src, peerDependencyMap, options, tree),
           maybeResolveTypeDependencyFrom(join(src, '..', CONFIG_FILE), raw, options, tree)
         ])
-          .then(function ([dependencies, devDependencies, typedPackage]) {
+          .then(function ([dependencies, devDependencies, peerDependencies, typedPackage]) {
             tree.dependencies = dependencies
             tree.devDependencies = devDependencies
+            tree.peerDependencies = peerDependencies
 
             return mergeDependencies(tree, typedPackage)
           })
@@ -298,7 +304,7 @@ function resolveNpmDependencyMap (src: string, dependencies: any, options: Optio
   const keys = Object.keys(dependencies)
 
   return Promise.all(keys.map(function (name) {
-    const resolveOptions = extend(options, { dev: false, ambient: false, cwd })
+    const resolveOptions: Options = { dev: false, peer: false, ambient: false, cwd }
 
     return resolveNpmDependency(join(name, 'package.json'), `npm:${name}`, resolveOptions, parent)
   }))
@@ -342,22 +348,25 @@ function resolveTypeDependencyFrom (src: string, raw: string, options: Options, 
           parent
         })
 
-        const { ambient, dev } = options
+        const { ambient, dev, peer } = options
 
         const dependencyMap = extend(config.dependencies)
         const devDependencyMap = extend(dev ? config.devDependencies : {})
+        const peerDependencyMap = extend(peer ? config.peerDependencies : {})
         const ambientDependencyMap = extend(ambient ? config.ambientDependencies : {})
         const ambientDevDependencyMap = extend(ambient && dev ? config.ambientDevDependencies : {})
 
         return Promise.all([
           resolveTypeDependencyMap(src, dependencyMap, options, tree),
           resolveTypeDependencyMap(src, devDependencyMap, options, tree),
+          resolveTypeDependencyMap(src, peerDependencyMap, options, tree),
           resolveTypeDependencyMap(src, ambientDependencyMap, options, tree),
           resolveTypeDependencyMap(src, ambientDevDependencyMap, options, tree),
         ])
-          .then(function ([dependencies, devDependencies, ambientDependencies, ambientDevDependencies]) {
+          .then(function ([dependencies, devDependencies, peerDependencies, ambientDependencies, ambientDevDependencies]) {
             tree.dependencies = dependencies
             tree.devDependencies = devDependencies
+            tree.peerDependencies = peerDependencies
             tree.ambientDependencies = ambientDependencies
             tree.ambientDevDependencies = ambientDevDependencies
 
@@ -385,7 +394,7 @@ function resolveTypeDependencyMap (src: string, dependencies: any, options: Opti
   const keys = Object.keys(dependencies)
 
   return Promise.all(keys.map(function (name) {
-    const resolveOptions = extend(options, { dev: false, ambient: false, cwd })
+    const resolveOptions: Options = { dev: false, ambient: false, peer: false, cwd }
 
     return resolveDependency(parseDependency(dependencies[name]), resolveOptions, parent)
   }))
@@ -451,6 +460,7 @@ function mergeDependencies (...trees: DependencyTree[]): DependencyTree {
 
     dependency.dependencies = extend(dependency.dependencies, tree.dependencies)
     dependency.devDependencies = extend(dependency.devDependencies, tree.devDependencies)
+    dependency.peerDependencies = extend(dependency.peerDependencies, tree.peerDependencies)
     dependency.ambientDependencies = extend(dependency.ambientDependencies, tree.ambientDependencies)
     dependency.ambientDevDependencies = extend(dependency.ambientDevDependencies, tree.ambientDevDependencies)
   }

@@ -19,6 +19,7 @@ test('dependencies', t => {
         browserTypings: undefined,
         dependencies: {},
         devDependencies: {},
+        peerDependencies: {},
         ambientDependencies: {},
         ambientDevDependencies: {}
       }
@@ -30,6 +31,7 @@ test('dependencies', t => {
         browserTypings: undefined,
         dependencies: {},
         devDependencies: {},
+        peerDependencies: {},
         ambientDependencies: {},
         ambientDevDependencies: {},
         name: 'bower-dep',
@@ -49,6 +51,7 @@ test('dependencies', t => {
         name: 'example',
         dependencies: {},
         devDependencies: {},
+        peerDependencies: {},
         ambientDependencies: {},
         ambientDevDependencies: {}
       }
@@ -63,6 +66,7 @@ test('dependencies', t => {
         browserTypings: undefined,
         dependencies: {},
         devDependencies: {},
+        peerDependencies: {},
         ambientDependencies: {},
         ambientDevDependencies: {}
       }
@@ -78,6 +82,7 @@ test('dependencies', t => {
         name: 'npm-dep',
         dependencies: {},
         devDependencies: {},
+        peerDependencies: {},
         ambientDependencies: {},
         ambientDevDependencies: {}
       }
@@ -89,6 +94,7 @@ test('dependencies', t => {
         browserTypings: undefined,
         dependencies: {},
         devDependencies: {},
+        peerDependencies: {},
         main: undefined,
         name: 'dep',
         raw: 'bower:dep',

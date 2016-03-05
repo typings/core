@@ -4,7 +4,8 @@ import { dirname } from 'path'
 import { resolveDependency, resolveTypeDependencies } from './lib/dependencies'
 import compile, { Options as CompileOptions, CompiledOutput } from './lib/compile'
 import { findProject } from './utils/find'
-import { writeDependency, transformConfig, mkdirp, getTypingsLocation, touch } from './utils/fs'
+import { transformConfig, mkdirp, touch, writeFile, transformDtsFile } from './utils/fs'
+import { getTypingsLocation, getDependencyLocation } from './utils/path'
 import { parseDependency } from './utils/parse'
 import { DependencyTree, Dependency, DependencyBranch } from './interfaces/main'
 
@@ -14,6 +15,7 @@ import { DependencyTree, Dependency, DependencyBranch } from './interfaces/main'
 export interface InstallDependencyOptions {
   save?: boolean
   saveDev?: boolean
+  savePeer?: boolean
   ambient?: boolean
   name: string
   cwd: string
@@ -32,7 +34,7 @@ export interface InstallOptions {
  * Install all dependencies on the current project.
  */
 export function install (options: InstallOptions): Promise<{ tree: DependencyTree }> {
-  return resolveTypeDependencies({ cwd: options.cwd, dev: !options.production, ambient: true })
+  return resolveTypeDependencies({ cwd: options.cwd, dev: !options.production, ambient: true, peer: true })
     .then(tree => {
       const cwd = dirname(tree.src)
       const queue: Array<Promise<any>> = []
@@ -47,6 +49,7 @@ export function install (options: InstallOptions): Promise<{ tree: DependencyTre
 
       addToQueue(tree.dependencies, false)
       addToQueue(tree.devDependencies, false)
+      addToQueue(tree.peerDependencies, false)
       addToQueue(tree.ambientDependencies, true)
       addToQueue(tree.ambientDevDependencies, true)
 
@@ -88,13 +91,14 @@ export function installDependency (dependency: string, options: InstallDependenc
  */
 function installTo (location: string, options: InstallDependencyOptions): Promise<CompiledOutput> {
   const dependency = parseDependency(location)
+  const { cwd, name, ambient } = options
 
-  return resolveDependency(dependency, options)
+  return resolveDependency(dependency, { cwd, dev: false, peer: false, ambient: false })
     .then(tree => {
       return installDependencyTree(tree, {
-        cwd: options.cwd,
-        name: options.name,
-        ambient: options.ambient,
+        cwd,
+        name,
+        ambient,
         meta: true
       })
         .then(result => {
@@ -131,6 +135,12 @@ function writeToConfig (dependency: Dependency, options: InstallDependencyOption
         } else {
           config.devDependencies = extend(config.devDependencies, { [options.name]: raw })
         }
+      } else if (options.savePeer) {
+        if (options.ambient) {
+          return Promise.reject(new TypeError('Unable to use `savePeer` with the `ambient` flag'))
+        } else {
+          config.peerDependencies = extend(config.peerDependencies, { [options.name]: raw })
+        }
       }
 
       return config
@@ -138,4 +148,24 @@ function writeToConfig (dependency: Dependency, options: InstallDependencyOption
   }
 
   return Promise.resolve()
+}
+
+/**
+ * Write a dependency to the filesytem.
+ */
+export function writeDependency (output: CompiledOutput, options: InstallDependencyOptions): Promise<CompiledOutput> {
+  const location = getDependencyLocation(options)
+
+  // Execute the dependency creation flow.
+  function create (path: string, file: string, contents: string, dtsFile: string) {
+    return mkdirp(path)
+      .then(() => writeFile(file, contents))
+      .then(() => transformDtsFile(dtsFile, typings => typings.concat([file])))
+  }
+
+  // Create both typings concurrently.
+  return Promise.all([
+    create(location.mainPath, location.mainFile, output.main, location.mainDtsFile),
+    create(location.browserPath, location.browserFile, output.browser, location.browserDtsFile)
+  ]).then(() => output)
 }

@@ -1,6 +1,12 @@
-import { resolve, dirname, basename, relative, extname } from 'path'
+import { resolve, dirname, basename, relative, extname, join } from 'path'
 import { resolve as resolveUrl, parse as parseUrl } from 'url'
+import { TYPINGS_DIR, DTS_MAIN_FILE, DTS_BROWSER_FILE } from './config'
 import isAbsolute = require('is-absolute')
+
+const mainTypingsDir = join(TYPINGS_DIR, 'main/definitions')
+const browserTypingsDir = join(TYPINGS_DIR, 'browser/definitions')
+const ambientMainTypingsDir = join(TYPINGS_DIR, 'main/ambient')
+const ambientBrowserTypingsDir = join(TYPINGS_DIR, 'browser/ambient')
 
 /**
  * Check if a path looks like a HTTP url.
@@ -124,4 +130,48 @@ export function normalizeToDefinition (path: string) {
   const ext = extname(path)
 
   return toDefinition(ext ? path.slice(0, -ext.length) : path)
+}
+
+/**
+ * Get definition installation paths.
+ */
+export function getTypingsLocation (options: { cwd: string }) {
+  const typingsDir = join(options.cwd, TYPINGS_DIR)
+  const mainDtsFile = join(typingsDir, DTS_MAIN_FILE)
+  const browserDtsFile = join(typingsDir, DTS_BROWSER_FILE)
+
+  return { typingsDir, mainDtsFile, browserDtsFile }
+}
+
+/**
+ * Options for interacting with dependencies.
+ */
+export interface DefinitionOptions {
+  cwd: string
+  name: string
+  ambient?: boolean
+}
+
+/**
+ * Return the dependency output locations based on definition options.
+ */
+export function getDependencyLocation (options: DefinitionOptions) {
+  const mainDir = options.ambient ? ambientMainTypingsDir : mainTypingsDir
+  const browserDir = options.ambient ? ambientBrowserTypingsDir : browserTypingsDir
+
+  const { typingsDir, mainDtsFile, browserDtsFile } = getTypingsLocation(options)
+
+  const mainPath = join(options.cwd, mainDir, options.name)
+  const browserPath = join(options.cwd, browserDir, options.name)
+  const mainFile = join(mainPath, 'index.d.ts')
+  const browserFile = join(browserPath, 'index.d.ts')
+
+  return {
+    mainFile,
+    browserFile,
+    mainPath,
+    browserPath,
+    mainDtsFile,
+    browserDtsFile
+  }
 }

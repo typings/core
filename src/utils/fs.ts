@@ -28,11 +28,6 @@ import debug from './debug'
 
 const pkg = require('../../package.json')
 
-const mainTypingsDir = join(TYPINGS_DIR, 'main/definitions')
-const browserTypingsDir = join(TYPINGS_DIR, 'browser/definitions')
-const ambientMainTypingsDir = join(TYPINGS_DIR, 'main/ambient')
-const ambientBrowserTypingsDir = join(TYPINGS_DIR, 'browser/ambient')
-
 export type Stats = fs.Stats
 
 export const touch: (path: string, options?: tch.Options) => Promise<void> = thenify<string, tch.Options, void>(tch)
@@ -213,6 +208,10 @@ export function transformConfig (cwd: string, transform: (config: ConfigJson) =>
           config.dependencies = sortKeys(config.dependencies)
         }
 
+        if (config.peerDependencies) {
+          config.peerDependencies = sortKeys(config.peerDependencies)
+        }
+
         if (config.devDependencies) {
           config.devDependencies = sortKeys(config.devDependencies)
         }
@@ -239,90 +238,6 @@ export function transformDtsFile (path: string, transform: (typings: string[]) =
     return Promise.resolve(transform(typings))
       .then(typings => stringifyReferences(uniq(typings).sort(), cwd))
   })
-}
-
-/**
- * Options for interacting with dependencies.
- */
-export interface DefinitionOptions {
-  cwd: string
-  name: string
-  ambient: boolean
-}
-
-/**
- * Write a dependency to the filesytem.
- */
-export function writeDependency (output: CompiledOutput, options: DefinitionOptions): Promise<CompiledOutput> {
-  const location = getDependencyLocation(options)
-
-  // Execute the dependency creation flow.
-  function create (path: string, file: string, contents: string, dtsFile: string) {
-    return mkdirp(path)
-      .then(() => writeFile(file, contents))
-      .then(() => transformDtsFile(dtsFile, typings => typings.concat([file])))
-  }
-
-  // Create both typings concurrently.
-  return Promise.all([
-    create(location.mainPath, location.mainFile, output.main, location.mainDtsFile),
-    create(location.browserPath, location.browserFile, output.browser, location.browserDtsFile)
-  ]).then(() => output)
-}
-
-/**
- * Remove a dependency from the filesystem.
- */
-export function removeDependency (options: DefinitionOptions) {
-  const location = getDependencyLocation(options)
-
-  // Remove the dependency from typings.
-  function remove (path: string, file: string, dtsFile: string) {
-    return promiseFinally(rimraf(path), () => {
-      return transformDtsFile(dtsFile, typings => typings.filter(x => x !== file))
-    })
-  }
-
-  // Remove dependencies concurrently.
-  return Promise.all([
-    remove(location.mainPath, location.mainFile, location.mainDtsFile),
-    remove(location.browserPath, location.browserFile, location.browserDtsFile)
-  ]).then(() => undefined)
-}
-
-/**
- * Get definition installation paths.
- */
-export function getTypingsLocation (options: { cwd: string }) {
-  const typingsDir = join(options.cwd, TYPINGS_DIR)
-  const mainDtsFile = join(typingsDir, DTS_MAIN_FILE)
-  const browserDtsFile = join(typingsDir, DTS_BROWSER_FILE)
-
-  return { typingsDir, mainDtsFile, browserDtsFile }
-}
-
-/**
- * Return the dependency output locations based on definition options.
- */
-export function getDependencyLocation (options: DefinitionOptions) {
-  const mainDir = options.ambient ? ambientMainTypingsDir : mainTypingsDir
-  const browserDir = options.ambient ? ambientBrowserTypingsDir : browserTypingsDir
-
-  const { typingsDir, mainDtsFile, browserDtsFile } = getTypingsLocation(options)
-
-  const mainPath = join(options.cwd, mainDir, options.name)
-  const browserPath = join(options.cwd, browserDir, options.name)
-  const mainFile = join(mainPath, 'index.d.ts')
-  const browserFile = join(browserPath, 'index.d.ts')
-
-  return {
-    mainFile,
-    browserFile,
-    mainPath,
-    browserPath,
-    mainDtsFile,
-    browserDtsFile
-  }
 }
 
 /**

@@ -15,6 +15,9 @@ const OLD_DEFINITELYTYPED_REPO = 'borisyankov/DefinitelyTyped'
  */
 export interface InitOptions {
   cwd: string
+  name?: string
+  main?: string
+  version?: string
   upgrade?: boolean
 }
 
@@ -22,8 +25,7 @@ export interface InitOptions {
  * The default configuration file to initialize.
  */
 const DEFAULT_CONFIG: ConfigJson = {
-  dependencies: {},
-  devDependencies: {}
+  dependencies: {}
 }
 
 /**
@@ -55,7 +57,7 @@ const PACKAGE_FILES: string[] = [
  * Update an old `tsd.json` format to the new format.
  */
 function upgradeTsdJson (tsdJson: TsdJson, config?: ConfigJson): ConfigJson {
-  const typingsJson: ConfigJson = extend(config)
+  const typingsJson = extend(config)
   let repo = tsdJson.repo || DEFINITELYTYPED_REPO
 
   // Rewrite the old repo name which probably hasn't been updated in `tsd.json`.
@@ -89,7 +91,11 @@ function upgrade (options: InitOptions, config?: ConfigJson) {
 /**
  * Make a smart guess of the project name from other config files.
  */
-function guessProjectName (options: InitOptions): Promise<string> {
+function getProjectName (options: InitOptions): Promise<string> {
+  if (options.name) {
+    return Promise.resolve(options.name)
+  }
+
   return PACKAGE_FILES.reduce((promise, packageFileName) => {
     return promise.then(function (name) {
       if (name != null) {
@@ -110,6 +116,7 @@ function guessProjectName (options: InitOptions): Promise<string> {
  */
 export function init (options: InitOptions) {
   const path = join(options.cwd, CONFIG_FILE)
+  const { main, version } = options
 
   return isFile(path)
     .then<ConfigJson>(exists => {
@@ -117,13 +124,13 @@ export function init (options: InitOptions) {
         return Promise.reject(new TypeError(`A ${CONFIG_FILE} file already exists`))
       }
     })
-    .then(() => guessProjectName(options))
+    .then(() => getProjectName(options))
     .then(name => {
       if (options.upgrade) {
-        return upgrade(options, { name })
+        return upgrade(options, { name, main, version })
       }
 
-      return extend({ name }, DEFAULT_CONFIG)
+      return extend({ name, main, version }, DEFAULT_CONFIG)
     })
     .then(function (config) {
       return writeJson(path, config, 2)

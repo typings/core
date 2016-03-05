@@ -17,7 +17,7 @@ export interface InstallDependencyOptions {
   saveDev?: boolean
   savePeer?: boolean
   ambient?: boolean
-  name: string
+  name?: string
   cwd: string
   source?: string
 }
@@ -75,10 +75,6 @@ export function install (options: InstallOptions): Promise<{ tree: DependencyTre
  * Install a dependency into the currect project.
  */
 export function installDependency (dependency: string, options: InstallDependencyOptions): Promise<CompiledOutput> {
-  if (!options.name) {
-    return Promise.reject(new TypeError('You must specify a name for the dependency'))
-  }
-
   return findProject(options.cwd)
     .then(
       (cwd) => installTo(dependency, extend(options, { cwd })),
@@ -91,10 +87,16 @@ export function installDependency (dependency: string, options: InstallDependenc
  */
 function installTo (location: string, options: InstallDependencyOptions): Promise<CompiledOutput> {
   const dependency = parseDependency(location)
-  const { cwd, name, ambient } = options
+  const { cwd, ambient } = options
 
   return resolveDependency(dependency, { cwd, dev: false, peer: false, ambient: false })
     .then(tree => {
+      const name = options.name || tree.name
+
+      if (!name) {
+        return Promise.reject(new TypeError(`Unable to install dependency from "${location}" without a name`))
+      }
+
       return installDependencyTree(tree, {
         cwd,
         name,
@@ -102,7 +104,7 @@ function installTo (location: string, options: InstallDependencyOptions): Promis
         meta: true
       })
         .then(result => {
-          return writeToConfig(dependency, options).then(() => result)
+          return writeToConfig(name, dependency, options).then(() => result)
         })
     })
 }
@@ -117,29 +119,29 @@ function installDependencyTree (tree: DependencyTree, options: CompileOptions): 
 /**
  * Write a dependency to the configuration file.
  */
-function writeToConfig (dependency: Dependency, options: InstallDependencyOptions) {
-  if (options.save || options.saveDev) {
+function writeToConfig (name: string, dependency: Dependency, options: InstallDependencyOptions) {
+  if (options.save || options.saveDev || options.savePeer) {
     const { raw } = dependency
 
     return transformConfig(options.cwd, config => {
       // Extend different fields depending on the option passed in.
       if (options.save) {
         if (options.ambient) {
-          config.ambientDependencies = extend(config.ambientDependencies, { [options.name]: raw })
+          config.ambientDependencies = extend(config.ambientDependencies, { [name]: raw })
         } else {
-          config.dependencies = extend(config.dependencies, { [options.name]: raw })
+          config.dependencies = extend(config.dependencies, { [name]: raw })
         }
       } else if (options.saveDev) {
         if (options.ambient) {
-          config.ambientDevDependencies = extend(config.ambientDevDependencies, { [options.name]: raw })
+          config.ambientDevDependencies = extend(config.ambientDevDependencies, { [name]: raw })
         } else {
-          config.devDependencies = extend(config.devDependencies, { [options.name]: raw })
+          config.devDependencies = extend(config.devDependencies, { [name]: raw })
         }
       } else if (options.savePeer) {
         if (options.ambient) {
           return Promise.reject(new TypeError('Unable to use `savePeer` with the `ambient` flag'))
         } else {
-          config.peerDependencies = extend(config.peerDependencies, { [options.name]: raw })
+          config.peerDependencies = extend(config.peerDependencies, { [name]: raw })
         }
       }
 
@@ -153,7 +155,7 @@ function writeToConfig (dependency: Dependency, options: InstallDependencyOption
 /**
  * Write a dependency to the filesytem.
  */
-export function writeDependency (output: CompiledOutput, options: InstallDependencyOptions): Promise<CompiledOutput> {
+export function writeDependency (output: CompiledOutput, options: CompileOptions): Promise<CompiledOutput> {
   const location = getDependencyLocation(options)
 
   // Execute the dependency creation flow.

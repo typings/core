@@ -171,30 +171,3 @@ export function resolveDependency (raw: string, path: string) {
 
   throw new TypeError(`Unable to resolve dependency from unknown scheme`)
 }
-
-/**
- * Infer a dependency name from the installation location.
- */
-export function inferDependencyName (raw: string) {
-  const { type, meta, location } = parseDependency(raw)
-
-  if (type === 'npm' || type === 'bower') {
-    return meta.name
-  }
-
-  if (type === 'http' || type === 'https' || type === 'file') {
-    return inferDefinitionName(location)
-  }
-
-  if (type === 'github' || type === 'bitbucket') {
-    const { org, repo, path } = meta
-
-    if (isDefinition(path)) {
-      return inferDefinitionName(path)
-    }
-
-    return sanitizeDefinitionName(repo)
-  }
-
-  throw new TypeError(`Unable to infer dependency name from unknown scheme`)
-}

@@ -60,6 +60,7 @@ test('install', t => {
 
   t.test('install dependency', t => {
     const DEPENDENCY = 'file:custom_typings/definition.d.ts'
+    const PEER_DEPENDENCY = 'file:custom_typings/named/typings.json'
     const AMBIENT_DEPENDENCY = 'file:custom_typings/ambient.d.ts'
     const FIXTURE_DIR = join(__dirname, '__test__/install-dependency-fixture')
     const CONFIG = join(FIXTURE_DIR, CONFIG_FILE)
@@ -80,6 +81,10 @@ test('install', t => {
             saveDev: true,
             ambient: true,
             name: 'ambient-test'
+          }),
+          installDependency(PEER_DEPENDENCY, {
+            cwd: FIXTURE_DIR,
+            savePeer: true
           })
         ])
       })
@@ -91,10 +96,25 @@ test('install', t => {
           devDependencies: {
             '@scope/test': DEPENDENCY
           },
+          peerDependencies: {
+            named: PEER_DEPENDENCY
+          },
           ambientDevDependencies: {
             'ambient-test': AMBIENT_DEPENDENCY
           }
         })
+      })
+  })
+
+  t.test('reject install if name is missing', t => {
+    const DEPENDENCY = 'file:custom_typings/definition.d.ts'
+    const FIXTURE_DIR = join(__dirname, '__test__/install-dependency-fixture')
+
+    t.plan(1)
+
+    return installDependency(DEPENDENCY, { cwd: FIXTURE_DIR })
+      .catch(err => {
+        t.ok(/^Unable to install dependency/.test(err.message))
       })
   })
 

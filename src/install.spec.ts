@@ -50,7 +50,8 @@ test('install', t => {
           `function test (): boolean`,
           ``,
           `export default test`,
-          `}`
+          `}`,
+          ``
         ].join(EOL))
 
         t.equal(ambientMainFile, [

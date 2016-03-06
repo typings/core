@@ -286,7 +286,7 @@ function resolveNpmDependencyFrom (src: string, raw: string, options: Options, p
           parent
         })
 
-        const dependencyMap = extend(packageJson.dependencies, packageJson.peerDependencies)
+        const dependencyMap = extend(packageJson.dependencies)
         const devDependencyMap = extend(options.dev ? packageJson.devDependencies : {})
         const peerDependencyMap = extend(options.peer ? packageJson.peerDependencies : {})
 

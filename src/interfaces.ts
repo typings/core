@@ -28,6 +28,7 @@ export interface ConfigJson {
   typings?: string | boolean
   browserTypings?: string | Browser
   version?: string
+  files?: string[]
 
   // Meta information.
   name?: string
@@ -72,6 +73,7 @@ export interface DependencyTree {
   typings?: string
   browserTypings?: Browser
   parent?: DependencyTree
+  files?: string[]
   src: string
   raw: string
   dependencies: DependencyBranch

@@ -37,11 +37,11 @@ export interface CompiledOutput {
  * Compile a dependency tree using a root name.
  */
 export default function compile (tree: DependencyTree, options: Options): Promise<CompiledOutput> {
-  const files: ts.Map<Promise<string>> = {}
+  const readFiles: ts.Map<Promise<string>> = {}
 
   return Promise.all([
-    compileDependencyTree(tree, extend(options, { browser: false, files })),
-    compileDependencyTree(tree, extend(options, { browser: true, files }))
+    compileDependencyTree(tree, extend(options, { browser: false, readFiles })),
+    compileDependencyTree(tree, extend(options, { browser: true, readFiles }))
   ])
     .then(([main, browser]) => {
       return {
@@ -56,8 +56,8 @@ export default function compile (tree: DependencyTree, options: Options): Promis
  * Extends the default options with different compilation settings.
  */
 interface CompileOptions extends Options {
-  files: ts.Map<Promise<string>>
   browser: boolean
+  readFiles: ts.Map<Promise<string>>
   name: string
 }
 
@@ -150,7 +150,21 @@ function getStringifyOptions (
  * Compile a dependency tree to a single definition.
  */
 function compileDependencyTree (tree: DependencyTree, options: CompileOptions): Promise<string> {
-  return compileDependencyPath(null, getStringifyOptions(tree, options, undefined))
+  const stringifyOptions = getStringifyOptions(tree, options, undefined)
+  const contents: Array<Promise<string>> = []
+
+  if (Array.isArray(tree.files)) {
+    for (const file of tree.files) {
+      contents.push(compileDependencyPath(file, stringifyOptions))
+    }
+  }
+
+  // Supports only having `files` specified.
+  if (stringifyOptions.entry || contents.length === 0) {
+    contents.push(compileDependencyPath(null, stringifyOptions))
+  }
+
+  return Promise.all(contents).then(out => out.join(EOL + EOL))
 }
 
 /**
@@ -192,12 +206,12 @@ interface StringifyOptions extends CompileOptions {
 /**
  * Read a file with a backup cache object.
  */
-function cachedReadFileFrom (path: string, options: { files: ts.Map<Promise<string>> }) {
-  if (!has(options.files, path)) {
-    options.files[path] = readFileFrom(path)
+function cachedReadFileFrom (path: string, options: StringifyOptions) {
+  if (!has(options.readFiles, path)) {
+    options.readFiles[path] = readFileFrom(path)
   }
 
-  return options.files[path]
+  return options.readFiles[path]
 }
 
 /**
@@ -248,13 +262,13 @@ function getDependency (name: string, options: StringifyOptions): DependencyTree
  */
 function stringifyDependencyPath (path: string, options: StringifyOptions): Promise<string> {
   const resolved = getPath(path, options)
-  const { tree, ambient, cwd, browser, name, files, meta, entry, emitter } = options
+  const { tree, ambient, cwd, browser, name, readFiles, meta, entry, emitter } = options
   const { raw, src } = tree
 
   // Load a dependency path.
   function loadByModuleName (path: string) {
     const [moduleName, modulePath] = getModuleNameParts(path)
-    const compileOptions = { cwd, browser, files, emitter, name: moduleName, ambient: false, meta }
+    const compileOptions = { cwd, browser, readFiles, emitter, name: moduleName, ambient: false, meta }
     const stringifyOptions = cachedStringifyOptions(moduleName, compileOptions, options)
 
     // When no options are returned, the dependency is missing.

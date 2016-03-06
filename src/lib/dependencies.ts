@@ -23,6 +23,7 @@ const DEFAULT_DEPENDENCY: DependencyTree = {
   typings: undefined,
   browserTypings: undefined,
   version: undefined,
+  files: undefined,
   dependencies: {},
   devDependencies: {},
   peerDependencies: {},
@@ -359,6 +360,7 @@ function resolveTypeDependencyFrom (src: string, raw: string, options: Options, 
           browser: config.browser,
           typings: config.typings,
           browserTypings: config.browserTypings,
+          files: Array.isArray(config.files) ? config.files : undefined,
           type: PROJECT_NAME,
           src,
           raw,
@@ -458,7 +460,7 @@ function mergeDependencies (root: DependencyTree, ...trees: DependencyTree[]): D
       continue
     }
 
-    const { name, raw, src, main, browser, typings, browserTypings, parent } = tree
+    const { name, raw, src, main, browser, typings, browserTypings, parent, files } = tree
 
     // The parent needs to always be set.
     if (parent != null) {
@@ -474,9 +476,10 @@ function mergeDependencies (root: DependencyTree, ...trees: DependencyTree[]): D
     }
 
     // Handle `main` and `typings` overrides all together.
-    if (main != null || browser != null || typings != null || browserTypings != null) {
+    if (main != null || browser != null || typings != null || browserTypings != null || files != null) {
       dependency.src = src
       dependency.main = main
+      dependency.files = files
       dependency.browser = browser
       dependency.typings = typings
       dependency.browserTypings = browserTypings

@@ -15,6 +15,7 @@ test('dependencies', t => {
         name: 'foobar',
         src: join(RESOLVE_FIXTURE_DIR, 'typings.json'),
         main: 'foo.d.ts',
+        files: undefined,
         version: undefined,
         browser: undefined,
         typings: undefined,
@@ -37,6 +38,7 @@ test('dependencies', t => {
         ambientDependencies: {},
         ambientDevDependencies: {},
         name: 'bower-dep',
+        files: undefined,
         version: undefined,
         main: 'index.js',
         browser: undefined
@@ -47,6 +49,7 @@ test('dependencies', t => {
         src: join(RESOLVE_FIXTURE_DIR, 'bower_components/example/bower.json'),
         main: undefined,
         browser: undefined,
+        files: undefined,
         version: undefined,
         typings: undefined,
         browserTypings: undefined,
@@ -64,6 +67,7 @@ test('dependencies', t => {
         typings: join(RESOLVE_FIXTURE_DIR, 'typings/dep.d.ts'),
         main: undefined,
         browser: undefined,
+        files: undefined,
         version: undefined,
         browserTypings: undefined,
         dependencies: {},
@@ -78,6 +82,7 @@ test('dependencies', t => {
         src: join(RESOLVE_FIXTURE_DIR, 'node_modules/npm-dep/package.json'),
         main: './index.js',
         browser: undefined,
+        files: undefined,
         version: undefined,
         typings: undefined,
         browserTypings: undefined,
@@ -102,6 +107,7 @@ test('dependencies', t => {
         raw: 'bower:dep',
         src: join(RESOLVE_FIXTURE_DIR, 'bower_components/dep/bower.json'),
         typings: undefined,
+        files: undefined,
         version: undefined
       }
 

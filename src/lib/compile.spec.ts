@@ -535,4 +535,36 @@ test('compile', t => {
         t.equal(result.main, "declare module 'test' {\nexport const helloWorld: string\n}")
       })
   })
+
+  t.test('resolve files array', t => {
+    const FIXTURE_DIR = join(FIXTURES_DIR, 'compile-files-array')
+
+    const tree: DependencyTree = {
+      src: join(FIXTURE_DIR, 'typings.json'),
+      raw: undefined,
+      files: ['a.d.ts', 'b.d.ts'],
+      dependencies: {},
+      devDependencies: {},
+      peerDependencies: {},
+      ambientDependencies: {},
+      ambientDevDependencies: {}
+    }
+
+    const emitter = new EventEmitter()
+
+    return compile(tree, { name: 'test', cwd: __dirname, ambient: false, meta: false, emitter })
+      .then(function (result) {
+        t.equal(result.main, result.browser)
+
+        t.equal(result.main, [
+          'declare module \'test/a\' {',
+          'export const a: boolean;',
+          '}',
+          '',
+          'declare module \'test/b\' {',
+          'export const b: boolean;',
+          '}'
+        ].join(EOL))
+      })
+  })
 })

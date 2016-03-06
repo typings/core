@@ -6,7 +6,7 @@ import { EOL } from 'os'
 import { join, relative } from 'path'
 import { DependencyTree, Overrides } from '../interfaces/main'
 import { readFileFrom } from '../utils/fs'
-import { resolveFrom, relativeTo, isHttp, isModuleName, normalizeSlashes, fromDefinition, normalizeToDefinition } from '../utils/path'
+import { resolveFrom, relativeTo, isHttp, isModuleName, normalizeSlashes, fromDefinition, normalizeToDefinition, toDefinition } from '../utils/path'
 import { REFERENCE_REGEXP } from '../utils/references'
 import { PROJECT_NAME, CONFIG_FILE, DEPENDENCY_SEPARATOR } from '../utils/config'
 import { resolveDependency } from '../utils/parse'
@@ -131,14 +131,40 @@ interface CompileOptions extends Options {
 }
 
 /**
- * Resolve an override location.
+ * Resolve override paths.
  */
-function resolveFromWithModuleName (src: string, to: string) {
-  if (to == null || typeof to === 'boolean' || isModuleName(to)) {
-    return to
+function resolveFromWithModuleNameOverride (src: string, to: string | boolean): string {
+  if (typeof to === 'string') {
+    if (isModuleName(to)) {
+      const [moduleName, modulePath] = getModuleNameParts(to)
+
+      return modulePath ? normalizeToDefinition(to) : moduleName
+    }
+
+    return resolveFrom(src, normalizeToDefinition(to))
   }
 
-  return resolveFrom(src, normalizeToDefinition(to))
+  return to ? src : undefined
+}
+
+/**
+ * Resolve modules and paths.
+ */
+function resolveFromWithModuleNamePath (src: string, to: string): string {
+  return isModuleName(to) ? to : resolveFrom(src, to)
+}
+
+/**
+ * Resolve module locations (appending `.d.ts` to paths).
+ */
+function resolveFromWithModuleName (src: string, to: string): string {
+  if (isModuleName(to)) {
+    const [moduleName, modulePath] = getModuleNameParts(to)
+
+    return modulePath ? toDefinition(to) : moduleName
+  }
+
+  return resolveFrom(src, toDefinition(to))
 }
 
 /**
@@ -154,8 +180,6 @@ function getStringifyOptions (
   const main = isTypings ? tree.typings : tree.main
   const browser = isTypings ? tree.browserTypings : tree.browser
 
-  // TODO(blakeembrey): Warn when using `typings` and a browser field.
-
   if (options.browser && browser) {
     if (typeof browser === 'string') {
       const mainDefinition = resolveFrom(tree.src, normalizeToDefinition(main))
@@ -164,8 +188,8 @@ function getStringifyOptions (
       overrides[mainDefinition] = browserDefinition
     } else {
       for (const key of Object.keys(browser)) {
-        const from = resolveFromWithModuleName(tree.src, key)
-        const to = resolveFromWithModuleName(tree.src, browser[key])
+        const from = resolveFromWithModuleNameOverride(tree.src, key) as string
+        const to = resolveFromWithModuleNameOverride(tree.src, browser[key])
 
         overrides[from] = to
       }
@@ -276,14 +300,14 @@ function getPath (path: string, options: StringifyOptions) {
 /**
  * Get dependency from stringify options.
  */
-function getDependency (name: string, options: StringifyOptions) {
+function getDependency (name: string, options: StringifyOptions): DependencyTree {
   const { tree, overrides } = options
 
-  if (has(options.overrides, name)) {
-    return tree.dependencies[overrides[name]]
-  }
-
-  if (has(tree.dependencies, name)) {
+  if (has(overrides, name)) {
+    if (overrides[name]) {
+      return tree.dependencies[overrides[name] as string]
+    }
+  } else if (has(tree.dependencies, name)) {
     return tree.dependencies[name]
   }
 }
@@ -292,7 +316,7 @@ function getDependency (name: string, options: StringifyOptions) {
  * Stringify a dependency file.
  */
 function stringifyDependencyPath (path: string, options: StringifyOptions): Promise<CompiledResult> {
-  const resolved = getPath(normalizeToDefinition(path), options)
+  const resolved = getPath(path, options)
   const { tree, ambient, cwd, browser, name, files, meta, entry } = options
   const { raw, src } = tree
 
@@ -431,6 +455,33 @@ function getModuleNameParts (name: string): [string, string] {
 }
 
 /**
+ * Normalize import paths against the prefix.
+ */
+function importPath (path: string, name: string, options: StringifyOptions) {
+  const resolved = getPath(resolveFromWithModuleName(path, name), options)
+  const { prefix, tree } = options
+
+  if (isModuleName(resolved)) {
+    const [moduleName, modulePath] = getModuleNameParts(resolved)
+
+    // If the dependency is not available, *do not* transform - it's probably ambient.
+    if (options.dependencies[moduleName] == null) {
+      return name
+    }
+
+    return `${prefix}${DEPENDENCY_SEPARATOR}${modulePath ? fromDefinition(resolved) : resolved}`
+  }
+
+  const relativePath = relativeTo(tree.src, fromDefinition(resolved))
+
+  if (!options.parent) {
+    return normalizeSlashes(join(options.name, relativePath))
+  }
+
+  return normalizeSlashes(join(prefix, relativePath))
+}
+
+/**
  * Stringify a dependency file contents.
  */
 function stringifyFile (path: string, rawContents: string, rawPath: string, options: StringifyOptions) {
@@ -458,30 +509,6 @@ function stringifyFile (path: string, rawContents: string, rawPath: string, opti
   let hasDefaultExport = false
   let hasExportEquals = false
 
-  // Stringify the import path to a namespaced import.
-  function importPath (name: string) {
-    const resolved = getPath(resolveFromWithModuleName(path, name), options)
-
-    if (isModuleName(resolved)) {
-      const [moduleName] = getModuleNameParts(resolved)
-
-      // If the dependency is not available, *do not* transform - it's probably ambient.
-      if (options.dependencies[moduleName] == null) {
-        return name
-      }
-
-      return `${prefix}${DEPENDENCY_SEPARATOR}${resolved}`
-    }
-
-    const relativePath = relativeTo(tree.src, fromDefinition(resolved))
-
-    if (!options.parent) {
-      return normalizeSlashes(join(options.name, relativePath))
-    }
-
-    return normalizeSlashes(join(prefix, relativePath))
-  }
-
   // Custom replacer function to rewrite the file.
   function replacer (node: ts.Node) {
     // Flag `export =` as the main re-definition needs to be written different.
@@ -503,7 +530,7 @@ function stringifyFile (path: string, rawContents: string, rawPath: string, opti
         node.parent.kind === ts.SyntaxKind.ModuleDeclaration
       )
     ) {
-      return ` '${importPath((<ts.StringLiteral> node).text)}'`
+      return ` '${importPath(path, (<ts.StringLiteral> node).text, options)}'`
     }
 
     if (node.kind === ts.SyntaxKind.DeclareKeyword) {
@@ -514,9 +541,9 @@ function stringifyFile (path: string, rawContents: string, rawPath: string, opti
     }
 
     if (node.kind === ts.SyntaxKind.ExternalModuleReference) {
-      const path = importPath((node as any).expression.text)
+      const requirePath = importPath(path, (node as any).expression.text, options)
 
-      return ` require('${path}')`
+      return ` require('${requirePath}')`
     }
   }
 
@@ -553,7 +580,7 @@ function stringifyFile (path: string, rawContents: string, rawPath: string, opti
     return meta + declareText(moduleName, moduleText)
   }
 
-  const modulePath = importPath(path)
+  const modulePath = importPath(path, fromDefinition(path), options)
   const declared = declareText(modulePath, moduleText)
 
   if (!isEntry) {

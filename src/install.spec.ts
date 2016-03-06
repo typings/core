@@ -2,12 +2,15 @@ import test = require('blue-tape')
 import Promise = require('any-promise')
 import { EOL } from 'os'
 import { join, relative } from 'path'
+import { EventEmitter } from 'events'
 import { install, installDependency } from './install'
 import { readFile, readConfig, writeFile, rimraf } from './utils/fs'
 import { CONFIG_FILE } from './utils/config'
 import { VERSION } from './typings'
 
 test('install', t => {
+  const emitter = new EventEmitter()
+
   t.test('install everything', t => {
     const FIXTURE_DIR = join(__dirname, '__test__/install-fixture')
 
@@ -15,7 +18,7 @@ test('install', t => {
       .then(() => {
         return install({
           cwd: FIXTURE_DIR,
-          production: false
+          emitter
         })
       })
       .then(function () {
@@ -74,17 +77,20 @@ test('install', t => {
           installDependency(DEPENDENCY, {
             cwd: FIXTURE_DIR,
             saveDev: true,
-            name: '@scope/test'
+            name: '@scope/test',
+            emitter
           }),
           installDependency(AMBIENT_DEPENDENCY, {
             cwd: FIXTURE_DIR,
             saveDev: true,
             ambient: true,
-            name: 'ambient-test'
+            name: 'ambient-test',
+            emitter
           }),
           installDependency(PEER_DEPENDENCY, {
             cwd: FIXTURE_DIR,
-            savePeer: true
+            savePeer: true,
+            emitter
           })
         ])
       })
@@ -112,7 +118,7 @@ test('install', t => {
 
     t.plan(1)
 
-    return installDependency(DEPENDENCY, { cwd: FIXTURE_DIR })
+    return installDependency(DEPENDENCY, { cwd: FIXTURE_DIR, emitter })
       .catch(err => {
         t.ok(/^Unable to install dependency/.test(err.message))
       })
@@ -123,7 +129,8 @@ test('install', t => {
 
     return install({
       cwd: FIXTURE_DIR,
-      production: false
+      dev: true,
+      emitter
     })
       .then(function () {
         return Promise.all([

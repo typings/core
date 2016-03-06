@@ -21,7 +21,7 @@ import template = require('string-template')
 import { CONFIG_FILE, TYPINGS_DIR, DTS_MAIN_FILE, DTS_BROWSER_FILE, PRETTY_PROJECT_NAME, HOMEPAGE } from './config'
 import { isHttp, toDefinition } from './path'
 import { parseReferences, stringifyReferences } from './references'
-import { ConfigJson } from '../interfaces/main'
+import { ConfigJson } from '../interfaces'
 import { CompiledOutput } from '../lib/compile'
 import rc from './rc'
 import debug from './debug'

@@ -4,7 +4,7 @@ import has = require('has')
 import Promise = require('any-promise')
 import { EOL } from 'os'
 import { join, relative } from 'path'
-import { DependencyTree, Overrides } from '../interfaces/main'
+import { DependencyTree, Overrides, Emitter } from '../interfaces'
 import { readFileFrom } from '../utils/fs'
 import { resolveFrom, relativeTo, isHttp, isModuleName, normalizeSlashes, fromDefinition, normalizeToDefinition, toDefinition } from '../utils/path'
 import { REFERENCE_REGEXP } from '../utils/references'
@@ -21,31 +21,7 @@ export interface Options {
   name: string
   ambient: boolean
   meta: boolean
-}
-
-/**
- * References collected by compilation.
- */
-interface Reference {
-  path: string
-  raw: string
-  src: string
-  name: string
-}
-
-/**
- * The result of compiling a dependency tree.
- */
-interface CompiledResult {
-  contents: string
-  references: Reference[]
-}
-
-/**
- * Compiled reference map with usages.
- */
-export interface ReferenceMap {
-  [path: string]: Array<{ name: string; main: boolean; browser: boolean }>
+  emitter: Emitter
 }
 
 /**
@@ -55,7 +31,6 @@ export interface CompiledOutput {
   tree: DependencyTree
   main: string
   browser: string
-  references: ReferenceMap
 }
 
 /**
@@ -71,54 +46,10 @@ export default function compile (tree: DependencyTree, options: Options): Promis
     .then(([main, browser]) => {
       return {
         tree,
-        main: main.contents,
-        browser: browser.contents,
-        references: mergeReferences(main.references, browser.references)
+        main,
+        browser
       }
     })
-}
-
-/**
- * Create a reference map with the original sources.
- */
-function mergeReferences (main: Reference[], browser: Reference[]): ReferenceMap {
-  const map: ReferenceMap = {}
-
-  // Add each entry to the map, deduping as we go.
-  function addEntry (entry: Reference, browser: boolean) {
-    const { path, raw, src, name } = entry
-    const location = resolveDependency(raw, relativeTo(src, path))
-    const values = map[location] || (map[location] = [])
-
-    for (const value of values) {
-      if (value.name === name) {
-        // Set "browser" or "main" flags.
-        if (browser) {
-          value.browser = true
-        } else {
-          value.main = true
-        }
-
-        return
-      }
-    }
-
-    values.push({
-      name,
-      main: !browser,
-      browser
-    })
-  }
-
-  for (const entry of main) {
-    addEntry(entry, false)
-  }
-
-  for (const entry of browser) {
-    addEntry(entry, true)
-  }
-
-  return map
 }
 
 /**
@@ -218,14 +149,14 @@ function getStringifyOptions (
 /**
  * Compile a dependency tree to a single definition.
  */
-function compileDependencyTree (tree: DependencyTree, options: CompileOptions): Promise<CompiledResult> {
+function compileDependencyTree (tree: DependencyTree, options: CompileOptions): Promise<string> {
   return compileDependencyPath(null, getStringifyOptions(tree, options, undefined))
 }
 
 /**
  * Compile a dependency for a path, with pre-created stringify options.
  */
-function compileDependencyPath (path: string, options: StringifyOptions): Promise<CompiledResult> {
+function compileDependencyPath (path: string, options: StringifyOptions): Promise<string> {
   const { tree, entry } = options
 
   // Fallback to resolving the entry file.
@@ -315,23 +246,20 @@ function getDependency (name: string, options: StringifyOptions): DependencyTree
 /**
  * Stringify a dependency file.
  */
-function stringifyDependencyPath (path: string, options: StringifyOptions): Promise<CompiledResult> {
+function stringifyDependencyPath (path: string, options: StringifyOptions): Promise<string> {
   const resolved = getPath(path, options)
-  const { tree, ambient, cwd, browser, name, files, meta, entry } = options
+  const { tree, ambient, cwd, browser, name, files, meta, entry, emitter } = options
   const { raw, src } = tree
 
   // Load a dependency path.
   function loadByModuleName (path: string) {
     const [moduleName, modulePath] = getModuleNameParts(path)
-    const compileOptions = { cwd, browser, files, name: moduleName, ambient: false, meta }
+    const compileOptions = { cwd, browser, files, emitter, name: moduleName, ambient: false, meta }
     const stringifyOptions = cachedStringifyOptions(moduleName, compileOptions, options)
 
     // When no options are returned, the dependency is missing.
     if (!stringifyOptions) {
-      return Promise.resolve({
-        contents: null,
-        references: []
-      })
+      return Promise.resolve<string>(null)
     }
 
     return compileDependencyPath(modulePath, stringifyOptions)
@@ -394,31 +322,20 @@ function stringifyDependencyPath (path: string, options: StringifyOptions): Prom
         })
 
         return Promise.all(imports)
-          .then<CompiledResult>(imports => {
+          .then<string>(imports => {
             const stringified = stringifyFile(resolved, rawContents, path, options)
 
-            let references = referencedFiles.map(path => ({ name, path, raw, src }))
-            let contents: string[] = []
-
-            for (const imported of imports) {
-              // Some dependencies and imports are skipped.
-              if (imported) {
-                references = references.concat(imported.references)
-
-                if (imported.contents != null) {
-                  contents.push(imported.contents)
-                }
-              }
+            for (const path of referencedFiles) {
+              emitter.emit('reference', { name, path, raw, src })
             }
+
+            const contents = imports.filter(x => x != null)
 
             // Push the current file at the end of the contents.
             // This builds the stringified file with dependencies first.
             contents.push(stringified)
 
-            return {
-              contents: contents.join(EOL + EOL),
-              references
-            }
+            return contents.join(EOL + EOL)
           })
       },
       function (cause) {

@@ -1,9 +1,11 @@
 import test = require('blue-tape')
 import { join } from 'path'
+import { EventEmitter } from 'events'
 import { resolveAllDependencies } from './dependencies'
-import { DependencyTree, DependencyBranch } from '../interfaces/main'
+import { DependencyTree, DependencyBranch } from '../interfaces'
 
 const RESOLVE_FIXTURE_DIR = join(__dirname, '__test__/fixtures/resolve')
+const emitter = new EventEmitter()
 
 test('dependencies', t => {
   t.test('resolve fixture', t => {
@@ -112,7 +114,8 @@ test('dependencies', t => {
 
       return resolveAllDependencies({
         cwd: RESOLVE_FIXTURE_DIR,
-        dev: true
+        dev: true,
+        emitter
       })
         .then((result) => {
           function removeParentReferenceFromDependencies (dependencies: DependencyBranch) {

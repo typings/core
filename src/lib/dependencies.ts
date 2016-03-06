@@ -9,7 +9,7 @@ import { parseDependency } from '../utils/parse'
 import { findUp, findConfigFile } from '../utils/find'
 import { isDefinition, isHttp } from '../utils/path'
 import { CONFIG_FILE, PROJECT_NAME } from '../utils/config'
-import { Dependency, DependencyBranch, DependencyTree } from '../interfaces/main'
+import { Dependency, DependencyBranch, DependencyTree, Emitter } from '../interfaces'
 import TypingsError from './error'
 
 /**
@@ -35,6 +35,7 @@ const DEFAULT_DEPENDENCY: DependencyTree = {
  */
 export interface Options {
   cwd: string
+  emitter: Emitter
   dev?: boolean
   peer?: boolean
   ambient?: boolean
@@ -125,13 +126,19 @@ function resolveFileDependency (location: string, raw: string, options: Options,
     return resolveTypeDependencyFrom(src, raw, options, parent)
   }
 
-  // Resolve direct typings using `typings` property.
-  return Promise.resolve(extend(DEFAULT_DEPENDENCY, {
+  options.emitter.emit('resolve', { src, raw, parent })
+
+  const tree: DependencyTree = extend(DEFAULT_DEPENDENCY, {
     typings: src,
     src,
     raw,
     parent
-  }))
+  })
+
+  options.emitter.emit('resolved', { src, tree, raw, parent })
+
+  // Resolve direct typings using `typings` property.
+  return Promise.resolve(tree)
 }
 
 /**
@@ -164,6 +171,8 @@ function resolveBowerDependencyFrom (
 ): Promise<DependencyTree> {
   checkCircularDependency(parent, src)
 
+  options.emitter.emit('resolve', { src, raw, parent })
+
   return readJson(src)
     .then(
       function (bowerJson: any = {}) {
@@ -190,6 +199,8 @@ function resolveBowerDependencyFrom (
           .then(function ([dependencies, devDependencies, typedPackage]) {
             tree.dependencies = dependencies
             tree.devDependencies = devDependencies
+
+            options.emitter.emit('resolved', { src, tree, raw, parent })
 
             return mergeDependencies(tree, typedPackage)
           })
@@ -225,11 +236,11 @@ function resolveBowerDependencyMap (
   parent: DependencyTree
 ): Promise<DependencyBranch> {
   const keys = Object.keys(dependencies)
-  const { cwd } = options
+  const { cwd, emitter } = options
 
   return Promise.all(keys.map(function (name) {
     const modulePath = resolve(componentPath, name, 'bower.json')
-    const resolveOptions: Options = { dev: false, ambient: false, peer: false, cwd }
+    const resolveOptions: Options = { dev: false, ambient: false, peer: false, cwd, emitter }
 
     return resolveBowerDependencyFrom(modulePath, `bower:${name}`, componentPath, resolveOptions, parent)
   }))
@@ -257,13 +268,15 @@ export function resolveNpmDependencies (options: Options): Promise<DependencyTre
 function resolveNpmDependencyFrom (src: string, raw: string, options: Options, parent?: DependencyTree): Promise<DependencyTree> {
   checkCircularDependency(parent, src)
 
+  options.emitter.emit('resolve', { src, raw, parent })
+
   return readJson(src)
     .then(
       function (packageJson: any = {}) {
         const tree = extend(DEFAULT_DEPENDENCY, {
           name: packageJson.name,
           version: packageJson.version,
-          main: packageJson.main || 'index.js',
+          main: packageJson.main,
           browser: packageJson.browser,
           typings: packageJson.typings,
           browserTypings: packageJson.browserTypings,
@@ -287,6 +300,8 @@ function resolveNpmDependencyFrom (src: string, raw: string, options: Options, p
             tree.devDependencies = devDependencies
             tree.peerDependencies = peerDependencies
 
+            options.emitter.emit('resolved', { src, tree, raw, parent })
+
             return mergeDependencies(tree, typedPackage)
           })
       },
@@ -304,7 +319,7 @@ function resolveNpmDependencyMap (src: string, dependencies: any, options: Optio
   const keys = Object.keys(dependencies)
 
   return Promise.all(keys.map(function (name) {
-    const resolveOptions: Options = { dev: false, peer: false, ambient: false, cwd }
+    const resolveOptions: Options = { dev: false, peer: false, ambient: false, cwd, emitter: options.emitter }
 
     return resolveNpmDependency(join(name, 'package.json'), `npm:${name}`, resolveOptions, parent)
   }))
@@ -331,6 +346,8 @@ export function resolveTypeDependencies (options: Options): Promise<DependencyTr
  */
 function resolveTypeDependencyFrom (src: string, raw: string, options: Options, parent?: DependencyTree) {
   checkCircularDependency(parent, src)
+
+  options.emitter.emit('resolve', { src, raw, parent })
 
   return readConfigFrom(src)
     .then<DependencyTree>(
@@ -370,6 +387,8 @@ function resolveTypeDependencyFrom (src: string, raw: string, options: Options, 
             tree.ambientDependencies = ambientDependencies
             tree.ambientDevDependencies = ambientDevDependencies
 
+            options.emitter.emit('resolved', { src, tree, raw, parent })
+
             return tree
           })
       },
@@ -394,7 +413,7 @@ function resolveTypeDependencyMap (src: string, dependencies: any, options: Opti
   const keys = Object.keys(dependencies)
 
   return Promise.all(keys.map(function (name) {
-    const resolveOptions: Options = { dev: false, ambient: false, peer: false, cwd }
+    const resolveOptions: Options = { dev: false, ambient: false, peer: false, cwd, emitter: options.emitter }
 
     return resolveDependency(parseDependency(dependencies[name]), resolveOptions, parent)
   }))

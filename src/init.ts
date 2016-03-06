@@ -1,7 +1,7 @@
 import Promise = require('any-promise')
 import extend = require('xtend')
 import { join } from 'path'
-import { ConfigJson } from './interfaces/main'
+import { ConfigJson } from './interfaces'
 import { writeJson, isFile, readJson } from './utils/fs'
 import { CONFIG_FILE } from './utils/config'
 import { inferDefinitionName } from './utils/path'

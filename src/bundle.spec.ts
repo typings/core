@@ -5,6 +5,9 @@ import { join } from 'path'
 import { bundle } from './bundle'
 import { VERSION } from './typings'
 import { rimraf } from './utils/fs'
+import { EventEmitter } from 'events'
+
+const emitter = new EventEmitter()
 
 test('bundle', t => {
   t.test('bundle everything', t => {
@@ -16,7 +19,8 @@ test('bundle', t => {
           cwd: FIXTURE_DIR,
           name: 'example',
           out: join(FIXTURE_DIR, 'out'),
-          ambient: false
+          ambient: false,
+          emitter
         })
       })
       .then(function (data) {

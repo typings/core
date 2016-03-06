@@ -1,3 +1,5 @@
+import { EventEmitter } from 'events'
+
 /**
  * A dependency string is a string that maps to a resource. For example,
  * "file:foo/bar" or "npm:typescript".
@@ -84,4 +86,45 @@ export interface DependencyTree {
  */
 export interface DependencyBranch {
   [name: string]: DependencyTree
+}
+
+/**
+ * Custom event emitter for tracking Typings changes.
+ */
+export interface Emitter extends EventEmitter {
+  on (event: 'reference', listener: (e: ReferenceEvent) => any): this
+  on (event: 'resolve', listener: (e: ResolveEvent) => any): this
+  on (event: 'resolved', listener: (e: ResolvedEvent) => any): this
+  on (event: string, listener: Function): this
+
+  emit (event: 'reference', e: ReferenceEvent): boolean
+  emit (event: 'resolve', e: ResolveEvent): boolean
+  emit (event: 'resolved', e: ResolvedEvent): boolean
+  emit (event: string, ...args: any[]): boolean
+}
+
+/**
+ * Emit stripped references.
+ */
+export interface ReferenceEvent {
+  name: string
+  path: string
+  raw: string
+  src: string
+}
+
+/**
+ * Emit when resolving a dependency.
+ */
+export interface ResolveEvent {
+  src: string
+  raw: string
+  parent?: DependencyTree
+}
+
+/**
+ * Emit when the dependency is resolved.
+ */
+export interface ResolvedEvent extends ResolveEvent {
+  tree: DependencyTree
 }

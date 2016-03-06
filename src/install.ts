@@ -1,13 +1,14 @@
 import extend = require('xtend')
 import Promise = require('any-promise')
 import { dirname } from 'path'
+import { EventEmitter } from 'events'
 import { resolveDependency, resolveTypeDependencies } from './lib/dependencies'
 import compile, { Options as CompileOptions, CompiledOutput } from './lib/compile'
 import { findProject } from './utils/find'
 import { transformConfig, mkdirp, touch, writeFile, transformDtsFile } from './utils/fs'
 import { getTypingsLocation, getDependencyLocation } from './utils/path'
 import { parseDependency } from './utils/parse'
-import { DependencyTree, Dependency, DependencyBranch } from './interfaces/main'
+import { DependencyTree, Dependency, DependencyBranch, Emitter } from './interfaces'
 
 /**
  * Options for installing a new dependency.
@@ -19,6 +20,7 @@ export interface InstallDependencyOptions {
   ambient?: boolean
   name?: string
   cwd: string
+  emitter?: Emitter
   source?: string
 }
 
@@ -27,14 +29,18 @@ export interface InstallDependencyOptions {
  */
 export interface InstallOptions {
   cwd: string
-  production: boolean
+  dev?: boolean
+  emitter?: Emitter
 }
 
 /**
  * Install all dependencies on the current project.
  */
 export function install (options: InstallOptions): Promise<{ tree: DependencyTree }> {
-  return resolveTypeDependencies({ cwd: options.cwd, dev: !options.production, ambient: true, peer: true })
+  const { cwd, dev } = options
+  const emitter = options.emitter || new EventEmitter()
+
+  return resolveTypeDependencies({ cwd, emitter, ambient: true, peer: true, dev: options.dev !== false })
     .then(tree => {
       const cwd = dirname(tree.src)
       const queue: Array<Promise<any>> = []
@@ -43,7 +49,7 @@ export function install (options: InstallOptions): Promise<{ tree: DependencyTre
         for (const name of Object.keys(deps)) {
           const tree = deps[name]
 
-          queue.push(installDependencyTree(tree, { cwd, name, ambient, meta: true }))
+          queue.push(installDependencyTree(tree, { cwd, name, ambient, emitter, meta: true }))
         }
       }
 
@@ -88,8 +94,9 @@ export function installDependency (dependency: string, options: InstallDependenc
 function installTo (location: string, options: InstallDependencyOptions): Promise<CompiledOutput> {
   const dependency = parseDependency(location)
   const { cwd, ambient } = options
+  const emitter = options.emitter || new EventEmitter()
 
-  return resolveDependency(dependency, { cwd, dev: false, peer: false, ambient: false })
+  return resolveDependency(dependency, { cwd, emitter, dev: false, peer: false, ambient: false })
     .then(tree => {
       const name = options.name || tree.name
 
@@ -101,6 +108,7 @@ function installTo (location: string, options: InstallDependencyOptions): Promis
         cwd,
         name,
         ambient,
+        emitter,
         meta: true
       })
         .then(result => {

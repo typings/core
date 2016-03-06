@@ -1,7 +1,7 @@
 import invariant = require('invariant')
 import { parse, format, resolve as resolveUrl } from 'url'
 import { normalize, join, basename, dirname } from 'path'
-import { Dependency } from '../interfaces/main'
+import { Dependency } from '../interfaces'
 import { CONFIG_FILE } from './config'
 import { isDefinition, normalizeSlashes, inferDefinitionName, sanitizeDefinitionName } from './path'
 import rc from './rc'

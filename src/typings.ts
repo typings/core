@@ -3,5 +3,6 @@ export * from './uninstall'
 export * from './init'
 export * from './bundle'
 export * from './search'
+export * from './interfaces'
 
 export const VERSION = require('../package.json').version

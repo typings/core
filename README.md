@@ -17,9 +17,9 @@ import * as typings from 'typings-core'
 
 ```sh
 # Installation
-# Fork this repo (https://github.com/typings/typings-core)
-# Clone the fork (E.g. `https://github.com/<your_username>/typings-core.git`)
-cd typings-core
+# Fork this repo (https://github.com/typings/core)
+# Clone the fork (E.g. `https://github.com/<your_username>/core.git`)
+cd core
 npm run bootstrap
 
 # Build

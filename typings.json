@@ -3,6 +3,7 @@
     "any-promise": "github:typings/typed-any-promise#74ba6cf22149ff4de39c2338a9cb84f9ded6f042",
     "archy": "github:typings/typed-archy#3706c5e4df4efcc8cec8849a1c493cebd0830bea",
     "array-uniq": "github:typings/typed-array-uniq#fe1767e9b1baa0fd9f7a55fbcbf2fd8f08296d42",
+    "configstore": "github:typed-typings/npm-configstore#765d015ab10c89ab6dd88c3a578be7b7fc3a2101",
     "debug": "github:typings/typed-debug#0a12b05a76400107c70a266dcd4c2b656baa7dae",
     "detect-indent": "github:typings/typed-detect-indent#5576659901b4219189fde838c94e5c73daa9bfc7",
     "graceful-fs": "github:typings/typed-graceful-fs#84adcae7061f5f71409cac66fc6628929e536022",

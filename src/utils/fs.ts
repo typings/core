@@ -17,6 +17,7 @@ import promiseFinally from 'promise-finally'
 import tch = require('touch')
 import { EOL } from 'os'
 import { join, dirname } from 'path'
+import { parse as parseUrl } from 'url'
 import template = require('string-template')
 import { CONFIG_FILE, TYPINGS_DIR, DTS_MAIN_FILE, DTS_BROWSER_FILE, PRETTY_PROJECT_NAME, HOMEPAGE } from './config'
 import { isHttp, toDefinition } from './path'
@@ -24,9 +25,11 @@ import { parseReferences, stringifyReferences } from './references'
 import { ConfigJson } from '../interfaces'
 import { CompiledOutput } from '../lib/compile'
 import rc from './rc'
+import store from './store'
 import debug from './debug'
 
 const pkg = require('../../package.json')
+const registryURL = parseUrl(rc.registryURL)
 
 export type Stats = fs.Stats
 
@@ -113,9 +116,27 @@ export function readHttp (url: string): Promise<string> {
       popsicle.plugins.concatStream('string')
     ]
   })
+    // Enable HTTP(s) proxies and environment variable support.
     .use(popsicleProxy({ proxy, httpProxy, httpsProxy, noProxy }))
-    .use(popsicleRetry({ maxRetries: 3, retryDelay: 5000 }))
+    // Retry failed HTTP requests.
+    .use(popsicleRetry({ maxRetries: 3, retryDelay: 3000 }))
+    // Check responses are "200 OK".
     .use(popsicleStatus(200))
+    // Enable tracking of repeat users on the registry.
+    .use(function (self) {
+      if (self.Url.host === registryURL.host) {
+        if (store.get('clientId')) {
+          self.before(function (req) {
+            req.set('Typings-Client-Id', store.get('clientId'))
+          })
+        } else {
+          self.after(function (res) {
+            store.set('clientId', res.get('Typings-Client-Id'))
+          })
+        }
+      }
+    })
+    // Return only the response body.
     .then(response => {
       debug('http response', response.toJSON())
 

@@ -7,8 +7,8 @@ import compile, { Options as CompileOptions, CompiledOutput } from './lib/compil
 import { findProject } from './utils/find'
 import { transformConfig, mkdirp, touch, writeFile, transformDtsFile } from './utils/fs'
 import { getTypingsLocation, getDependencyLocation } from './utils/path'
-import { parseDependency } from './utils/parse'
-import { DependencyTree, Dependency, DependencyBranch, Emitter } from './interfaces'
+import { parseDependency, parseDependencyRaw } from './utils/parse'
+import { DependencyTree, Dependency, DependencyBranch, Emitter, DependencyExpression } from './interfaces'
 
 /**
  * Options for installing a new dependency.
@@ -18,10 +18,8 @@ export interface InstallDependencyOptions {
   saveDev?: boolean
   savePeer?: boolean
   ambient?: boolean
-  name?: string
   cwd: string
   emitter?: Emitter
-  source?: string
 }
 
 /**
@@ -29,7 +27,7 @@ export interface InstallDependencyOptions {
  */
 export interface InstallOptions {
   cwd: string
-  dev?: boolean
+  production?: boolean
   emitter?: Emitter
 }
 
@@ -37,10 +35,10 @@ export interface InstallOptions {
  * Install all dependencies on the current project.
  */
 export function install (options: InstallOptions): Promise<{ tree: DependencyTree }> {
-  const { cwd, dev } = options
+  const { cwd, production } = options
   const emitter = options.emitter || new EventEmitter()
 
-  return resolveTypeDependencies({ cwd, emitter, ambient: true, peer: true, dev: options.dev !== false })
+  return resolveTypeDependencies({ cwd, emitter, ambient: true, peer: true, dev: !production })
     .then(tree => {
       const cwd = dirname(tree.src)
       const queue: Array<Promise<any>> = []
@@ -78,30 +76,39 @@ export function install (options: InstallOptions): Promise<{ tree: DependencyTre
 }
 
 /**
+ * Parse the raw dependency string before installing.
+ */
+export function installDependencyRaw (raw: string, options: InstallDependencyOptions) {
+  return new Promise((resolve) => {
+    return resolve(installDependency(parseDependencyRaw(raw, options), options))
+  })
+}
+
+/**
  * Install a dependency into the currect project.
  */
-export function installDependency (dependency: string, options: InstallDependencyOptions): Promise<CompiledOutput> {
+export function installDependency (expression: DependencyExpression, options: InstallDependencyOptions): Promise<CompiledOutput> {
   return findProject(options.cwd)
     .then(
-      (cwd) => installTo(dependency, extend(options, { cwd })),
-      () => installTo(dependency, options)
+      (cwd) => installTo(expression, extend(options, { cwd })),
+      () => installTo(expression, options)
     )
 }
 
 /**
  * Install from a dependency string.
  */
-function installTo (location: string, options: InstallDependencyOptions): Promise<CompiledOutput> {
-  const dependency = parseDependency(location)
+function installTo (expression: DependencyExpression, options: InstallDependencyOptions): Promise<CompiledOutput> {
+  const { dependency } = expression
   const { cwd, ambient } = options
   const emitter = options.emitter || new EventEmitter()
 
   return resolveDependency(dependency, { cwd, emitter, dev: false, peer: false, ambient: false })
     .then(tree => {
-      const name = options.name || tree.name
+      const name = expression.name || tree.name
 
       if (!name) {
-        return Promise.reject(new TypeError(`Unable to install dependency from "${location}" without a name`))
+        return Promise.reject(new TypeError(`Unable to install dependency from "${tree.raw}" without a name`))
       }
 
       return installDependencyTree(tree, {
@@ -112,7 +119,7 @@ function installTo (location: string, options: InstallDependencyOptions): Promis
         meta: true
       })
         .then(result => {
-          return writeToConfig(name, dependency, options).then(() => result)
+          return writeToConfig(name, tree.raw, options).then(() => result)
         })
     })
 }
@@ -127,10 +134,8 @@ function installDependencyTree (tree: DependencyTree, options: CompileOptions): 
 /**
  * Write a dependency to the configuration file.
  */
-function writeToConfig (name: string, dependency: Dependency, options: InstallDependencyOptions) {
+function writeToConfig (name: string, raw: string, options: InstallDependencyOptions) {
   if (options.save || options.saveDev || options.savePeer) {
-    const { raw } = dependency
-
     return transformConfig(options.cwd, config => {
       // Extend different fields depending on the option passed in.
       if (options.save) {

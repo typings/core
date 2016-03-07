@@ -34,7 +34,7 @@ export function extractReferences (contents: string, cwd: string): Reference[] {
 }
 
 export function parseReferences (contents: string, cwd: string): string[] {
-  return extractReferences(contents, cwd).map(ref => ref.path)
+  return extractReferences(contents, cwd).map(ref => resolve(cwd, ref.path))
 }
 
 export function stringifyReferences (paths: string[], cwd: string): string {

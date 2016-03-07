@@ -10,6 +10,7 @@ test('parse', t => {
       const expected = {
         raw: 'file:./foo/bar.d.ts',
         location: normalize('foo/bar.d.ts'),
+        meta: { path: normalize('foo/bar.d.ts') },
         type: 'file'
       }
 
@@ -22,6 +23,7 @@ test('parse', t => {
       const expected = {
         raw: 'file:foo/bar.d.ts',
         location: normalize('foo/bar.d.ts'),
+        meta: { path: normalize('foo/bar.d.ts') },
         type: 'file'
       }
 
@@ -240,7 +242,60 @@ test('parse', t => {
       const expected = {
         raw: 'http://example.com/foo/' + CONFIG_FILE,
         type: 'http',
+        meta: {},
         location: 'http://example.com/foo/' + CONFIG_FILE
+      }
+
+      t.deepEqual(actual, expected)
+      t.end()
+    })
+
+    t.test('parse registry', t => {
+      const actual = parseDependency('registry:dt/node')
+      const expected = {
+        raw: 'registry:dt/node',
+        type: 'registry',
+        meta: { name: 'node', source: 'dt', tag: undefined as string, version: undefined as string },
+        location: 'https://api.typings.org/entries/dt/node/versions/*/latest'
+      }
+
+      t.deepEqual(actual, expected)
+      t.end()
+    })
+
+    t.test('parse registry with scoped package', t => {
+      const actual = parseDependency('registry:npm/@scoped/npm')
+      const expected = {
+        raw: 'registry:npm/@scoped/npm',
+        type: 'registry',
+        meta: { name: '@scoped/npm', source: 'npm', tag: undefined as string, version: undefined as string },
+        location: 'https://api.typings.org/entries/npm/%40scoped%2Fnpm/versions/*/latest'
+      }
+
+      t.deepEqual(actual, expected)
+      t.end()
+    })
+
+    t.test('parse registry with tag', t => {
+      const actual = parseDependency('registry:npm/dep#3.0.0-2016')
+      const expected = {
+        raw: 'registry:npm/dep#3.0.0-2016',
+        type: 'registry',
+        meta: { name: 'dep', source: 'npm', tag: '3.0.0-2016', version: undefined as string },
+        location: 'https://api.typings.org/entries/npm/dep/tags/3.0.0-2016'
+      }
+
+      t.deepEqual(actual, expected)
+      t.end()
+    })
+
+    t.test('parse registry with version', t => {
+      const actual = parseDependency('registry:npm/dep@^4.0')
+      const expected = {
+        raw: 'registry:npm/dep@^4.0',
+        type: 'registry',
+        meta: { name: 'dep', source: 'npm', tag: undefined as string, version: '^4.0' },
+        location: 'https://api.typings.org/entries/npm/dep/versions/%5E4.0/latest'
       }
 
       t.deepEqual(actual, expected)

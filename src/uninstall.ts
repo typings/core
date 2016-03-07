@@ -1,9 +1,11 @@
 import extend = require('xtend')
 import Promise = require('any-promise')
 import promiseFinally from 'promise-finally'
-import { transformConfig, transformDtsFile, rimraf } from './utils/fs'
+import { EventEmitter } from 'events'
+import { transformConfig, transformDtsFile, rimraf, isFile } from './utils/fs'
 import { findProject } from './utils/find'
 import { getDependencyLocation } from './utils/path'
+import { Emitter } from './interfaces'
 
 /**
  * Uninstall options.
@@ -13,23 +15,25 @@ export interface UninstallDependencyOptions {
   saveDev?: boolean
   savePeer?: boolean
   ambient?: boolean
-  name: string
   cwd: string
+  emitter?: Emitter
 }
 
 /**
  * Uninstall a dependency, given a name.
  */
-export function uninstallDependency (options: UninstallDependencyOptions) {
+export function uninstallDependency (name: string, options: UninstallDependencyOptions) {
+  const emitter = options.emitter || new EventEmitter()
+
   // Remove the dependency from fs and config.
-  function uninstall (options: UninstallDependencyOptions) {
-    return removeDependency(options).then(() => writeToConfig(options))
+  function uninstall (name: string, options: UninstallDependencyOptions) {
+    return removeDependency(name, options).then(() => writeToConfig(options))
   }
 
   return findProject(options.cwd)
     .then(
-      (cwd) => uninstall(extend(options, { cwd })),
-      () => uninstall(options)
+      (cwd) => uninstall(name, extend({ emitter }, options, { cwd })),
+      () => uninstall(name, extend({ emitter }, options))
     )
 }
 
@@ -87,16 +91,24 @@ function writeToConfig (options: UninstallDependencyOptions) {
 /**
  * Remove a dependency from the filesystem.
  */
-export function removeDependency (options: UninstallDependencyOptions) {
-  const location = getDependencyLocation(options)
+function removeDependency (name: string, options: UninstallDependencyOptions) {
+  const { cwd, ambient } = options
+  const location = getDependencyLocation({ name, cwd, ambient })
 
   // Remove the dependency from typings.
-  function remove (path: string, file: string, dtsFile: string) {
-    return promiseFinally(rimraf(path), () => {
-      return transformDtsFile(dtsFile, (typings) => {
-        return typings.filter(x => x !== file)
+  function remove (dir: string, path: string, dtsPath: string) {
+    return isFile(path)
+      .then(exists => {
+        if (!exists) {
+          options.emitter.emit('enoent', { path })
+        }
+
+        return promiseFinally(rimraf(dir), () => {
+          return transformDtsFile(dtsPath, (typings) => {
+            return typings.filter(x => x !== path)
+          })
+        })
       })
-    })
   }
 
   // Remove dependencies concurrently.

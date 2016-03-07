@@ -3,10 +3,12 @@ import Promise = require('any-promise')
 import { EOL } from 'os'
 import { join, relative } from 'path'
 import { EventEmitter } from 'events'
-import { install, installDependency } from './install'
+import nock = require('nock')
+import { install, installDependencyRaw } from './install'
 import { readFile, readConfig, writeFile, rimraf } from './utils/fs'
 import { CONFIG_FILE } from './utils/config'
 import { VERSION } from './typings'
+import rc from './utils/rc'
 
 test('install', t => {
   const emitter = new EventEmitter()
@@ -63,11 +65,27 @@ test('install', t => {
   })
 
   t.test('install dependency', t => {
-    const DEPENDENCY = 'file:custom_typings/definition.d.ts'
+    const DEPENDENCY = '@scope/test=file:custom_typings/definition.d.ts'
+    const REGISTRY_DEPENDENCY = 'registry:dt/node@>=4.0'
     const PEER_DEPENDENCY = 'file:custom_typings/named/typings.json'
-    const AMBIENT_DEPENDENCY = 'file:custom_typings/ambient.d.ts'
+    const AMBIENT_DEPENDENCY = 'ambient-test=file:custom_typings/ambient.d.ts'
     const FIXTURE_DIR = join(__dirname, '__test__/install-dependency-fixture')
     const CONFIG = join(FIXTURE_DIR, CONFIG_FILE)
+
+    nock(rc.registryURL)
+      .get('/entries/dt/node/versions/%3E%3D4.0/latest')
+      .reply(200, {
+        tag: '4.0.0+20160226132328',
+        version: '4.0.0',
+        description: null,
+        compiler: null,
+        location: 'github:DefinitelyTyped/DefinitelyTyped/node/node.d.ts#48c1e3c1d6baefa4f1a126f188c27c4fefd36bff',
+        updated: '2016-02-26T13:23:28.000Z'
+      })
+
+    nock('http://raw.githubusercontent.com/')
+      .get('/DefinitelyTyped/DefinitelyTyped/48c1e3c1d6baefa4f1a126f188c27c4fefd36bff/node/node.d.ts')
+      .reply(200, '// Type definitions for Node.js v4.x')
 
     return writeFile(CONFIG, '{}')
       .then(function () {
@@ -75,20 +93,24 @@ test('install', t => {
       })
       .then(function () {
         return Promise.all([
-          installDependency(DEPENDENCY, {
+          installDependencyRaw(DEPENDENCY, {
             cwd: FIXTURE_DIR,
             saveDev: true,
-            name: '@scope/test',
             emitter
           }),
-          installDependency(AMBIENT_DEPENDENCY, {
+          installDependencyRaw(REGISTRY_DEPENDENCY, {
+            cwd: FIXTURE_DIR,
+            save: true,
+            ambient: true,
+            emitter
+          }),
+          installDependencyRaw(AMBIENT_DEPENDENCY, {
             cwd: FIXTURE_DIR,
             saveDev: true,
             ambient: true,
-            name: 'ambient-test',
             emitter
           }),
-          installDependency(PEER_DEPENDENCY, {
+          installDependencyRaw(PEER_DEPENDENCY, {
             cwd: FIXTURE_DIR,
             savePeer: true,
             emitter
@@ -101,13 +123,16 @@ test('install', t => {
       .then(function (config) {
         t.deepEqual(config, {
           devDependencies: {
-            '@scope/test': DEPENDENCY
+            '@scope/test': 'file:custom_typings/definition.d.ts'
           },
           peerDependencies: {
             named: PEER_DEPENDENCY
           },
+          ambientDependencies: {
+            node: 'registry:dt/node#4.0.0+20160226132328'
+          },
           ambientDevDependencies: {
-            'ambient-test': AMBIENT_DEPENDENCY
+            'ambient-test': 'file:custom_typings/ambient.d.ts'
           }
         })
       })
@@ -119,7 +144,7 @@ test('install', t => {
 
     t.plan(1)
 
-    return installDependency(DEPENDENCY, { cwd: FIXTURE_DIR, emitter })
+    return installDependencyRaw(DEPENDENCY, { cwd: FIXTURE_DIR, emitter })
       .catch(err => {
         t.ok(/^Unable to install dependency/.test(err.message))
       })
@@ -130,7 +155,6 @@ test('install', t => {
 
     return install({
       cwd: FIXTURE_DIR,
-      dev: true,
       emitter
     })
       .then(function () {

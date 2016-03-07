@@ -59,7 +59,15 @@ export interface Dependency {
   type: string
   raw: string
   location: string
-  meta?: any
+  meta: any
+}
+
+/**
+ * Parsed CLI dependency expression.
+ */
+export interface DependencyExpression {
+  name: string
+  dependency: Dependency
 }
 
 /**
@@ -97,11 +105,13 @@ export interface Emitter extends EventEmitter {
   on (event: 'reference', listener: (e: ReferenceEvent) => any): this
   on (event: 'resolve', listener: (e: ResolveEvent) => any): this
   on (event: 'resolved', listener: (e: ResolvedEvent) => any): this
+  on (event: 'enoent', listener: (e: EnoentEvent) => any): this
   on (event: string, listener: Function): this
 
   emit (event: 'reference', e: ReferenceEvent): boolean
   emit (event: 'resolve', e: ResolveEvent): boolean
   emit (event: 'resolved', e: ResolvedEvent): boolean
+  emit (event: 'enoent', e: EnoentEvent): boolean
   emit (event: string, ...args: any[]): boolean
 }
 
@@ -129,4 +139,11 @@ export interface ResolveEvent {
  */
 export interface ResolvedEvent extends ResolveEvent {
   tree: DependencyTree
+}
+
+/**
+ * Emitted when a non-critical file is missing.
+ */
+export interface EnoentEvent {
+  path: string
 }

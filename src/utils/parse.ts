@@ -1,7 +1,7 @@
 import invariant = require('invariant')
 import { parse, format, resolve as resolveUrl } from 'url'
 import { normalize, join, basename, dirname } from 'path'
-import { Dependency } from '../interfaces'
+import { Dependency, DependencyExpression } from '../interfaces'
 import { CONFIG_FILE } from './config'
 import { isDefinition, normalizeSlashes, inferDefinitionName, sanitizeDefinitionName } from './path'
 import rc from './rc'
@@ -46,6 +46,7 @@ function splitProtocol (raw: string): [string, string] {
 export function parseDependency (raw: string): Dependency {
   const [type, src] = splitProtocol(raw)
 
+  // `file:path/to/file.d.ts`
   if (type === 'file') {
     const location = normalize(src)
     const filename = basename(location)
@@ -58,10 +59,14 @@ export function parseDependency (raw: string): Dependency {
     return {
       raw,
       type,
+      meta: {
+        path: location
+      },
       location
     }
   }
 
+  // `bitbucket:org/repo/path#sha`
   if (type === 'github') {
     const meta = gitFromPath(src)
     const { org, repo, path, sha } = meta
@@ -79,6 +84,7 @@ export function parseDependency (raw: string): Dependency {
     }
   }
 
+  // `bitbucket:org/repo/path#sha`
   if (type === 'bitbucket') {
     const meta = gitFromPath(src)
     const { org, repo, path, sha } = meta
@@ -92,6 +98,7 @@ export function parseDependency (raw: string): Dependency {
     }
   }
 
+  // `npm:dependency`, `npm:@scoped/dependency`
   if (type === 'npm') {
     const parts = src.split('/')
     const isScoped = parts.length > 0 && parts[0].charAt(0) === '@'
@@ -112,6 +119,7 @@ export function parseDependency (raw: string): Dependency {
     }
   }
 
+  // `bower:dependency`
   if (type === 'bower') {
     const parts = src.split('/')
 
@@ -130,11 +138,43 @@ export function parseDependency (raw: string): Dependency {
     }
   }
 
+  // `http://example.com/foo.d.ts`
   if (type === 'http' || type === 'https') {
     return {
       raw,
       type,
+      meta: {},
       location: raw
+    }
+  }
+
+  // `registry:source/module#tag`, `registry:source/module@version`
+  if (type === 'registry') {
+    const parts = /^([^\/]+)\/(.+?)(?:@(.*?)|#(.*?))?$/.exec(src)
+
+    if (parts == null) {
+      throw new TypeError(`Unable to parse: ${raw}`)
+    }
+
+    const [, source, name, version, tag] = parts
+
+    if (version != null && tag != null) {
+      throw new TypeError(`Unable to use tag and version together: ${raw}`)
+    }
+
+    const prefix = `/entries/${encodeURIComponent(source)}/${encodeURIComponent(name)}`
+    const path = tag ? `${prefix}/tags/${encodeURIComponent(tag)}` : `${prefix}/versions/${encodeURIComponent(version || '*')}/latest`
+
+    return {
+      raw,
+      type,
+      meta: {
+        source,
+        name,
+        version,
+        tag
+      },
+      location: resolveUrl(rc.registryURL, path)
     }
   }
 
@@ -147,7 +187,6 @@ export function parseDependency (raw: string): Dependency {
 export function resolveDependency (raw: string, path: string) {
   const { type, meta, location } = parseDependency(raw)
 
-  // Handle git hosts.
   if (type === 'github' || type === 'bitbucket') {
     const { org, repo, sha } = meta
     const resolvedPath = normalizeSlashes(join(dirname(meta.path), path))
@@ -169,5 +208,33 @@ export function resolveDependency (raw: string, path: string) {
     return `file:${normalizeSlashes(join(location, path))}`
   }
 
-  throw new TypeError(`Unable to resolve dependency from unknown scheme`)
+  throw new TypeError(`Unable to resolve dependency from "${raw}"`)
+}
+
+/**
+ * Parse and expand the CLI dependency expression.
+ */
+export function parseDependencyRaw (raw: string, options: { ambient?: boolean }): DependencyExpression {
+  const [, overrideName, scheme, registry] = /^(?:([^=!:#]+)=)?(?:([\w]+\:.+)|((?:[\w]+\!)?.+))$/.exec(raw)
+
+  const dependency = scheme ? parseDependency(scheme) : parseRegistryRaw(registry, options)
+  const name = overrideName || dependency.meta.name
+
+  return {
+    name,
+    dependency
+  }
+}
+
+/**
+ * Parse the registry dependency string.
+ */
+export function parseRegistryRaw (raw: string, options: { ambient?: boolean }) {
+  const [source, name] = raw.split('!', 2)
+
+  if (name == null) {
+    throw new TypeError(`Unable to parse registry path: ${raw}`)
+  }
+
+  return parseDependency(`registry:${source}/${name}`)
 }

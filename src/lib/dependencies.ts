@@ -4,7 +4,7 @@ import zipObject = require('zip-object')
 import Promise = require('any-promise')
 import { resolve, dirname, join } from 'path'
 import { resolve as resolveUrl } from 'url'
-import { readJson, readConfigFrom } from '../utils/fs'
+import { readJson, readConfigFrom, readJsonFrom } from '../utils/fs'
 import { parseDependency } from '../utils/parse'
 import { findUp, findConfigFile } from '../utils/find'
 import { isDefinition, isHttp } from '../utils/path'
@@ -58,15 +58,44 @@ export function resolveAllDependencies (options: Options): Promise<DependencyTre
  * Resolve a single dependency object.
  */
 export function resolveDependency (dependency: Dependency, options: Options, parent?: DependencyTree): Promise<DependencyTree> {
-  if (dependency.type === 'npm') {
-    return resolveNpmDependency(dependency.location, dependency.raw, options, parent)
+  const { type, location, raw } = dependency
+
+  if (type === 'registry') {
+    return resolveDependencyRegistry(dependency, options, parent)
   }
 
-  if (dependency.type === 'bower') {
-    return resolveBowerDependency(dependency.location, dependency.raw, options, parent)
+  return resolveDependencyInternally(type, location, raw, options, parent)
+}
+
+/**
+ * Internal version of `resolveDependency`, skipping the registry handling.
+ */
+function resolveDependencyInternally (type: string, location: string, raw: string, options: Options, parent?: DependencyTree) {
+  if (type === 'npm') {
+    return resolveNpmDependency(location, raw, options, parent)
   }
 
-  return resolveFileDependency(dependency.location, dependency.raw, options, parent)
+  if (type === 'bower') {
+    return resolveBowerDependency(location, raw, options, parent)
+  }
+
+  return resolveFileDependency(location, raw, options, parent)
+}
+
+/**
+ * Resolving a registry dependency has an intermediate step.
+ */
+function resolveDependencyRegistry (dependency: Dependency, options: Options, parent?: DependencyTree) {
+  const { location, meta } = dependency
+
+  return readJsonFrom(location)
+    .then(entry => {
+      // Rewrite dependency type and location, but recreate `raw`.
+      const { type, location } = parseDependency(entry.location)
+      const raw = `registry:${meta.source}/${meta.name}#${entry.tag}`
+
+      return resolveDependencyInternally(type, location, raw, options, parent)
+    })
 }
 
 /**

@@ -14,11 +14,15 @@ export interface RcConfig {
   userAgent?: string
   githubToken?: string
   registryURL?: string
+  defaultSource?: string
+  defaultAmbientSource?: string
 }
 
 export const DEFAULTS = {
   userAgent: `${PROJECT_NAME}/{typingsVersion} node/{nodeVersion} {platform} {arch}`,
-  registryURL: REGISTRY_URL
+  registryURL: REGISTRY_URL,
+  defaultSource: 'npm',
+  defaultAmbientSource: 'dt'
 }
 
 export default extend(DEFAULTS, rc(PROJECT_NAME)) as RcConfig

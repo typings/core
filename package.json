@@ -53,7 +53,7 @@
     "invariant": "^2.2.0",
     "is-absolute": "^0.2.3",
     "lockfile": "^1.0.1",
-    "make-error-cause": "^1.0.1",
+    "make-error-cause": "^1.1.0",
     "mkdirp": "^0.5.1",
     "object.pick": "^1.1.1",
     "parse-json": "^2.2.0",
@@ -69,7 +69,7 @@
     "strip-bom": "^2.0.0",
     "thenify": "^3.1.0",
     "touch": "^1.0.0",
-    "typescript": "1.8.2",
+    "typescript": "1.8.7",
     "xtend": "^4.0.0",
     "zip-object": "^0.1.0"
   },

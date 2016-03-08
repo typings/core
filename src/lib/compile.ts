@@ -59,6 +59,7 @@ interface CompileOptions extends Options {
   browser: boolean
   readFiles: ts.Map<Promise<string>>
   name: string
+  emitter: Emitter
 }
 
 /**
@@ -265,6 +266,8 @@ function stringifyDependencyPath (path: string, options: StringifyOptions): Prom
   const { tree, ambient, cwd, browser, name, readFiles, meta, entry, emitter } = options
   const { raw, src } = tree
 
+  emitter.emit('compile', { name, path, tree, browser })
+
   // Load a dependency path.
   function loadByModuleName (path: string) {
     const [moduleName, modulePath] = getModuleNameParts(path)
@@ -339,17 +342,17 @@ function stringifyDependencyPath (path: string, options: StringifyOptions): Prom
           .then<string>(imports => {
             const stringified = stringifyFile(resolved, rawContents, path, options)
 
-            for (const path of referencedFiles) {
-              emitter.emit('reference', { name, path, raw, src })
+            for (const reference of referencedFiles) {
+              emitter.emit('reference', { name, path, reference, tree, browser })
             }
 
-            const contents = imports.filter(x => x != null)
+            const out = imports.filter(x => x != null)
+            out.push(stringified)
+            const contents = out.join(EOL)
 
-            // Push the current file at the end of the contents.
-            // This builds the stringified file with dependencies first.
-            contents.push(stringified)
+            emitter.emit('compiled', { name, path, tree, browser, contents })
 
-            return contents.join(EOL)
+            return contents
           })
       },
       function (cause) {

@@ -106,12 +106,16 @@ export interface Emitter extends EventEmitter {
   on (event: 'resolve', listener: (e: ResolveEvent) => any): this
   on (event: 'resolved', listener: (e: ResolvedEvent) => any): this
   on (event: 'enoent', listener: (e: EnoentEvent) => any): this
+  on (event: 'compile', listener: (e: CompileEvent) => any): this
+  on (event: 'compiled', listener: (e: CompiledEvent) => any): this
   on (event: string, listener: Function): this
 
   emit (event: 'reference', e: ReferenceEvent): boolean
   emit (event: 'resolve', e: ResolveEvent): boolean
   emit (event: 'resolved', e: ResolvedEvent): boolean
   emit (event: 'enoent', e: EnoentEvent): boolean
+  emit (event: 'compile', e: CompileEvent): boolean
+  emit (event: 'compiled', e: CompiledEvent): boolean
   emit (event: string, ...args: any[]): boolean
 }
 
@@ -121,8 +125,9 @@ export interface Emitter extends EventEmitter {
 export interface ReferenceEvent {
   name: string
   path: string
-  raw: string
-  src: string
+  tree: DependencyTree
+  browser: boolean
+  reference: string
 }
 
 /**
@@ -146,4 +151,21 @@ export interface ResolvedEvent extends ResolveEvent {
  */
 export interface EnoentEvent {
   path: string
+}
+
+/**
+ * Emit when a path is being compiled.
+ */
+export interface CompileEvent {
+  name: string
+  path: string
+  tree: DependencyTree
+  browser: boolean
+}
+
+/**
+ * Emit when a path is compiled.
+ */
+export interface CompiledEvent extends CompileEvent {
+  contents: string
 }

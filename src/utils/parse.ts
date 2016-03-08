@@ -230,6 +230,8 @@ export function parseDependencyRaw (raw: string, options: { ambient?: boolean })
  * Parse the registry dependency string.
  */
 export function parseRegistryRaw (raw: string, options: { ambient?: boolean }) {
+  if (raw === void 0) return parseDependency('')
+
   const indexOf = raw.indexOf('!')
   let source = options.ambient ? rc.defaultAmbientSource : rc.defaultSource
   let name: string

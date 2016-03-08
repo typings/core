@@ -163,7 +163,9 @@ export function parseDependency (raw: string): Dependency {
     }
 
     const prefix = `/entries/${encodeURIComponent(source)}/${encodeURIComponent(name)}`
-    const path = tag ? `${prefix}/tags/${encodeURIComponent(tag)}` : `${prefix}/versions/${encodeURIComponent(version || '*')}/latest`
+    const path = tag ?
+      `${prefix}/tags/${encodeURIComponent(tag)}` :
+      `${prefix}/versions/${encodeURIComponent(version || '*')}/latest`
 
     return {
       raw,
@@ -230,6 +232,10 @@ export function parseDependencyRaw (raw: string, options: { ambient?: boolean })
  * Parse the registry dependency string.
  */
 export function parseRegistryRaw (raw: string, options: { ambient?: boolean }) {
+  if (typeof raw !== 'string') {
+    throw new TypeError(`Expected registry name to be a string, not ${typeof raw}`)
+  }
+
   const indexOf = raw.indexOf('!')
   let source = options.ambient ? rc.defaultAmbientSource : rc.defaultSource
   let name: string

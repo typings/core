@@ -78,7 +78,7 @@ export function install (options: InstallOptions): Promise<{ tree: DependencyTre
 /**
  * Parse the raw dependency string before installing.
  */
-export function installDependencyRaw (raw: string, options: InstallDependencyOptions) {
+export function installDependencyRaw (raw: string, options: InstallDependencyOptions): Promise<CompiledOutput> {
   return new Promise((resolve) => {
     return resolve(installDependency(parseDependencyRaw(raw, options), options))
   })

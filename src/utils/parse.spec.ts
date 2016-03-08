@@ -1,6 +1,6 @@
 import test = require('blue-tape')
 import { normalize } from 'path'
-import { parseDependency, resolveDependency } from './parse'
+import { parseDependency, resolveDependency, parseDependencyRaw } from './parse'
 import { CONFIG_FILE } from './config'
 
 test('parse', t => {
@@ -296,6 +296,22 @@ test('parse', t => {
         type: 'registry',
         meta: { name: 'dep', source: 'npm', tag: undefined as string, version: '^4.0' },
         location: 'https://api.typings.org/entries/npm/dep/versions/%5E4.0/latest'
+      }
+
+      t.deepEqual(actual, expected)
+      t.end()
+    })
+
+    t.test('parse raw registry with default source', t => {
+      const actual = parseDependencyRaw('node', { ambient: true })
+      const expected = {
+        name: 'node',
+        dependency: {
+          raw: 'registry:dt/node',
+          type: 'registry',
+          meta: { name: 'node', source: 'dt', tag: undefined as string, version: undefined as string },
+          location: 'https://api.typings.org/entries/dt/node/versions/*/latest'
+        }
       }
 
       t.deepEqual(actual, expected)

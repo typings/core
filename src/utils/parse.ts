@@ -230,10 +230,15 @@ export function parseDependencyRaw (raw: string, options: { ambient?: boolean })
  * Parse the registry dependency string.
  */
 export function parseRegistryRaw (raw: string, options: { ambient?: boolean }) {
-  const [source, name] = raw.split('!', 2)
+  const indexOf = raw.indexOf('!')
+  let source = options.ambient ? rc.defaultAmbientSource : rc.defaultSource
+  let name: string
 
-  if (name == null) {
-    throw new TypeError(`Unable to parse registry path: ${raw}`)
+  if (indexOf === -1) {
+    name = raw
+  } else {
+    source = raw.substr(0, indexOf)
+    name = raw.substr(indexOf + 1)
   }
 
   return parseDependency(`registry:${source}/${name}`)

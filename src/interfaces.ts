@@ -59,15 +59,19 @@ export interface Dependency {
   type: string
   raw: string
   location: string
-  meta: any
-}
-
-/**
- * Parsed CLI dependency expression.
- */
-export interface DependencyExpression {
-  name: string
-  dependency: Dependency
+  meta: {
+    // Common.
+    name?: string
+    path?: string
+    // Git-based.
+    org?: string
+    repo?: string
+    sha?: string
+    // Registry.
+    version?: string
+    tag?: string
+    source?: string
+  }
 }
 
 /**

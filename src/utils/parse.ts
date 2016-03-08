@@ -1,7 +1,7 @@
 import invariant = require('invariant')
 import { parse, format, resolve as resolveUrl } from 'url'
 import { normalize, join, basename, dirname } from 'path'
-import { Dependency, DependencyExpression } from '../interfaces'
+import { Dependency } from '../interfaces'
 import { CONFIG_FILE } from './config'
 import { isDefinition, normalizeSlashes, inferDefinitionName, sanitizeDefinitionName } from './path'
 import rc from './rc'
@@ -216,22 +216,21 @@ export function resolveDependency (raw: string, path: string) {
 /**
  * Parse and expand the CLI dependency expression.
  */
-export function parseDependencyRaw (raw: string, options: { ambient?: boolean }): DependencyExpression {
-  const [, overrideName, scheme, registry] = /^(?:([^=!:#]+)=)?(?:([\w]+\:.+)|((?:[\w]+\!)?.+))$/.exec(raw)
+export function parseDependencyExpression (raw: string, options: { ambient?: boolean }) {
+  const [, name, scheme, registry] = /^(?:([^=!:#]+)=)?(?:([\w]+\:.+)|((?:[\w]+\!)?.+))$/.exec(raw)
 
-  const dependency = scheme ? parseDependency(scheme) : parseRegistryRaw(registry, options)
-  const name = overrideName || dependency.meta.name
+  const location = scheme || expandRegistry(registry, options)
 
   return {
     name,
-    dependency
+    location
   }
 }
 
 /**
  * Parse the registry dependency string.
  */
-export function parseRegistryRaw (raw: string, options: { ambient?: boolean }) {
+export function expandRegistry (raw: string, options: { ambient?: boolean } = {}) {
   if (typeof raw !== 'string') {
     throw new TypeError(`Expected registry name to be a string, not ${typeof raw}`)
   }
@@ -247,5 +246,5 @@ export function parseRegistryRaw (raw: string, options: { ambient?: boolean }) {
     name = raw.substr(indexOf + 1)
   }
 
-  return parseDependency(`registry:${source}/${name}`)
+  return `registry:${source}/${name}`
 }

@@ -7,8 +7,8 @@ import compile, { Options as CompileOptions, CompiledOutput } from './lib/compil
 import { findProject } from './utils/find'
 import { transformConfig, mkdirp, touch, writeFile, transformDtsFile } from './utils/fs'
 import { getTypingsLocation, getDependencyLocation } from './utils/path'
-import { parseDependency, parseDependencyRaw } from './utils/parse'
-import { DependencyTree, Dependency, DependencyBranch, Emitter, DependencyExpression } from './interfaces'
+import { parseDependency, parseDependencyExpression } from './utils/parse'
+import { DependencyTree, Dependency, DependencyBranch, Emitter } from './interfaces'
 
 /**
  * Options for installing a new dependency.
@@ -80,14 +80,19 @@ export function install (options: InstallOptions): Promise<{ tree: DependencyTre
  */
 export function installDependencyRaw (raw: string, options: InstallDependencyOptions): Promise<CompiledOutput> {
   return new Promise((resolve) => {
-    return resolve(installDependency(parseDependencyRaw(raw, options), options))
+    return resolve(installDependency(parseDependencyExpression(raw, options), options))
   })
+}
+
+export interface InstallExpression {
+  name: string
+  location: string
 }
 
 /**
  * Install a dependency into the currect project.
  */
-export function installDependency (expression: DependencyExpression, options: InstallDependencyOptions): Promise<CompiledOutput> {
+export function installDependency (expression: InstallExpression, options: InstallDependencyOptions): Promise<CompiledOutput> {
   return findProject(options.cwd)
     .then(
       (cwd) => installTo(expression, extend(options, { cwd })),
@@ -98,14 +103,14 @@ export function installDependency (expression: DependencyExpression, options: In
 /**
  * Install from a dependency string.
  */
-function installTo (expression: DependencyExpression, options: InstallDependencyOptions): Promise<CompiledOutput> {
-  const { dependency } = expression
+function installTo (expression: InstallExpression, options: InstallDependencyOptions): Promise<CompiledOutput> {
+  const dependency = parseDependency(expression.location)
   const { cwd, ambient } = options
   const emitter = options.emitter || new EventEmitter()
 
   return resolveDependency(dependency, { cwd, emitter, dev: false, peer: false, ambient: false })
     .then(tree => {
-      const name = expression.name || tree.name
+      const name = expression.name || tree.name || dependency.meta.name
 
       if (!name) {
         return Promise.reject(new TypeError(`Unable to install dependency from "${tree.raw}" without a name`))

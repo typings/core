@@ -1,6 +1,6 @@
 import test = require('blue-tape')
 import { normalize } from 'path'
-import { parseDependency, resolveDependency, parseDependencyRaw } from './parse'
+import { parseDependency, resolveDependency, expandRegistry } from './parse'
 import { CONFIG_FILE } from './config'
 
 test('parse', t => {
@@ -302,17 +302,25 @@ test('parse', t => {
       t.end()
     })
 
-    t.test('parse raw registry with default source', t => {
-      const actual = parseDependencyRaw('node', { ambient: true })
-      const expected = {
-        name: 'node',
-        dependency: {
-          raw: 'registry:dt/node',
-          type: 'registry',
-          meta: { name: 'node', source: 'dt', tag: undefined as string, version: undefined as string },
-          location: 'https://api.typings.org/entries/dt/node/versions/*/latest'
-        }
-      }
+    t.test('expand registry with default source', t => {
+      const actual = expandRegistry('domready')
+      const expected = 'registry:npm/domready'
+
+      t.deepEqual(actual, expected)
+      t.end()
+    })
+
+    t.test('expand registry with provided source', t => {
+      const actual = expandRegistry('env!atom')
+      const expected = 'registry:env/atom'
+
+      t.deepEqual(actual, expected)
+      t.end()
+    })
+
+    t.test('expand registry with default ambient source', t => {
+      const actual = expandRegistry('node', { ambient: true })
+      const expected = 'registry:dt/node'
 
       t.deepEqual(actual, expected)
       t.end()

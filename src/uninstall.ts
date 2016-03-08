@@ -27,7 +27,7 @@ export function uninstallDependency (name: string, options: UninstallDependencyO
 
   // Remove the dependency from fs and config.
   function uninstall (name: string, options: UninstallDependencyOptions) {
-    return removeDependency(name, options).then(() => writeToConfig(options))
+    return removeDependency(name, options).then(() => writeToConfig(name, options))
   }
 
   return findProject(options.cwd)
@@ -40,7 +40,7 @@ export function uninstallDependency (name: string, options: UninstallDependencyO
 /**
  * Delete the dependency from the configuration file.
  */
-function writeToConfig (options: UninstallDependencyOptions) {
+function writeToConfig (name: string, options: UninstallDependencyOptions) {
   if (options.save || options.saveDev) {
     return transformConfig(options.cwd, config => {
       if (options.save) {

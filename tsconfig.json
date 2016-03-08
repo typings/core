@@ -4,6 +4,7 @@
     "outDir": "dist/",
     "module": "commonjs",
     "moduleResolution": "node",
+    "noLib": true,
     "declaration": true,
     "noImplicitAny": true,
     "removeComments": true,
@@ -12,6 +13,8 @@
   },
   "files": [
     "src/typings.ts",
-    "typings/main.d.ts"
+    "typings/main.d.ts",
+    "custom_typings/node.d.ts",
+    "node_modules/typescript/lib/lib.core.d.ts"
   ]
 }

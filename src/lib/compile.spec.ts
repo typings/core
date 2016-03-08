@@ -584,7 +584,7 @@ test('compile', t => {
 
     return compile(node, { name: 'test', cwd: __dirname, ambient: false, meta: false, emitter })
       .then(function (result) {
-        t.equal(result.main, "declare module 'test' {\nexport const helloWorld: string\n}\n")
+        t.equal(result.main, `declare module 'test' {${EOL}export const helloWorld: string${EOL}}${EOL}`)
       })
   })
 

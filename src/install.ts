@@ -110,7 +110,7 @@ function installTo (expression: InstallExpression, options: InstallDependencyOpt
 
   return resolveDependency(dependency, { cwd, emitter, dev: false, peer: false, ambient: false })
     .then(tree => {
-      const name = expression.name || tree.name || dependency.meta.name
+      const name = expression.name || dependency.meta.name || tree.name
 
       if (!name) {
         return Promise.reject(new TypeError(`Unable to install dependency from "${tree.raw}" without a name`))

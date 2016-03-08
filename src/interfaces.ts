@@ -60,8 +60,9 @@ export interface Dependency {
   raw: string
   location: string
   meta: {
-    // Common.
+    // Packages.
     name?: string
+    // Common.
     path?: string
     // Git-based.
     org?: string

@@ -74,6 +74,7 @@
   },
   "devDependencies": {
     "blue-tape": "^0.2.0",
+    "bluebird": "^3.3.4",
     "dependency-check": "^2.5.1",
     "istanbul": "1.0.0-alpha.2",
     "nock": "^7.0.2",

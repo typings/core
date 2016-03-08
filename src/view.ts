@@ -10,16 +10,22 @@ export interface ViewOptions {
 
 export function viewEntry (raw: string, options: ViewOptions = {}) {
   return new Promise((resolve) => {
-    const dependency = parseRegistryRaw(raw, options)
+    const { meta } = parseRegistryRaw(raw, options)
+    const path = `entries/${encodeURIComponent(meta.source)}/${encodeURIComponent(meta.name)}`
 
-    return resolve(readJsonFrom(dependency.location))
+    return resolve(readJsonFrom(resolveUrl(rc.registryURL, path)))
   })
 }
 
 export function viewVersions (raw: string, options: ViewOptions = {}) {
   return new Promise((resolve) => {
     const { meta } = parseRegistryRaw(raw, options)
+    let path = `entries/${encodeURIComponent(meta.source)}/${encodeURIComponent(meta.name)}/versions`
 
-    return resolve(readJsonFrom(resolveUrl(rc.registryURL, `entries/${encodeURIComponent(meta.source)}/${encodeURIComponent(meta.name)}/versions/${encodeURIComponent(meta.version || '*')}`)))
+    if (meta.version) {
+      path += `/${encodeURIComponent(meta.version)}`
+    }
+
+    return resolve(readJsonFrom(resolveUrl(rc.registryURL, path)))
   })
 }

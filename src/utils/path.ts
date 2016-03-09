@@ -9,6 +9,11 @@ const ambientMainTypingsDir = join(TYPINGS_DIR, 'main/ambient')
 const ambientBrowserTypingsDir = join(TYPINGS_DIR, 'browser/ambient')
 
 /**
+ * Consistent EOL behaviour.
+ */
+export const EOL = '\n'
+
+/**
  * Check if a path looks like a HTTP url.
  */
 export function isHttp (url: string) {
@@ -174,4 +179,19 @@ export function getDependencyLocation (options: DefinitionOptions) {
     mainDtsFile,
     browserDtsFile
   }
+}
+
+/**
+ * Detect the EOL character of a string.
+ */
+export function detectEOL (contents: string) {
+  const match = contents.match(/\r\n|\r|\n/)
+  return match ? match[0] : undefined
+}
+
+/**
+ * Replace new line characters globally.
+ */
+export function normalizeEOL (contents: string, eol: string) {
+  return contents.replace(/\r\n|\r|\n/g, eol)
 }

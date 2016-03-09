@@ -1,6 +1,6 @@
-import { EOL } from 'os'
 import { resolve, relative, normalize } from 'path'
 import isAbsolute = require('is-absolute')
+import { normalizeSlashes, EOL } from './path'
 
 /**
  * Match reference tags in a file. Matching the newline before the
@@ -42,5 +42,5 @@ export function stringifyReferences (paths: string[], cwd: string): string {
 }
 
 export function toReference (path: string, cwd: string): string {
-  return `/// <reference path="${isAbsolute(path) ? relative(cwd, path) : normalize(path)}" />`
+  return `/// <reference path="${normalizeSlashes(isAbsolute(path) ? relative(cwd, path) : normalize(path))}" />`
 }

@@ -15,12 +15,11 @@ import rmrf = require('rimraf')
 import popsicleProxy = require('popsicle-proxy-agent')
 import promiseFinally from 'promise-finally'
 import tch = require('touch')
-import { EOL } from 'os'
 import { join, dirname } from 'path'
 import { parse as parseUrl } from 'url'
 import template = require('string-template')
 import { CONFIG_FILE, TYPINGS_DIR, DTS_MAIN_FILE, DTS_BROWSER_FILE, PRETTY_PROJECT_NAME, HOMEPAGE } from './config'
-import { isHttp, toDefinition } from './path'
+import { isHttp, toDefinition, EOL, detectEOL, normalizeEOL } from './path'
 import { parseReferences, stringifyReferences } from './references'
 import { ConfigJson } from '../interfaces'
 import { CompiledOutput } from '../lib/compile'
@@ -164,7 +163,7 @@ export function readJsonFrom (from: string, allowEmpty?: boolean): Promise<any> 
  * Stringify an object as JSON for the filesystem (appends EOL).
  */
 export function stringifyJson (json: any, indent?: number | string, eol: string = EOL) {
-  return JSON.stringify(json, null, indent || 2).replace(/\n/g, eol) + eol
+  return normalizeEOL(JSON.stringify(json, null, indent || 2), eol) + eol
 }
 
 /**
@@ -259,12 +258,4 @@ export function transformDtsFile (path: string, transform: (typings: string[]) =
     return Promise.resolve(transform(typings))
       .then(typings => stringifyReferences(uniq(typings).sort(), cwd))
   })
-}
-
-/**
- * Detect the EOL character of a string.
- */
-function detectEOL (contents: string) {
-  const match = contents.match(/\r\n|\r|\n/)
-  return match ? match[0] : undefined
 }

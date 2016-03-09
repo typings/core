@@ -1,6 +1,5 @@
 import test = require('blue-tape')
 import Promise = require('any-promise')
-import { EOL } from 'os'
 import { join } from 'path'
 import { bundle } from './bundle'
 import { VERSION } from './typings'
@@ -43,7 +42,7 @@ test('bundle', t => {
           'export * from \'~example/index\';',
           '}',
           ''
-        ].join(EOL))
+        ].join('\n'))
       })
   })
 })

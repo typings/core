@@ -28,6 +28,7 @@ export interface Options {
  * The compiled output data.
  */
 export interface CompiledOutput {
+  name: string
   tree: DependencyTree
   main: string
   browser: string
@@ -37,6 +38,7 @@ export interface CompiledOutput {
  * Compile a dependency tree using a root name.
  */
 export default function compile (tree: DependencyTree, options: Options): Promise<CompiledOutput> {
+  const { name } = options
   const readFiles: ts.Map<Promise<string>> = {}
 
   return Promise.all([
@@ -45,6 +47,7 @@ export default function compile (tree: DependencyTree, options: Options): Promis
   ])
     .then(([main, browser]) => {
       return {
+        name,
         tree,
         main,
         browser

@@ -89,13 +89,31 @@ function resolveDependencyRegistry (dependency: Dependency, options: Options, pa
   const { location, meta } = dependency
 
   return readJsonFrom(location)
-    .then(entry => {
-      // Rewrite dependency type and location, but recreate `raw`.
-      const { type, location } = parseDependency(entry.location)
-      const raw = `registry:${meta.source}/${meta.name}#${entry.tag}`
+    .then(
+      function (entry) {
+        // Rewrite dependency type and location, but recreate `raw`.
+        const { type, location } = parseDependency(entry.location)
+        const raw = `registry:${meta.source}/${meta.name}#${entry.tag}`
 
-      return resolveDependencyInternally(type, location, raw, options, parent)
-    })
+        return resolveDependencyInternally(type, location, raw, options, parent)
+      },
+      function (error) {
+        // Wrap 404 responses in user prompt.
+        if (error.code === 'EINVALIDSTATUS' && error.status === 404) {
+          const prompt = parent ? '' : options.ambient ?
+            'Have you checked for regular typings without using ambient? ' :
+            'Did you want to install ambient typings with the ambient flag? '
+
+          const message = `Unable to find "${meta.name}" for "${meta.source}" in the registry. ` +
+            prompt + `If you can contribute these typings, please help us: ` +
+            `https://github.com/typings/registry`
+
+          return Promise.reject(new TypingsError(message, error))
+        }
+
+        return Promise.reject(error)
+      }
+    )
 }
 
 /**

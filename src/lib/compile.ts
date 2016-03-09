@@ -3,7 +3,7 @@ import extend = require('xtend')
 import has = require('has')
 import Promise = require('any-promise')
 import { EOL } from 'os'
-import { join, relative } from 'path'
+import { join, relative, basename } from 'path'
 import { DependencyTree, Overrides, Emitter } from '../interfaces'
 import { readFileFrom } from '../utils/fs'
 import { resolveFrom, relativeTo, isHttp, isModuleName, normalizeSlashes, fromDefinition, normalizeToDefinition, toDefinition } from '../utils/path'
@@ -366,14 +366,14 @@ function stringifyDependencyPath (path: string, options: StringifyOptions): Prom
         if (path === entry) {
           return Promise.reject(new TypingsError(
             `Unable to read typings for "${options.name}". ` +
-            `${authorPhrase} check the path is correct`,
+            `${authorPhrase} check the entry paths in "${basename(tree.src)}" are up to date`,
             cause
           ))
         }
 
         return Promise.reject(new TypingsError(
           `Unable to read "${relativePath}" from "${options.name}". ` +
-          `${authorPhrase} check the entry in "${CONFIG_FILE}" is correct`,
+          `${authorPhrase} validate all import paths are accurate (case sensitive and relative)`,
           cause
         ))
       }

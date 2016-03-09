@@ -398,7 +398,7 @@ test('compile', t => {
 
   t.test('missing error', t => {
     const node: DependencyTree = {
-      src: 'http://example.com/typings/index.d.ts',
+      src: 'http://example.com/typings/typings.json',
       raw: undefined,
       typings: 'http://example.com/typings/index.d.ts',
       dependencies: {},
@@ -414,7 +414,7 @@ test('compile', t => {
 
     return compile(node, { name: 'test', cwd: __dirname, ambient: false, meta: false, emitter })
       .catch(function (result) {
-        t.equal(result.message, 'Unable to read typings for "test". You should check the path is correct')
+        t.equal(result.message, 'Unable to read typings for "test". You should check the entry paths in "typings.json" are up to date')
       })
   })
 

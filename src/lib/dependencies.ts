@@ -24,6 +24,7 @@ const DEFAULT_DEPENDENCY: DependencyTree = {
   browserTypings: undefined,
   version: undefined,
   files: undefined,
+  ambient: undefined,
   dependencies: {},
   devDependencies: {},
   peerDependencies: {},
@@ -231,6 +232,7 @@ function resolveBowerDependencyFrom (
           browser: bowerJson.browser,
           typings: bowerJson.typings,
           browserTypings: bowerJson.browserTypings,
+          ambient: false,
           src,
           raw,
           parent
@@ -328,6 +330,7 @@ function resolveNpmDependencyFrom (src: string, raw: string, options: Options, p
           browser: packageJson.browser,
           typings: packageJson.typings,
           browserTypings: packageJson.browserTypings,
+          ambient: false,
           src,
           raw,
           parent
@@ -409,6 +412,7 @@ function resolveTypeDependencyFrom (src: string, raw: string, options: Options, 
           browserTypings: config.browserTypings,
           files: Array.isArray(config.files) ? config.files : undefined,
           type: PROJECT_NAME,
+          ambient: !!config.ambient,
           src,
           raw,
           parent
@@ -507,11 +511,16 @@ function mergeDependencies (root: DependencyTree, ...trees: DependencyTree[]): D
       continue
     }
 
-    const { name, raw, src, main, browser, typings, browserTypings, parent, files } = tree
+    const { name, raw, src, main, browser, typings, browserTypings, parent, files, ambient } = tree
 
     // The parent needs to always be set.
     if (parent != null) {
       dependency.parent = parent
+    }
+
+    // Merge known ambient properties.
+    if (ambient != null) {
+      dependency.ambient = ambient
     }
 
     if (typeof name === 'string') {

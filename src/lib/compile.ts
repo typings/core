@@ -41,6 +41,13 @@ export default function compile (tree: DependencyTree, options: Options): Promis
   const { name } = options
   const readFiles: ts.Map<Promise<string>> = {}
 
+  if (tree.ambient && !options.ambient) {
+    return Promise.reject(new TypingsError(
+      `Unable to compile "${options.name}", the typings are meant to be installed as ` +
+      `ambient but attempted to be compiled as an external module`
+    ))
+  }
+
   return Promise.all([
     compileDependencyTree(tree, extend(options, { browser: false, readFiles })),
     compileDependencyTree(tree, extend(options, { browser: true, readFiles }))

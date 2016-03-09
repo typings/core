@@ -1,12 +1,12 @@
 import extend = require('xtend')
 import Promise = require('any-promise')
-import { dirname } from 'path'
+import { dirname, join } from 'path'
 import { EventEmitter } from 'events'
 import { resolveDependency, resolveTypeDependencies } from './lib/dependencies'
 import compile, { Options as CompileOptions, CompiledOutput } from './lib/compile'
-import { findProject } from './utils/find'
-import { transformConfig, mkdirp, touch, writeFile, transformDtsFile } from './utils/fs'
-import { getTypingsLocation, getDependencyLocation } from './utils/path'
+import { findProject, findUp } from './utils/find'
+import { transformConfig, mkdirp, touch, writeFile, transformDtsFile, readJson } from './utils/fs'
+import { getTypingsLocation, getDependencyLocation, resolveFrom } from './utils/path'
 import { parseDependency, parseDependencyExpression } from './utils/parse'
 import { DependencyTree, Dependency, DependencyBranch, Emitter } from './interfaces'
 
@@ -108,7 +108,8 @@ function installTo (expression: InstallExpression, options: InstallDependencyOpt
   const { cwd, ambient } = options
   const emitter = options.emitter || new EventEmitter()
 
-  return resolveDependency(dependency, { cwd, emitter, dev: false, peer: false, ambient: false })
+  return checkTypings(dependency, options)
+    .then(() => resolveDependency(dependency, { cwd, emitter, dev: false, peer: false, ambient: false }))
     .then(tree => {
       const name = expression.name || dependency.meta.name || tree.name
 
@@ -173,7 +174,7 @@ function writeToConfig (name: string, raw: string, options: InstallDependencyOpt
 /**
  * Write a dependency to the filesytem.
  */
-export function writeDependency (output: CompiledOutput, options: CompileOptions): Promise<CompiledOutput> {
+function writeDependency (output: CompiledOutput, options: CompileOptions): Promise<CompiledOutput> {
   const location = getDependencyLocation(options)
 
   // Execute the dependency creation flow.
@@ -188,4 +189,32 @@ export function writeDependency (output: CompiledOutput, options: CompileOptions
     create(location.mainPath, location.mainFile, output.main, location.mainDtsFile),
     create(location.browserPath, location.browserFile, output.browser, location.browserDtsFile)
   ]).then(() => output)
+}
+
+/**
+ * Find existing `typings` that TypeScript supports.
+ */
+function checkTypings (dependency: Dependency, options: InstallDependencyOptions) {
+  const { type, meta } = dependency
+
+  // TypeScript only support NPM, as of today.
+  if (type === 'registry' && meta.source === 'npm') {
+    return findUp(options.cwd, join('node_modules', meta.name, 'package.json'))
+      .then(path => {
+        return readJson(path)
+          .then(packageJson => {
+            if (packageJson && typeof packageJson.typings === 'string') {
+              options.emitter.emit('hastypings', {
+                name: meta.name,
+                source: meta.source,
+                path: path,
+                typings: resolveFrom(path, packageJson.typings)
+              })
+            }
+          })
+      })
+      .catch(err => undefined)
+  }
+
+  return Promise.resolve()
 }

@@ -113,6 +113,7 @@ export interface Emitter extends EventEmitter {
   on (event: 'enoent', listener: (e: EnoentEvent) => any): this
   on (event: 'compile', listener: (e: CompileEvent) => any): this
   on (event: 'compiled', listener: (e: CompiledEvent) => any): this
+  on (event: 'hastypings', listener: (e: HasTypingsEvent) => any): this
   on (event: string, listener: Function): this
 
   emit (event: 'reference', e: ReferenceEvent): boolean
@@ -121,6 +122,7 @@ export interface Emitter extends EventEmitter {
   emit (event: 'enoent', e: EnoentEvent): boolean
   emit (event: 'compile', e: CompileEvent): boolean
   emit (event: 'compiled', e: CompiledEvent): boolean
+  emit (event: 'hastypings', e: HasTypingsEvent): boolean
   emit (event: string, ...args: any[]): boolean
 }
 
@@ -173,4 +175,14 @@ export interface CompileEvent {
  */
 export interface CompiledEvent extends CompileEvent {
   contents: string
+}
+
+/**
+ * Emit a "hastypings" event when native typings exist during install.
+ */
+export interface HasTypingsEvent {
+  source: string
+  name: string
+  path: string
+  typings: string
 }

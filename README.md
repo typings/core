@@ -2,7 +2,8 @@
 
 [![NPM version][npm-image]][npm-url]
 [![NPM downloads][downloads-image]][downloads-url]
-[![Build status][travis-image]][travis-url]
+[![Travis status][travis-image]][travis-url]
+[![Appveyor status][appveyor-image]][appveyor-url]
 [![Test coverage][coveralls-image]][coveralls-url]
 
 > The core logic for Typings.
@@ -41,3 +42,5 @@ MIT
 [travis-url]: https://travis-ci.org/typings/core
 [coveralls-image]: https://img.shields.io/coveralls/typings/core.svg?style=flat
 [coveralls-url]: https://coveralls.io/r/typings/core?branch=master
+[appveyor-image]: https://ci.appveyor.com/api/projects/status/32r7s2skrgm9ubva/branch/master?svg=true
+[appveyor-url]: https://ci.appveyor.com/project/blakeembrey/core/branch/master

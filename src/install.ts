@@ -125,7 +125,15 @@ function installTo (expression: InstallExpression, options: InstallDependencyOpt
         meta: true
       })
         .then(result => {
-          return writeToConfig(name, tree.raw, options).then(() => result)
+          return writeToConfig(name, tree.raw, options)
+            .then(() => {
+              // Emit postinstall messages.
+              if (tree.postmessage) {
+                emitter.emit('postmessage', { name, message: tree.postmessage })
+              }
+
+              return result
+            })
         })
     })
 }

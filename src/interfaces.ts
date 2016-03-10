@@ -30,6 +30,7 @@ export interface ConfigJson {
   version?: string
   files?: string[]
   ambient?: boolean
+  postmessage?: string
 
   // Meta information.
   name?: string
@@ -88,6 +89,7 @@ export interface DependencyTree {
   browserTypings?: Browser
   parent?: DependencyTree
   files?: string[]
+  postmessage?: string
   src: string
   raw: string
   ambient: boolean
@@ -116,6 +118,9 @@ export interface Emitter extends EventEmitter {
   on (event: 'compile', listener: (e: CompileEvent) => any): this
   on (event: 'compiled', listener: (e: CompiledEvent) => any): this
   on (event: 'hastypings', listener: (e: HasTypingsEvent) => any): this
+  on (event: 'postmessage', listener: (e: PostMessageEvent) => any): this
+  on (event: 'ambientdependencies', listener: (e: AmbientDependenciesEvent) => any): this
+  on (event: 'badlocation', listener: (e: BadLocationEvent) => any): this
   on (event: string, listener: Function): this
 
   emit (event: 'reference', e: ReferenceEvent): boolean
@@ -125,6 +130,9 @@ export interface Emitter extends EventEmitter {
   emit (event: 'compile', e: CompileEvent): boolean
   emit (event: 'compiled', e: CompiledEvent): boolean
   emit (event: 'hastypings', e: HasTypingsEvent): boolean
+  emit (event: 'postmessage', e: PostMessageEvent): boolean
+  emit (event: 'ambientdependencies', e: AmbientDependenciesEvent): boolean
+  emit (event: 'badlocation', e: BadLocationEvent): boolean
   emit (event: string, ...args: any[]): boolean
 }
 
@@ -187,4 +195,30 @@ export interface HasTypingsEvent {
   name: string
   path: string
   typings: string
+}
+
+/**
+ * Message emitted from a module after installation.
+ */
+export interface PostMessageEvent {
+  name: string
+  message: string
+}
+
+/**
+ * Emits known ambient module dependencies by top-level Typings.
+ */
+export interface AmbientDependenciesEvent {
+  name: string
+  raw: string
+  dependencies: Dependencies
+}
+
+/**
+ * Emitted when a known mutable source is being installed.
+ */
+export interface BadLocationEvent {
+  type: string
+  raw: string
+  location: string
 }

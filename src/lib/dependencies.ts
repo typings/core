@@ -25,6 +25,7 @@ const DEFAULT_DEPENDENCY: DependencyTree = {
   version: undefined,
   files: undefined,
   ambient: undefined,
+  postmessage: undefined,
   dependencies: {},
   devDependencies: {},
   peerDependencies: {},
@@ -59,10 +60,16 @@ export function resolveAllDependencies (options: Options): Promise<DependencyTre
  * Resolve a single dependency object.
  */
 export function resolveDependency (dependency: Dependency, options: Options, parent?: DependencyTree): Promise<DependencyTree> {
-  const { type, location, raw } = dependency
+  const { type, location, raw, meta } = dependency
 
   if (type === 'registry') {
     return resolveDependencyRegistry(dependency, options, parent)
+  }
+
+  if (type === 'github' || type === 'bitbucket') {
+    if (meta.sha === 'master') {
+      options.emitter.emit('badlocation', { type, raw, location })
+    }
   }
 
   return resolveDependencyInternally(type, location, raw, options, parent)
@@ -413,6 +420,7 @@ function resolveTypeDependencyFrom (src: string, raw: string, options: Options, 
           files: Array.isArray(config.files) ? config.files : undefined,
           type: PROJECT_NAME,
           ambient: !!config.ambient,
+          postmessagee: typeof config.postmessage === 'string' ? config.postmessage : undefined,
           src,
           raw,
           parent
@@ -425,6 +433,15 @@ function resolveTypeDependencyFrom (src: string, raw: string, options: Options, 
         const peerDependencyMap = extend(peer ? config.peerDependencies : {})
         const ambientDependencyMap = extend(ambient ? config.ambientDependencies : {})
         const ambientDevDependencyMap = extend(ambient && dev ? config.ambientDevDependencies : {})
+
+        // Emit "expected" ambient modules when installing top-level.
+        if (parent == null && config.ambientDependencies) {
+          options.emitter.emit('ambientdependencies', {
+            name: config.name,
+            raw: raw,
+            dependencies: config.ambientDependencies
+          })
+        }
 
         return Promise.all([
           resolveTypeDependencyMap(src, dependencyMap, options, tree),

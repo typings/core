@@ -19,6 +19,7 @@ test('compile', t => {
         src: join(FIXTURE_DIR, CONFIG_FILE),
         main: 'root',
         raw: undefined,
+        postmessage: undefined,
         ambient: false,
         browser: {
           b: 'browser'
@@ -34,6 +35,7 @@ test('compile', t => {
         src: join(FIXTURE_DIR, `a/${CONFIG_FILE}`),
         main: undefined,
         raw: undefined,
+        postmessage: undefined,
         ambient: false,
         typings: 'typed.d.ts',
         browserTypings: 'typed.browser.d.ts',
@@ -48,6 +50,7 @@ test('compile', t => {
         src: join(FIXTURE_DIR, 'bower.json'),
         main: undefined,
         raw: undefined,
+        postmessage: undefined,
         ambient: false,
         typings: 'typings/b.d.ts',
         dependencies: {},
@@ -61,6 +64,7 @@ test('compile', t => {
         src: join(FIXTURE_DIR, 'package.json'),
         main: undefined,
         raw: undefined,
+        postmessage: undefined,
         ambient: false,
         typings: 'browser.d.ts',
         dependencies: {},
@@ -74,6 +78,7 @@ test('compile', t => {
         src: join(FIXTURE_DIR, `dep/${CONFIG_FILE}`),
         main: 'dep/main.d.ts',
         raw: undefined,
+        postmessage: undefined,
         ambient: false,
         dependencies: {},
         devDependencies: {},
@@ -195,6 +200,7 @@ test('compile', t => {
         src: join(FIXTURE_DIR, CONFIG_FILE),
         main: 'file.d.ts',
         raw: undefined,
+        postmessage: undefined,
         ambient: false,
         dependencies: {},
         devDependencies: {},
@@ -241,6 +247,7 @@ test('compile', t => {
         src: join(FIXTURE_DIR, CONFIG_FILE),
         main: 'index.d.ts',
         raw: undefined,
+        postmessage: undefined,
         ambient: false,
         dependencies: {},
         devDependencies: {},
@@ -277,6 +284,7 @@ test('compile', t => {
         src: join(FIXTURE_DIR, CONFIG_FILE),
         main: 'index.d.ts',
         raw: undefined,
+        postmessage: undefined,
         ambient: false,
         dependencies: {},
         devDependencies: {},
@@ -327,6 +335,7 @@ test('compile', t => {
       const node: DependencyTree = {
         src: __filename,
         raw: undefined,
+        postmessage: undefined,
         ambient: true,
         typings: join(FIXTURE_DIR, 'node.d.ts'),
         dependencies: {},
@@ -340,6 +349,7 @@ test('compile', t => {
         src: join(FIXTURE_DIR, 'fs.d.ts'),
         main: undefined,
         raw: undefined,
+        postmessage: undefined,
         ambient: false,
         typings: join(FIXTURE_DIR, 'fs.d.ts'),
         dependencies: {},
@@ -373,6 +383,7 @@ test('compile', t => {
       const node: DependencyTree = {
         src: __filename,
         raw: undefined,
+        postmessage: undefined,
         ambient: true,
         typings,
         dependencies: {},
@@ -410,6 +421,7 @@ test('compile', t => {
     const node: DependencyTree = {
       src: 'http://example.com/typings/typings.json',
       raw: undefined,
+      postmessage: undefined,
       ambient: false,
       typings: 'http://example.com/typings/index.d.ts',
       dependencies: {},
@@ -433,6 +445,7 @@ test('compile', t => {
     const node: DependencyTree = {
       src: 'http://example.com/typings.json',
       raw: undefined,
+      postmessage: undefined,
       ambient: true,
       typings: 'http://example.com/index.d.ts',
       dependencies: {},
@@ -458,6 +471,7 @@ test('compile', t => {
     const main: DependencyTree = {
       src: join(FIXTURE_DIR, 'package.json'),
       raw: undefined,
+      postmessage: undefined,
       ambient: false,
       dependencies: {},
       devDependencies: {},
@@ -483,6 +497,7 @@ test('compile', t => {
       src: join(FIXTURE_DIR, 'package.json'),
       main: 'index.js',
       raw: undefined,
+      postmessage: undefined,
       ambient: false,
       dependencies: {},
       devDependencies: {},
@@ -494,6 +509,7 @@ test('compile', t => {
     const dependency: DependencyTree = {
       main: 'index.js',
       raw: undefined,
+      postmessage: undefined,
       ambient: false,
       src: join(FIXTURE_DIR, 'node_modules/test/package.json'),
       dependencies: {},
@@ -604,6 +620,7 @@ test('compile', t => {
     const node: DependencyTree = {
       src: 'http://example.com/typings.json',
       raw: undefined,
+      postmessage: undefined,
       ambient: false,
       typings: 'http://example.com/index.d.ts',
       dependencies: {},
@@ -632,6 +649,7 @@ test('compile', t => {
     const tree: DependencyTree = {
       src: join(FIXTURE_DIR, 'typings.json'),
       raw: undefined,
+      postmessage: undefined,
       ambient: false,
       files: ['a.d.ts', 'b.d.ts'],
       dependencies: {},

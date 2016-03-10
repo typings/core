@@ -441,7 +441,7 @@ function stringifyFile (path: string, rawContents: string, rawPath: string, opti
       )
     }
 
-    return `${meta}${contents.trim()}`
+    return `${meta}${normalizeEOL(contents.trim(), EOL)}`
   }
 
   let wasDeclared = false
@@ -537,7 +537,7 @@ function stringifyFile (path: string, rawContents: string, rawPath: string, opti
   }
 
   const isEntry = rawPath === entry
-  const moduleText = normalizeEOL(processTree(sourceFile, replacer, read), '\n')
+  const moduleText = normalizeEOL(processTree(sourceFile, replacer, read), EOL)
   const moduleName = parent && parent.ambient ? name : prefix
 
   // Direct usage of definition/typings. This is *not* a psuedo-module.

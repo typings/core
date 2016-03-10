@@ -15,7 +15,6 @@ export interface SearchOptions {
   source?: string
   offset?: string
   limit?: string
-  ambient?: boolean
   order?: string
   sort?: string
 }
@@ -61,7 +60,6 @@ export function search (options: SearchOptions = {}): Promise<SearchResults> {
     'source',
     'offset',
     'limit',
-    'ambient',
     'order',
     'sort'
   ]))

@@ -67,7 +67,7 @@ test('install', t => {
     const DEPENDENCY = '@scope/test=file:custom_typings/definition.d.ts'
     const REGISTRY_DEPENDENCY = 'registry:dt/node@>=4.0'
     const PEER_DEPENDENCY = 'file:custom_typings/named/typings.json'
-    const AMBIENT_DEPENDENCY = 'ambient-test=file:custom_typings/ambient.d.ts'
+    const AMBIENT_DEPENDENCY = 'file:custom_typings/ambient.d.ts'
     const FIXTURE_DIR = join(__dirname, '__test__/install-dependency-fixture')
     const CONFIG = join(FIXTURE_DIR, CONFIG_FILE)
 
@@ -131,21 +131,9 @@ test('install', t => {
             node: 'registry:dt/node#4.0.0+20160226132328'
           },
           ambientDevDependencies: {
-            'ambient-test': 'file:custom_typings/ambient.d.ts'
+            ambient: 'file:custom_typings/ambient.d.ts'
           }
         })
-      })
-  })
-
-  t.test('reject install if name is missing', t => {
-    const DEPENDENCY = 'file:custom_typings/definition.d.ts'
-    const FIXTURE_DIR = join(__dirname, '__test__/install-dependency-fixture')
-
-    t.plan(1)
-
-    return installDependencyRaw(DEPENDENCY, { cwd: FIXTURE_DIR, emitter })
-      .catch(err => {
-        t.ok(/^Unable to install dependency/.test(err.message))
       })
   })
 

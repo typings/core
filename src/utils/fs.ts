@@ -19,7 +19,7 @@ import { join, dirname } from 'path'
 import { parse as parseUrl } from 'url'
 import template = require('string-template')
 import { CONFIG_FILE, TYPINGS_DIR, DTS_MAIN_FILE, DTS_BROWSER_FILE, PRETTY_PROJECT_NAME, HOMEPAGE } from './config'
-import { isHttp, toDefinition, EOL, detectEOL, normalizeEOL } from './path'
+import { isHttp, EOL, detectEOL, normalizeEOL } from './path'
 import { parseReferences, stringifyReferences } from './references'
 import { ConfigJson } from '../interfaces'
 import { CompiledOutput } from '../lib/compile'

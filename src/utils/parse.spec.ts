@@ -2,15 +2,19 @@ import test = require('blue-tape')
 import { normalize } from 'path'
 import { parseDependency, resolveDependency, expandRegistry } from './parse'
 import { CONFIG_FILE } from './config'
+import { Dependency } from '../interfaces'
 
 test('parse', t => {
   t.test('parse dependency', t => {
     t.test('parse filename', t => {
       const actual = parseDependency('file:./foo/bar.d.ts')
-      const expected = {
+      const expected: Dependency = {
         raw: 'file:./foo/bar.d.ts',
         location: normalize('foo/bar.d.ts'),
-        meta: { path: normalize('foo/bar.d.ts') },
+        meta: {
+          name: 'bar',
+          path: normalize('foo/bar.d.ts')
+        },
         type: 'file'
       }
 
@@ -20,10 +24,13 @@ test('parse', t => {
 
     t.test('parse filename relative', t => {
       const actual = parseDependency('file:foo/bar.d.ts')
-      const expected = {
+      const expected: Dependency = {
         raw: 'file:foo/bar.d.ts',
         location: normalize('foo/bar.d.ts'),
-        meta: { path: normalize('foo/bar.d.ts') },
+        meta: {
+          name: 'bar',
+          path: normalize('foo/bar.d.ts')
+        },
         type: 'file'
       }
 
@@ -33,7 +40,7 @@ test('parse', t => {
 
     t.test('parse npm', t => {
       const actual = parseDependency('npm:foobar')
-      const expected = {
+      const expected: Dependency = {
         raw: 'npm:foobar',
         type: 'npm',
         meta: {
@@ -49,7 +56,7 @@ test('parse', t => {
 
     t.test('parse scoped npm packages', t => {
       const actual = parseDependency('npm:@foo/bar')
-      const expected = {
+      const expected: Dependency = {
         raw: 'npm:@foo/bar',
         type: 'npm',
         meta: {
@@ -65,7 +72,7 @@ test('parse', t => {
 
     t.test('parse npm filename', t => {
       const actual = parseDependency('npm:typescript/bin/lib.es6.d.ts')
-      const expected = {
+      const expected: Dependency = {
         raw: 'npm:typescript/bin/lib.es6.d.ts',
         type: 'npm',
         meta: {
@@ -81,7 +88,7 @@ test('parse', t => {
 
     t.test('parse bower', t => {
       const actual = parseDependency('bower:foobar')
-      const expected = {
+      const expected: Dependency = {
         raw: 'bower:foobar',
         type: 'bower',
         meta: {
@@ -97,7 +104,7 @@ test('parse', t => {
 
     t.test('parse bower filename', t => {
       const actual = parseDependency('bower:foobar/' + CONFIG_FILE)
-      const expected = {
+      const expected: Dependency = {
         raw: 'bower:foobar/' + CONFIG_FILE,
         type: 'bower',
         meta: {
@@ -113,10 +120,11 @@ test('parse', t => {
 
     t.test('parse github', t => {
       const actual = parseDependency('github:foo/bar')
-      const expected = {
+      const expected: Dependency = {
         raw: 'github:foo/bar',
         type: 'github',
         meta: {
+          name: undefined,
           org: 'foo',
           path: 'typings.json',
           repo: 'bar',
@@ -131,10 +139,11 @@ test('parse', t => {
 
     t.test('parse github with sha and append config file', t => {
       const actual = parseDependency('github:foo/bar#test')
-      const expected = {
+      const expected: Dependency = {
         raw: 'github:foo/bar#test',
         type: 'github',
         meta: {
+          name: undefined,
           org: 'foo',
           path: 'typings.json',
           repo: 'bar',
@@ -149,10 +158,11 @@ test('parse', t => {
 
     t.test('parse github paths to `.d.ts` files', t => {
       const actual = parseDependency('github:foo/bar/typings/file.d.ts')
-      const expected = {
+      const expected: Dependency = {
         raw: 'github:foo/bar/typings/file.d.ts',
         type: 'github',
         meta: {
+          name: 'file',
           org: 'foo',
           path: 'typings/file.d.ts',
           repo: 'bar',
@@ -167,10 +177,11 @@ test('parse', t => {
 
     t.test('parse github paths to config file', t => {
       const actual = parseDependency('github:foo/bar/src/' + CONFIG_FILE)
-      const expected = {
+      const expected: Dependency = {
         raw: 'github:foo/bar/src/' + CONFIG_FILE,
         type: 'github',
         meta: {
+          name: undefined,
           org: 'foo',
           path: 'src/typings.json',
           repo: 'bar',
@@ -185,10 +196,11 @@ test('parse', t => {
 
     t.test('parse bitbucket', t => {
       const actual = parseDependency('bitbucket:foo/bar')
-      const expected = {
+      const expected: Dependency = {
         raw: 'bitbucket:foo/bar',
         type: 'bitbucket',
         meta: {
+          name: undefined,
           org: 'foo',
           path: 'typings.json',
           repo: 'bar',
@@ -203,10 +215,11 @@ test('parse', t => {
 
     t.test('parse bitbucket and append config file to path', t => {
       const actual = parseDependency('bitbucket:foo/bar/dir')
-      const expected = {
+      const expected: Dependency = {
         raw: 'bitbucket:foo/bar/dir',
         type: 'bitbucket',
         meta: {
+          name: undefined,
           org: 'foo',
           path: 'dir/typings.json',
           repo: 'bar',
@@ -221,10 +234,11 @@ test('parse', t => {
 
     t.test('parse bitbucket with sha', t => {
       const actual = parseDependency('bitbucket:foo/bar#abc')
-      const expected = {
+      const expected: Dependency = {
         raw: 'bitbucket:foo/bar#abc',
         type: 'bitbucket',
         meta: {
+          name: undefined,
           org: 'foo',
           path: 'typings.json',
           repo: 'bar',
@@ -239,7 +253,7 @@ test('parse', t => {
 
     t.test('parse url', t => {
       const actual = parseDependency('http://example.com/foo/' + CONFIG_FILE)
-      const expected = {
+      const expected: Dependency = {
         raw: 'http://example.com/foo/' + CONFIG_FILE,
         type: 'http',
         meta: {},
@@ -252,7 +266,7 @@ test('parse', t => {
 
     t.test('parse registry', t => {
       const actual = parseDependency('registry:dt/node')
-      const expected = {
+      const expected: Dependency = {
         raw: 'registry:dt/node',
         type: 'registry',
         meta: { name: 'node', source: 'dt', tag: undefined as string, version: undefined as string },
@@ -265,7 +279,7 @@ test('parse', t => {
 
     t.test('parse registry with scoped package', t => {
       const actual = parseDependency('registry:npm/@scoped/npm')
-      const expected = {
+      const expected: Dependency = {
         raw: 'registry:npm/@scoped/npm',
         type: 'registry',
         meta: { name: '@scoped/npm', source: 'npm', tag: undefined as string, version: undefined as string },
@@ -278,7 +292,7 @@ test('parse', t => {
 
     t.test('parse registry with tag', t => {
       const actual = parseDependency('registry:npm/dep#3.0.0-2016')
-      const expected = {
+      const expected: Dependency = {
         raw: 'registry:npm/dep#3.0.0-2016',
         type: 'registry',
         meta: { name: 'dep', source: 'npm', tag: '3.0.0-2016', version: undefined as string },
@@ -291,7 +305,7 @@ test('parse', t => {
 
     t.test('parse registry with version', t => {
       const actual = parseDependency('registry:npm/dep@^4.0')
-      const expected = {
+      const expected: Dependency = {
         raw: 'registry:npm/dep@^4.0',
         type: 'registry',
         meta: { name: 'dep', source: 'npm', tag: undefined as string, version: '^4.0' },

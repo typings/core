@@ -6,7 +6,7 @@ import { join, relative, basename } from 'path'
 import { DependencyTree, Overrides, Emitter } from '../interfaces'
 import { readFileFrom } from '../utils/fs'
 import { EOL, normalizeEOL } from '../utils/path'
-import { resolveFrom, relativeTo, isHttp, isModuleName, normalizeSlashes, fromDefinition, normalizeToDefinition, toDefinition } from '../utils/path'
+import { resolveFrom, relativeTo, isHttp, isModuleName, normalizeSlashes, pathFromDefinition, normalizeToDefinition, toDefinition } from '../utils/path'
 import { REFERENCE_REGEXP } from '../utils/references'
 import { PROJECT_NAME, CONFIG_FILE, DEPENDENCY_SEPARATOR } from '../utils/config'
 import { resolveDependency } from '../utils/parse'
@@ -75,7 +75,7 @@ interface CompileOptions extends Options {
 /**
  * Resolve override paths.
  */
-function resolveFromWithModuleNameOverride (src: string, to: string | boolean): string {
+function resolveFromOverride (src: string, to: string | boolean): string {
   if (typeof to === 'string') {
     if (isModuleName(to)) {
       const [moduleName, modulePath] = getModuleNameParts(to)
@@ -130,8 +130,8 @@ function getStringifyOptions (
       overrides[mainDefinition] = browserDefinition
     } else {
       for (const key of Object.keys(browser)) {
-        const from = resolveFromWithModuleNameOverride(tree.src, key) as string
-        const to = resolveFromWithModuleNameOverride(tree.src, browser[key])
+        const from = resolveFromOverride(tree.src, key) as string
+        const to = resolveFromOverride(tree.src, browser[key])
 
         overrides[from] = to
       }
@@ -413,10 +413,10 @@ function importPath (path: string, name: string, options: StringifyOptions) {
       return name
     }
 
-    return `${prefix}${DEPENDENCY_SEPARATOR}${modulePath ? fromDefinition(resolved) : resolved}`
+    return `${prefix}${DEPENDENCY_SEPARATOR}${modulePath ? pathFromDefinition(resolved) : resolved}`
   }
 
-  const relativePath = relativeTo(tree.src, fromDefinition(resolved))
+  const relativePath = relativeTo(tree.src, pathFromDefinition(resolved))
 
   return normalizeSlashes(join(prefix, relativePath))
 }
@@ -545,8 +545,8 @@ function stringifyFile (path: string, rawContents: string, rawPath: string, opti
     return meta + declareText(parent ? moduleName : name, moduleText)
   }
 
-  const modulePath = importPath(path, fromDefinition(path), options)
-  const prettyPath = normalizeSlashes(join(name, relativeTo(tree.src, fromDefinition(path))))
+  const modulePath = importPath(path, pathFromDefinition(path), options)
+  const prettyPath = normalizeSlashes(join(name, relativeTo(tree.src, pathFromDefinition(path))))
   const declared = declareText(modulePath, moduleText)
 
   if (!isEntry) {

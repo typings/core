@@ -27,11 +27,15 @@ if (!which('tsc')) {
 
 if (exec('tsc', { silent: true }).code !== 0) {
   console.log('tsc completed build as expected')
-  echo('')
+  console.log('')
 }
 
 require('../')
   .install({ cwd: process.cwd() })
   .then(function () {
-    echo('Success!')
+    console.log('Success!')
+  })
+  .catch(function (err) {
+    console.log(err.toString())
+    console.log(err.stack)
   })

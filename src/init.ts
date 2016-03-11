@@ -1,10 +1,9 @@
 import Promise = require('any-promise')
 import extend = require('xtend')
-import { join } from 'path'
+import { join, basename } from 'path'
 import { ConfigJson } from './interfaces'
 import { writeJson, isFile, readJson } from './utils/fs'
 import { CONFIG_FILE } from './utils/config'
-import { inferDefinitionName } from './utils/path'
 
 const TSD_JSON_FILE = 'tsd.json'
 const DEFINITELYTYPED_REPO = 'DefinitelyTyped/DefinitelyTyped'
@@ -71,7 +70,7 @@ function upgradeTsdJson (tsdJson: TsdJson, config?: ConfigJson): ConfigJson {
 
     Object.keys(tsdJson.installed).forEach(function (path) {
       const dependency = tsdJson.installed[path]
-      const name = inferDefinitionName(path)
+      const name = basename(path, '.d.ts')
       const location = `github:${repo}/${path}#${dependency.commit}`
 
       typingsJson.ambientDependencies[name] = location

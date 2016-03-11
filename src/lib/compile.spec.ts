@@ -622,7 +622,7 @@ test('compile', t => {
       raw: undefined,
       postmessage: undefined,
       ambient: false,
-      typings: 'http://example.com/index.d.ts',
+      main: 'http://example.com/index.d.ts?query=test',
       dependencies: {},
       devDependencies: {},
       peerDependencies: {},
@@ -633,13 +633,35 @@ test('compile', t => {
     const emitter = new EventEmitter()
 
     nock('http://example.com')
-      .get('/index.d.ts')
+      .get('/index.d.ts?query=test')
       .matchHeader('User-Agent', /^typings\/\d+\.\d+\.\d+ node\/v\d+\.\d+\.\d+.*$/)
-      .reply(200, 'export const helloWorld: string')
+      .reply(200, 'export * from "./test"')
+
+    nock('http://example.com')
+      .get('/test.d.ts?query=test')
+      .reply(200, 'export const test: boolean')
 
     return compile(node, { name: 'test', cwd: __dirname, ambient: false, meta: false, emitter })
       .then(function (result) {
-        t.equal(result.main, `declare module 'test' {\nexport const helloWorld: string\n}\n`)
+        t.equal(result.main, [
+          'declare module \'~test/test\' {',
+          'export const test: boolean',
+          '}',
+          'declare module \'test/test\' {',
+          'export * from \'~test/test\';',
+          '}',
+          '',
+          'declare module \'~test/index\' {',
+          'export * from \'~test/test\'',
+          '}',
+          'declare module \'test/index\' {',
+          'export * from \'~test/index\';',
+          '}',
+          'declare module \'test\' {',
+          'export * from \'~test/index\';',
+          '}',
+          ''
+        ].join('\n'))
       })
   })
 

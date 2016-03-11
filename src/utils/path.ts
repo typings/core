@@ -1,5 +1,5 @@
 import { resolve, dirname, basename, relative, extname, join } from 'path'
-import { resolve as resolveUrl, parse as parseUrl } from 'url'
+import { resolve as resolveUrl, parse as parseUrl, format as formatUrl } from 'url'
 import { TYPINGS_DIR, DTS_MAIN_FILE, DTS_BROWSER_FILE } from './config'
 import isAbsolute = require('is-absolute')
 
@@ -24,6 +24,10 @@ export function isHttp (url: string) {
  * Check if a path looks like a definition file.
  */
 export function isDefinition (path: string): boolean {
+  if (isHttp(path)) {
+    return isDefinition(parseUrl(path).pathname)
+  }
+
   return /\.d\.ts$/.test(path)
 }
 
@@ -42,40 +46,22 @@ export function normalizeSlashes (path: string) {
 }
 
 /**
- * Infer the definition name from a location string.
- */
-export function inferDefinitionName (location: string) {
-  if (isDefinition(location)) {
-    let pathname = location
-
-    if (isHttp(location)) {
-      pathname = parseUrl(location).pathname
-    }
-
-    return sanitizeDefinitionName(basename(pathname, '.d.ts'))
-  }
-}
-
-/**
- * Attempt to sanitize the definition name (stripping "typings", etc).
- */
-export function sanitizeDefinitionName (name: string) {
-  if (name == null) {
-    return name
-  }
-
-  return name.replace(/^(?:typings|typed)\-|\-(?:typings|typed)$/, '')
-}
-
-/**
  * Resolve a path directly from another.
  */
 export function resolveFrom (from: string, to: string) {
+  // Replace the entire path.
   if (isHttp(to)) {
     return to
   }
 
-  return isHttp(from) ? resolveUrl(from, to) : resolve(dirname(from), to)
+  // Resolve relative HTTP requests.
+  if (isHttp(from)) {
+    const url = parseUrl(from)
+    url.pathname = resolveUrl(url.pathname, to)
+    return formatUrl(url)
+  }
+
+  return resolve(dirname(from), to)
 }
 
 /**
@@ -83,8 +69,9 @@ export function resolveFrom (from: string, to: string) {
  */
 export function relativeTo (from: string, to: string): string {
   if (isHttp(from)) {
+    const fromUrl = parseUrl(from)
+
     if (isHttp(to)) {
-      const fromUrl = parseUrl(from)
       const toUrl = parseUrl(to)
 
       if (toUrl.auth !== fromUrl.auth || toUrl.host !== fromUrl.host) {
@@ -104,7 +91,7 @@ export function relativeTo (from: string, to: string): string {
       return relativeUrl
     }
 
-    return to
+    return relativeTo(fromUrl.pathname, to)
   }
 
   return relative(dirname(from), to)
@@ -113,15 +100,25 @@ export function relativeTo (from: string, to: string): string {
 /**
  * Append `.d.ts` to a path.
  */
-export function toDefinition (name: string) {
-  return `${name}.d.ts`
+export function toDefinition (path: string) {
+  if (isHttp(path)) {
+    const url = parseUrl(path)
+    url.pathname = toDefinition(url.pathname)
+    return formatUrl(url)
+  }
+
+  return `${path}.d.ts`
 }
 
 /**
  * Remove `.d.ts` from a path.
  */
-export function fromDefinition (name: string) {
-  return name.replace(/\.d\.ts$/, '')
+export function pathFromDefinition (path: string): string {
+  if (isHttp(path)) {
+    return pathFromDefinition(parseUrl(path).pathname)
+  }
+
+  return path.replace(/\.d\.ts$/, '')
 }
 
 /**
@@ -130,6 +127,12 @@ export function fromDefinition (name: string) {
 export function normalizeToDefinition (path: string) {
   if (isDefinition(path)) {
     return path
+  }
+
+  if (isHttp(path)) {
+    const url = parseUrl(path)
+    url.pathname = normalizeToDefinition(path)
+    return formatUrl(url)
   }
 
   const ext = extname(path)

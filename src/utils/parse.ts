@@ -3,7 +3,7 @@ import { parse, format, resolve as resolveUrl } from 'url'
 import { normalize, join, basename, dirname } from 'path'
 import { Dependency } from '../interfaces'
 import { CONFIG_FILE } from './config'
-import { isDefinition, normalizeSlashes, inferDefinitionName, sanitizeDefinitionName } from './path'
+import { isDefinition, normalizeSlashes, pathFromDefinition } from './path'
 import rc from './rc'
 
 /**
@@ -16,15 +16,18 @@ function gitFromPath (src: string) {
   const org = segments.shift()
   const repo = segments.shift()
   let path = segments.join('/')
+  let name: string
 
   // Automatically look for the config file in the root.
   if (segments.length === 0) {
     path = CONFIG_FILE
-  } else if (!isDefinition(path) && segments[segments.length - 1] !== CONFIG_FILE) {
+  } else if (isDefinition(path)) {
+    name = basename(pathFromDefinition(path))
+  } else if (segments[segments.length - 1] !== CONFIG_FILE) {
     path += `/${CONFIG_FILE}`
   }
 
-  return { org, repo, path, sha }
+  return { org, repo, path, sha, name }
 }
 
 /**
@@ -50,6 +53,7 @@ export function parseDependency (raw: string): Dependency {
   if (type === 'file') {
     const location = normalize(src)
     const filename = basename(location)
+    const name = isDefinition(filename) ? pathFromDefinition(filename) : undefined
 
     invariant(
       filename === CONFIG_FILE || isDefinition(filename),
@@ -60,6 +64,7 @@ export function parseDependency (raw: string): Dependency {
       raw,
       type,
       meta: {
+        name: name,
         path: location
       },
       location
@@ -69,7 +74,7 @@ export function parseDependency (raw: string): Dependency {
   // `bitbucket:org/repo/path#sha`
   if (type === 'github') {
     const meta = gitFromPath(src)
-    const { org, repo, path, sha } = meta
+    const { org, repo, path, sha, name } = meta
     let location = `https://raw.githubusercontent.com/${org}/${repo}/${sha}/${path}`
 
     if (rc.githubToken) {
@@ -87,7 +92,7 @@ export function parseDependency (raw: string): Dependency {
   // `bitbucket:org/repo/path#sha`
   if (type === 'bitbucket') {
     const meta = gitFromPath(src)
-    const { org, repo, path, sha } = meta
+    const { org, repo, path, sha, name } = meta
     const location = `https://bitbucket.org/${org}/${repo}/raw/${sha}/${path}`
 
     return {

@@ -12,7 +12,7 @@ import { Emitter } from './interfaces'
 export interface BundleOptions {
   name?: string
   cwd: string
-  ambient: boolean
+  ambient?: boolean
   out: string
   emitter?: Emitter
 }

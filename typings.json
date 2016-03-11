@@ -1,4 +1,5 @@
 {
+  "main": "dist/typings.d.ts",
   "dependencies": {
     "any-promise": "github:typings/typed-any-promise#74ba6cf22149ff4de39c2338a9cb84f9ded6f042",
     "archy": "github:typings/typed-archy#3706c5e4df4efcc8cec8849a1c493cebd0830bea",

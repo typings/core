@@ -28,7 +28,7 @@ export function bundle (options: BundleOptions): Promise<CompiledOutput> {
     return Promise.reject(new TypeError('Out directory is required for bundle'))
   }
 
-  return resolveAllDependencies({ cwd, dev: false, ambient, emitter })
+  return resolveAllDependencies({ cwd, dev: false, ambient: false, emitter })
     .then(tree => {
       const name = options.name || tree.name
 

@@ -167,10 +167,16 @@ export function parseDependency (raw: string): Dependency {
       throw new TypeError(`Unable to use tag and version together: ${raw}`)
     }
 
-    const prefix = `/entries/${encodeURIComponent(source)}/${encodeURIComponent(name)}`
-    const path = tag ?
-      `${prefix}/tags/${encodeURIComponent(tag)}` :
-      `${prefix}/versions/${encodeURIComponent(version || '*')}/latest`
+    let path = `/entries/${encodeURIComponent(source)}/${encodeURIComponent(name)}`
+
+    // Select the best API to get the registry version.
+    if (tag) {
+      path += `/tags/${encodeURIComponent(tag)}`
+    } else if (version) {
+      path += `/versions/${encodeURIComponent(version)}/latest`
+    } else {
+      path += '/versions/latest'
+    }
 
     return {
       raw,

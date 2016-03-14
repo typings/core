@@ -270,7 +270,7 @@ test('parse', t => {
         raw: 'registry:dt/node',
         type: 'registry',
         meta: { name: 'node', source: 'dt', tag: undefined as string, version: undefined as string },
-        location: 'https://api.typings.org/entries/dt/node/versions/*/latest'
+        location: 'https://api.typings.org/entries/dt/node/versions/latest'
       }
 
       t.deepEqual(actual, expected)
@@ -283,7 +283,7 @@ test('parse', t => {
         raw: 'registry:npm/@scoped/npm',
         type: 'registry',
         meta: { name: '@scoped/npm', source: 'npm', tag: undefined as string, version: undefined as string },
-        location: 'https://api.typings.org/entries/npm/%40scoped%2Fnpm/versions/*/latest'
+        location: 'https://api.typings.org/entries/npm/%40scoped%2Fnpm/versions/latest'
       }
 
       t.deepEqual(actual, expected)

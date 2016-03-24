@@ -6,11 +6,18 @@ import { join, relative, basename } from 'path'
 import { DependencyTree, Overrides, Emitter } from '../interfaces'
 import { readFileFrom } from '../utils/fs'
 import { EOL, normalizeEOL } from '../utils/path'
-import { resolveFrom, relativeTo, isHttp, isModuleName, normalizeSlashes, pathFromDefinition, normalizeToDefinition, toDefinition } from '../utils/path'
+import {
+  resolveFrom,
+  relativeTo,
+  isHttp,
+  isModuleName,
+  normalizeSlashes,
+  pathFromDefinition,
+  normalizeToDefinition,
+  toDefinition
+} from '../utils/path'
 import { REFERENCE_REGEXP } from '../utils/references'
-import { PROJECT_NAME, CONFIG_FILE, DEPENDENCY_SEPARATOR } from '../utils/config'
-import { resolveDependency } from '../utils/parse'
-import { VERSION } from '../typings'
+import { PROJECT_NAME, DEPENDENCY_SEPARATOR } from '../utils/config'
 import TypingsError from './error'
 
 /**
@@ -87,13 +94,6 @@ function resolveFromOverride (src: string, to: string | boolean): string {
   }
 
   return to ? src : undefined
-}
-
-/**
- * Resolve modules and paths.
- */
-function resolveFromWithModuleNamePath (src: string, to: string): string {
-  return isModuleName(to) ? to : resolveFrom(src, to)
 }
 
 /**
@@ -274,7 +274,6 @@ function getDependency (name: string, options: StringifyOptions): DependencyTree
 function stringifyDependencyPath (path: string, options: StringifyOptions): Promise<string> {
   const resolved = getPath(path, options)
   const { tree, ambient, cwd, browser, name, readFiles, meta, entry, emitter } = options
-  const { raw, src } = tree
 
   emitter.emit('compile', { name, path, tree, browser })
 

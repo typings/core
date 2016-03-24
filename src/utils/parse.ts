@@ -76,16 +76,17 @@ export function parseDependency (raw: string): Dependency {
     const meta = gitFromPath(src)
     const { org, repo, path, sha, name } = meta
     let basicAuth = '';
+    let tokenQueryString = '';
 
-    if (rc.githubToken && rc.githubUsername) {
-      basicAuth = `${encodeURIComponent(rc.githubUsername)}:${encodeURIComponent(rc.githubToken)}@`
+    if (rc.githubToken) {
+      if (rc.githubUsername) {
+        basicAuth = `${encodeURIComponent(rc.githubUsername)}:${encodeURIComponent(rc.githubToken)}@`
+      } else {
+        tokenQueryString = `?token=${encodeURIComponent(rc.githubToken)}`;
+      }
     }
 
-    let location = `https://${basicAuth}raw.githubusercontent.com/${org}/${repo}/${sha}/${path}`
-
-    if (rc.githubToken && !rc.githubUsername) {
-      location += `?token=${encodeURIComponent(rc.githubToken)}`;
-    }
+    let location = `https://${basicAuth}raw.githubusercontent.com/${org}/${repo}/${sha}/${path}${tokenQueryString}`
 
     return {
       raw,

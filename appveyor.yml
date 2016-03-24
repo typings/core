@@ -2,9 +2,9 @@ environment:
   nodejs_version: "4.0"
 install:
   - ps: Install-Product node $env:nodejs_version
-  - npm run lint
   - npm run bootstrap
   - npm install
+  - npm run lint
 test_script:
   - node --version
   - npm --version

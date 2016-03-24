@@ -3,6 +3,7 @@ import { normalize } from 'path'
 import { parseDependency, resolveDependency, expandRegistry } from './parse'
 import { CONFIG_FILE } from './config'
 import { Dependency } from '../interfaces'
+import rc from './rc';
 
 test('parse', t => {
   t.test('parse dependency', t => {
@@ -113,6 +114,31 @@ test('parse', t => {
         },
         location: normalize('foobar/' + CONFIG_FILE)
       }
+
+      t.deepEqual(actual, expected)
+      t.end()
+    })
+
+    t.test('parse github with github user and token', t => {
+      rc.githubUsername = 'foo';
+      rc.githubToken = 'bar';
+
+      const actual = parseDependency('github:foo/bar/typings.json')
+      const expected: Dependency = {
+        raw: 'github:foo/bar/typings.json',
+        type: 'github',
+        meta: {
+          name: undefined,
+          org: 'foo',
+          path: 'typings.json',
+          repo: 'bar',
+          sha: 'master'
+        },
+        location: 'https://foo:bar@raw.githubusercontent.com/foo/bar/master/typings.json'
+      }
+
+      rc.githubUsername = undefined;
+      rc.githubToken = undefined;
 
       t.deepEqual(actual, expected)
       t.end()

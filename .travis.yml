@@ -6,8 +6,8 @@ notifications:
     on_failure: change
 
 before_install:
-  - npm run lint
   - npm run bootstrap
+  - npm run lint
 
 node_js:
   - "0.10"

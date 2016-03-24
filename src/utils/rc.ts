@@ -12,6 +12,7 @@ export interface RcConfig {
   key?: string
   cert?: string
   userAgent?: string
+  githubUsername?: string
   githubToken?: string
   registryURL?: string
   defaultSource?: string

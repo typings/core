@@ -133,7 +133,7 @@ function generateExtraneousDefinitions(directory: string) {
   ]
 
   return Promise.all(
-    newDirectories.map(dir => mkdirp)
+    newDirectories.map(dir => mkdirp(dir))
   )
     .then(() => {
       return Promise.all([

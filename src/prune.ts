@@ -201,21 +201,25 @@ function pruneExtraneousTypings(options: PruneTypingsOptions) {
     isDirectory(externalPath)
   ])
     .then(([hasAmbientTypings, hasExternalTypings]) => {
+      const pruneTasks: Promise<any>[] = []
+
       if (hasAmbientTypings) {
-        pruneExtraneousTypingsFolders({
+        pruneTasks.push(pruneExtraneousTypingsFolders({
           masterDependencies: masterDependencies.ambientDependencies,
           typingsPath: ambientPath,
           emitter
-        })
+        }))
       }
 
       if (hasExternalTypings) {
-        pruneExtraneousTypingsFolders({
+        pruneTasks.push(pruneExtraneousTypingsFolders({
           masterDependencies: masterDependencies.externalDependencies,
           typingsPath: externalPath,
           emitter
-        })
+        }))
       }
+
+      return Promise.all(pruneTasks)
     })
 }
 

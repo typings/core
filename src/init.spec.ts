@@ -1,5 +1,4 @@
 import test = require('blue-tape')
-import Promise = require('any-promise')
 import thenify = require('thenify')
 import { unlink } from 'fs'
 import { join } from 'path'
@@ -59,6 +58,6 @@ test('init', t => {
       })
       .then(function () {
         return thenify(unlink)(path)
-      })     
+      })
   })
 })

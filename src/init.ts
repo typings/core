@@ -31,7 +31,7 @@ const DEFAULT_CONFIG: ConfigJson = {
  * The interface for `tsd.json`.
  */
 interface TsdJson {
-  version?: string;
+  version?: string,
   repo?: string,
   ref?: string,
   path?: string,
@@ -95,19 +95,21 @@ function getProjectName (options: InitOptions): Promise<string> {
     return Promise.resolve(options.name)
   }
 
-  return PACKAGE_FILES.reduce((promise, packageFileName) => {
-    return promise.then(function (name) {
-      if (name != null) {
-        return name
-      }
+  return PACKAGE_FILES.reduce(
+    (promise, packageFileName) => {
+      return promise.then(function (name) {
+        if (name != null) {
+          return name
+        }
 
-      return readJson(join(options.cwd, packageFileName))
-        .then(
-          (packageJson) => packageJson.name,
-          () => undefined
-        )
-    })
-  }, Promise.resolve<string>(undefined))
+        return readJson(join(options.cwd, packageFileName))
+          .then(
+            (packageJson) => packageJson.name,
+            () => undefined
+          )
+      })
+    },
+    Promise.resolve<string>(undefined))
 }
 
 /**

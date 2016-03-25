@@ -1,8 +1,6 @@
 import test = require('blue-tape')
-import Promise = require('any-promise')
 import { join } from 'path'
 import { bundle } from './bundle'
-import { VERSION } from './typings'
 import { rimraf } from './utils/fs'
 import { EventEmitter } from 'events'
 

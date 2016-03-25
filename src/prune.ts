@@ -111,7 +111,7 @@ interface PruneReferencesOptions {
   emitter: Emitter
 }
 
-function pruneExtraneousReferences(options: PruneReferencesOptions) {
+function pruneExtraneousReferences(options: PruneReferencesOptions): Promise<void> {
   const { masterDependencies, dtsPath, emitter } = options
 
   return readFile(dtsPath, 'utf8')
@@ -190,7 +190,7 @@ interface PruneTypingsOptions {
   emitter: Emitter
 }
 
-function pruneExtraneousTypings(options: PruneTypingsOptions) {
+function pruneExtraneousTypings(options: PruneTypingsOptions): Promise<any> {
   const { masterDependencies, typingsPath, emitter } = options
 
   const ambientPath = join(typingsPath, AMBIENT_DEFINITIONS_DIR)
@@ -229,7 +229,7 @@ interface PruneTypingsFoldersOptions {
   emitter: Emitter
 }
 
-function pruneExtraneousTypingsFolders(options: PruneTypingsFoldersOptions) {
+function pruneExtraneousTypingsFolders(options: PruneTypingsFoldersOptions): Promise<any> {
   const { masterDependencies, typingsPath, emitter } = options
 
   return readSubDirs(options.typingsPath)

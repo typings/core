@@ -121,8 +121,11 @@ export function readHttp (url: string): Promise<string> {
     .use(popsicleRetry({ maxRetries: 3, retryDelay: 3000 }))
     // Check responses are "200 OK".
     .use(popsicleStatus(200))
-    // Enable tracking of repeat users on the registry.
+    // Request "middleware".
     .use(function (self) {
+      const { hostname } = self.Url
+
+      // Enable tracking of repeat users on the registry.
       if (self.Url.host === registryURL.host) {
         if (store.get('clientId')) {
           self.before(function (req) {
@@ -133,6 +136,13 @@ export function readHttp (url: string): Promise<string> {
             store.set('clientId', res.get('Typings-Client-Id'))
           })
         }
+      }
+
+      // Enable access tokens with GitHub.
+      if (rc.githubToken && (hostname === 'raw.githubusercontent.com' || hostname === 'api.github.com')) {
+        self.before(function (req) {
+          req.set('Authorization', `token ${rc.githubToken}`)
+        })
       }
     })
     // Return only the response body.

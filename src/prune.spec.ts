@@ -72,6 +72,42 @@ test('prune', t => {
         t.equal(hasExtMainDefinition, FILE_IS_PRUNED)
       })
   })
+
+  t.test('remove all dev dependencies', t => {
+    const FIXTURE_DIR = join(__dirname, '__test__/prune-prod')
+
+    return generateExtraneousDefinitions(FIXTURE_DIR)
+      .then(() => {
+         return prune({
+            cwd: FIXTURE_DIR,
+            production: true,
+            emitter
+         })
+      })
+      .then(() => {
+        return Promise.all([
+          readFile(join(FIXTURE_DIR, BROWSER_INDEX), 'utf8'),
+          readFile(join(FIXTURE_DIR, MAIN_INDEX), 'utf8'),
+          isFile(join(FIXTURE_DIR, EXTRA_BROWSER_AMBIENT_TYPINGS)),
+          isFile(join(FIXTURE_DIR, EXTRA_BROWSER_TYPINGS)),
+          isFile(join(FIXTURE_DIR, EXTRA_MAIN_AMBIENT_TYPINGS)),
+          isFile(join(FIXTURE_DIR, EXTRA_MAIN_TYPINGS))
+        ])
+      })
+      .then(([browserDts, mainDts,
+              hasExtBrowserAmbientDefinition, hasExtBrowserDefinition,
+              hasExtMainAmbientDefinition, hasExtMainDefinition]) => {
+        t.equal(browserDts, ``)
+        t.equal(mainDts, ``)
+
+        const FILE_IS_PRUNED = false;
+
+        t.equal(hasExtBrowserAmbientDefinition, FILE_IS_PRUNED)
+        t.equal(hasExtBrowserDefinition, FILE_IS_PRUNED)
+        t.equal(hasExtMainAmbientDefinition, FILE_IS_PRUNED)
+        t.equal(hasExtMainDefinition, FILE_IS_PRUNED)
+      })
+  })
 })
 
 function generateExtraneousDefinitions(directory: string) {

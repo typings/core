@@ -309,16 +309,6 @@ function stringifyDependencyPath (path: string, options: StringifyOptions): Prom
 
         const importedFiles = info.importedFiles.map(x => resolveFromWithModuleName(resolved, x.fileName))
         const referencedFiles = info.referencedFiles.map(x => resolveFrom(resolved, x.fileName))
-        const moduleAugmentations = (info.ambientExternalModules || []).map(x => resolveFromWithModuleName(resolved, x))
-        const ambientModules = moduleAugmentations.filter(x => importedFiles.indexOf(x) === -1)
-
-        if (ambientModules.length && !ambient) {
-          return Promise.reject(new TypingsError(
-            `Attempted to compile "${options.name}" as a dependency, but ` +
-            `it contains some ambient module declarations ` +
-            `(${ambientModules.map(JSON.stringify).join(', ')}).`
-          ))
-        }
 
         // All dependencies MUST be imported for ambient modules.
         if (ambient) {
@@ -330,11 +320,6 @@ function stringifyDependencyPath (path: string, options: StringifyOptions): Prom
 
           // Return `null` to skip the dependency writing, could have the same import twice.
           if (has(options.imported, path)) {
-            return
-          }
-
-          // Support inline ambient module declarations.
-          if (ambientModules.indexOf(path) > -1) {
             return
           }
 

@@ -1,0 +1,8 @@
+{
+  "devDependencies": {
+    "extraneous": "file:custom_typings/definition.d.ts"
+  },
+  "ambientDevDependencies": {
+    "extraneous": "file:custom_typings/ambient.d.ts"
+  }
+}

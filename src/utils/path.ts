@@ -1,12 +1,20 @@
 import { resolve, dirname, relative, extname, join } from 'path'
 import { resolve as resolveUrl, parse as parseUrl, format as formatUrl } from 'url'
-import { TYPINGS_DIR, DTS_MAIN_FILE, DTS_BROWSER_FILE } from './config'
+import {
+  TYPINGS_DIR,
+  DTS_MAIN_FILE,
+  DTS_BROWSER_FILE,
+  MAIN_TYPINGS_DIR,
+  BROWSER_TYPINGS_DIR,
+  DEFINITIONS_DIR,
+  AMBIENT_DEFINITIONS_DIR
+} from './config'
 import isAbsolute = require('is-absolute')
 
-const mainTypingsDir = join(TYPINGS_DIR, 'main/definitions')
-const browserTypingsDir = join(TYPINGS_DIR, 'browser/definitions')
-const ambientMainTypingsDir = join(TYPINGS_DIR, 'main/ambient')
-const ambientBrowserTypingsDir = join(TYPINGS_DIR, 'browser/ambient')
+const mainTypingsDir = join(TYPINGS_DIR, MAIN_TYPINGS_DIR, DEFINITIONS_DIR)
+const browserTypingsDir = join(TYPINGS_DIR, BROWSER_TYPINGS_DIR, DEFINITIONS_DIR)
+const ambientMainTypingsDir = join(TYPINGS_DIR, MAIN_TYPINGS_DIR, AMBIENT_DEFINITIONS_DIR)
+const ambientBrowserTypingsDir = join(TYPINGS_DIR, BROWSER_TYPINGS_DIR, AMBIENT_DEFINITIONS_DIR)
 
 /**
  * Consistent EOL behaviour.

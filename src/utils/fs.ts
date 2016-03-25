@@ -49,6 +49,34 @@ export function isFile (path: string): Promise<boolean> {
 }
 
 /**
+ * Verify a path exists and is a directory.
+ */
+export function isDirectory (path: string): Promise<boolean> {
+  return stat(path).then(stat => stat.isDirectory(), () => false)
+}
+
+function filterAsync<T>(items: T[], predicate: { (item: T): Promise<boolean> }): Promise<T[]> {
+  const pendingFilters = items.map(item => predicate(item))
+
+  return Promise.all(pendingFilters)
+    .then(filters => {
+      return items.filter((item: T, index: number) => filters[index])
+    })
+}
+
+/**
+ * Read the sub directories under in a path.
+ */
+export function readSubDirs (path: string): Promise<string[]> {
+  const readdir: { (path: string): Promise<string[]> } = thenify(fs.readdir)
+
+  return readdir(path)
+    .then(items => {
+      return filterAsync(items, item => isDirectory(join(path, item)))
+    })
+}
+
+/**
  * Read JSON from a path.
  */
 export function readJson (path: string, allowEmpty?: boolean): Promise<any> {

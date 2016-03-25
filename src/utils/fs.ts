@@ -18,11 +18,10 @@ import tch = require('touch')
 import { join, dirname } from 'path'
 import { parse as parseUrl } from 'url'
 import template = require('string-template')
-import { CONFIG_FILE, TYPINGS_DIR, DTS_MAIN_FILE, DTS_BROWSER_FILE, PRETTY_PROJECT_NAME, HOMEPAGE } from './config'
+import { CONFIG_FILE } from './config'
 import { isHttp, EOL, detectEOL, normalizeEOL } from './path'
 import { parseReferences, stringifyReferences } from './references'
 import { ConfigJson } from '../interfaces'
-import { CompiledOutput } from '../lib/compile'
 import rc from './rc'
 import store from './store'
 import debug from './debug'
@@ -221,32 +220,35 @@ export function transformJson <T> (path: string, transform: (json: T) => T, allo
 export function transformConfig (cwd: string, transform: (config: ConfigJson) => ConfigJson) {
   const path = join(cwd, CONFIG_FILE)
 
-  return transformJson<ConfigJson>(path, (config = {}) => {
-    return Promise.resolve(transform(parseConfig(config, path)))
-      .then(config => {
-        if (config.dependencies) {
-          config.dependencies = sortKeys(config.dependencies)
-        }
+  return transformJson<ConfigJson>(
+    path,
+    (config = {}) => {
+      return Promise.resolve(transform(parseConfig(config, path)))
+        .then(config => {
+          if (config.dependencies) {
+            config.dependencies = sortKeys(config.dependencies)
+          }
 
-        if (config.peerDependencies) {
-          config.peerDependencies = sortKeys(config.peerDependencies)
-        }
+          if (config.peerDependencies) {
+            config.peerDependencies = sortKeys(config.peerDependencies)
+          }
 
-        if (config.devDependencies) {
-          config.devDependencies = sortKeys(config.devDependencies)
-        }
+          if (config.devDependencies) {
+            config.devDependencies = sortKeys(config.devDependencies)
+          }
 
-        if (config.ambientDependencies) {
-          config.ambientDependencies = sortKeys(config.ambientDependencies)
-        }
+          if (config.ambientDependencies) {
+            config.ambientDependencies = sortKeys(config.ambientDependencies)
+          }
 
-        if (config.ambientDevDependencies) {
-          config.ambientDevDependencies = sortKeys(config.ambientDevDependencies)
-        }
+          if (config.ambientDevDependencies) {
+            config.ambientDevDependencies = sortKeys(config.ambientDevDependencies)
+          }
 
-        return config
-      })
-  }, true)
+          return config
+        })
+    },
+    true)
 }
 
 export function transformDtsFile (path: string, transform: (typings: string[]) => string[]) {

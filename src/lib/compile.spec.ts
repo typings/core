@@ -1,12 +1,11 @@
 import test = require('blue-tape')
 import nock = require('nock')
-import { join, relative } from 'path'
+import { join } from 'path'
 import { EventEmitter } from 'events'
 import compile from './compile'
 import { DependencyTree } from '../interfaces'
 import { CONFIG_FILE } from '../utils/config'
-import { VERSION } from '../typings'
-import { resolveTypeDependencies, resolveNpmDependencies } from './dependencies'
+import { resolveNpmDependencies } from './dependencies'
 
 const FIXTURES_DIR = join(__dirname, '__test__/fixtures')
 
@@ -461,7 +460,9 @@ test('compile', t => {
 
     return compile(node, { name: 'name', cwd: __dirname, ambient: false, meta: false, emitter })
       .catch(function (result) {
-        t.equal(result.message, 'Unable to compile "name", the typings are meant to be installed as ambient but attempted to be compiled as an external module')
+        t.equal(
+          result.message,
+          'Unable to compile "name", the typings are meant to be installed as ambient but attempted to be compiled as an external module')
       })
   })
 

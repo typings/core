@@ -1,12 +1,11 @@
 import test = require('blue-tape')
 import Promise = require('any-promise')
-import { join, relative } from 'path'
+import { join } from 'path'
 import { EventEmitter } from 'events'
 import nock = require('nock')
 import { install, installDependencyRaw } from './install'
 import { readFile, readConfig, writeFile, rimraf } from './utils/fs'
 import { CONFIG_FILE } from './utils/config'
-import { VERSION } from './typings'
 import rc from './utils/rc'
 
 test('install', t => {

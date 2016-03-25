@@ -1,5 +1,3 @@
-import { join } from 'path'
-
 export const PROJECT_NAME = 'typings'
 export const PRETTY_PROJECT_NAME = 'Typings'
 export const CONFIG_FILE = `${PROJECT_NAME}.json`

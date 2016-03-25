@@ -27,7 +27,7 @@
       true,
       140
     ],
-    "member-access": true,
+    "member-access": false,
     "member-ordering": [
       true,
       "public-before-private",
@@ -36,7 +36,7 @@
     ],
     "no-any": false,
     "no-arg": true,
-    "no-bitwise": true,
+    "no-bitwise": false,
     "no-conditional-assignment": false,
     "no-consecutive-blank-lines": true,
     "no-construct": true,
@@ -56,7 +56,7 @@
     "no-unreachable": true,
     "no-unused-expression": true,
     "no-unused-variable": true,
-    "no-use-before-declare": true,
+    "no-use-before-declare": false,
     "no-var-keyword": true,
     "no-var-requires": false,
     "object-literal-sort-keys": false,

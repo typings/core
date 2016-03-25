@@ -1,5 +1,5 @@
 import invariant = require('invariant')
-import { parse, format, resolve as resolveUrl } from 'url'
+import { resolve as resolveUrl } from 'url'
 import { normalize, join, basename, dirname } from 'path'
 import { Dependency } from '../interfaces'
 import { CONFIG_FILE } from './config'
@@ -74,7 +74,7 @@ export function parseDependency (raw: string): Dependency {
   // `bitbucket:org/repo/path#sha`
   if (type === 'github') {
     const meta = gitFromPath(src)
-    const { org, repo, path, sha, name } = meta
+    const { org, repo, path, sha } = meta
     let location = `https://raw.githubusercontent.com/${org}/${repo}/${sha}/${path}`
 
     if (rc.githubToken) {
@@ -92,7 +92,7 @@ export function parseDependency (raw: string): Dependency {
   // `bitbucket:org/repo/path#sha`
   if (type === 'bitbucket') {
     const meta = gitFromPath(src)
-    const { org, repo, path, sha, name } = meta
+    const { org, repo, path, sha } = meta
     const location = `https://bitbucket.org/${org}/${repo}/raw/${sha}/${path}`
 
     return {

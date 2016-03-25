@@ -9,18 +9,18 @@ import { VERSION } from './typings'
 
 const emitter = new EventEmitter()
 
-const EXT_BROWSER_AMBIENT_TYPINGS = 'typings/browser/ambient/extraneous/index.d.ts'
-const EXT_BROWSER_TYPINGS = 'typings/browser/definitions/extraneous/index.d.ts'
-const EXT_MAIN_AMBIENT_TYPINGS = 'typings/main/ambient/extraneous/index.d.ts'
-const EXT_MAIN_TYPINGS = 'typings/main/definitions/extraneous/index.d.ts'
+const EXTRA_BROWSER_AMBIENT_TYPINGS = 'typings/browser/ambient/extraneous/index.d.ts'
+const EXTRA_BROWSER_TYPINGS = 'typings/browser/definitions/extraneous/index.d.ts'
+const EXTRA_MAIN_AMBIENT_TYPINGS = 'typings/main/ambient/extraneous/index.d.ts'
+const EXTRA_MAIN_TYPINGS = 'typings/main/definitions/extraneous/index.d.ts'
 const BROWSER_INDEX = 'typings/browser.d.ts'
 const MAIN_INDEX = 'typings/main.d.ts'
 
 test('prune', t => {
   t.test('remove extraneous typings', t => {
-    const FIXTURE_DIR = join(__dirname, '__test__/prune')
+    const FIXTURE_DIR = join(__dirname, '__test__/prune-extraneous')
 
-    return generateExtraneousDefinitions(FIXTURE_DIR, t)
+    return generateExtraneousDefinitions(FIXTURE_DIR)
       .then(() => {
          return prune({
             cwd: FIXTURE_DIR,
@@ -35,10 +35,10 @@ test('prune', t => {
           isFile(join(FIXTURE_DIR, 'typings/browser/definitions/test/index.d.ts')),
           isFile(join(FIXTURE_DIR, 'typings/main/ambient/test/index.d.ts')),
           isFile(join(FIXTURE_DIR, 'typings/main/definitions/test/index.d.ts')),
-          isFile(join(FIXTURE_DIR, EXT_BROWSER_AMBIENT_TYPINGS)),
-          isFile(join(FIXTURE_DIR, EXT_BROWSER_TYPINGS)),
-          isFile(join(FIXTURE_DIR, EXT_MAIN_AMBIENT_TYPINGS)),
-          isFile(join(FIXTURE_DIR, EXT_MAIN_TYPINGS))
+          isFile(join(FIXTURE_DIR, EXTRA_BROWSER_AMBIENT_TYPINGS)),
+          isFile(join(FIXTURE_DIR, EXTRA_BROWSER_TYPINGS)),
+          isFile(join(FIXTURE_DIR, EXTRA_MAIN_AMBIENT_TYPINGS)),
+          isFile(join(FIXTURE_DIR, EXTRA_MAIN_TYPINGS))
         ])
       })
       .then(([browserDts, mainDts,
@@ -47,13 +47,13 @@ test('prune', t => {
               hasExtBrowserAmbientDefinition, hasExtBrowserDefinition,
               hasExtMainAmbientDefinition, hasExtMainDefinition]) => {
         t.equal(browserDts, [
-          `/// <reference path="browser/ambient/test/index.d.ts"`,
-          `/// <reference path="browser/definitions/test/index.d.ts"`,
+          `/// <reference path="browser/ambient/test/index.d.ts" />`,
+          `/// <reference path="browser/definitions/test/index.d.ts" />`,
           ``
         ].join('\n'))
         t.equal(mainDts, [
-          `/// <reference path="main/ambient/test/index.d.ts"`,
-          `/// <reference path="main/definitions/test/index.d.ts"`,
+          `/// <reference path="main/ambient/test/index.d.ts" />`,
+          `/// <reference path="main/definitions/test/index.d.ts" />`,
           ``
         ].join('\n'))
 
@@ -74,7 +74,7 @@ test('prune', t => {
   })
 })
 
-function generateExtraneousDefinitions(directory: string, t: any) {
+function generateExtraneousDefinitions(directory: string) {
   const FAKE_AMBIENT_MODULE = [
       `declare module "x" {}`,
       ``
@@ -89,44 +89,36 @@ function generateExtraneousDefinitions(directory: string, t: any) {
    ``
   ].join('\n')
 
-  return mkdirp(join(directory, 'typings/browser/ambient/extraneous'))
+  const newDirectories = [
+    join(directory, 'typings/browser/ambient/extraneous'),
+    join(directory, 'typings/browser/definitions/extraneous'),
+    join(directory, 'typings/main/ambient/extraneous'),
+    join(directory, 'typings/main/definitions/extraneous')
+  ]
+
+  return Promise.all(
+    newDirectories.map(dir => mkdirp)
+  )
     .then(() => {
-      return mkdirp(join(directory, 'typings/browser/definitions/extraneous'))
-    })
-    .then(() => {
-      return mkdirp(join(directory, 'typings/main/ambient/extraneous'))
-    })
-    .then(() => {
-      return mkdirp(join(directory, 'typings/main/definitions/extraneous'))
-    })
-    .then(() => {
-      return writeFile(join(directory, EXT_BROWSER_AMBIENT_TYPINGS), FAKE_AMBIENT_MODULE)
-    })
-    .then(() => {
-      return writeFile(join(directory, EXT_BROWSER_TYPINGS), FAKE_MODULE)
-    })
-    .then(() => {
-      return writeFile(join(directory, EXT_MAIN_AMBIENT_TYPINGS), FAKE_AMBIENT_MODULE)
-    })
-    .then(() => {
-      return writeFile(join(directory, EXT_MAIN_TYPINGS), FAKE_MODULE)
-    })
-    .then(() => {
-      return writeFile(join(directory, BROWSER_INDEX), [
-          `/// <reference path="browser/ambient/extraneous/index.d.ts"`,
-          `/// <reference path="browser/definitions/extraneous/index.d.ts"`,
-          `/// <reference path="browser/ambient/test/index.d.ts"`,
-          `/// <reference path="browser/definitions/test/index.d.ts"`,
+      return Promise.all([
+        writeFile(join(directory, EXTRA_BROWSER_AMBIENT_TYPINGS), FAKE_AMBIENT_MODULE),
+        writeFile(join(directory, EXTRA_BROWSER_TYPINGS), FAKE_MODULE),
+        writeFile(join(directory, EXTRA_MAIN_AMBIENT_TYPINGS), FAKE_AMBIENT_MODULE),
+        writeFile(join(directory, EXTRA_MAIN_TYPINGS), FAKE_MODULE),
+        writeFile(join(directory, BROWSER_INDEX), [
+          `/// <reference path="browser/ambient/extraneous/index.d.ts" />`,
+          `/// <reference path="browser/definitions/extraneous/index.d.ts" />`,
+          `/// <reference path="browser/ambient/test/index.d.ts" />`,
+          `/// <reference path="browser/definitions/test/index.d.ts" />`,
           ``
-      ].join('\n'))
-    })
-    .then(() => {
-      return writeFile(join(directory, MAIN_INDEX), [
-          `/// <reference path="main/ambient/extraneous/index.d.ts"`,
-          `/// <reference path="main/definitions/extraneous/index.d.ts"`,
-          `/// <reference path="main/ambient/test/index.d.ts"`,
-          `/// <reference path="main/definitions/test/index.d.ts"`,
+        ].join('\n')),
+        writeFile(join(directory, MAIN_INDEX), [
+          `/// <reference path="main/ambient/extraneous/index.d.ts" />`,
+          `/// <reference path="main/definitions/extraneous/index.d.ts" />`,
+          `/// <reference path="main/ambient/test/index.d.ts" />`,
+          `/// <reference path="main/definitions/test/index.d.ts" />`,
           ``
-      ].join('\n'))
+        ].join('\n'))
+      ])
     })
 }

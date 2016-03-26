@@ -36,4 +36,25 @@ test('references', t => {
     t.equal(actual, expected)
     t.end()
   })
+
+  t.test('parse dependency information from a reference path', t => {
+    let path = '/some/path/to/typings/main/definitions/dep/index.d.ts'
+    let dependencyInfo = parseReferencePath(path)
+
+    t.equal(dependencyInfo.target, 'main')
+    t.equal(dependencyInfo.type, 'definitions')
+    t.equal(dependencyInfo.name, 'dep')
+
+    path = '/some/other/path/to/typings/browser/ambient/otherDep/index.d.ts'
+    dependencyInfo = parseReferencePath(path)
+
+    t.equal(dependencyInfo.target, 'browser')
+    t.equal(dependencyInfo.type, 'ambient')
+    t.equal(dependencyInfo.name, 'otherDep')
+
+    path = '/path/to/typings/notMain/notAmbient/random/index.d.ts'
+    dependencyInfo = parseReferencePath(path)
+
+    t.equal(dependencyInfo, null)
+  })
 })

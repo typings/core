@@ -9,7 +9,7 @@
     "LICENSE"
   ],
   "scripts": {
-    "lint": "tslint 'src/**/*.ts' -e '**/__test__/**'",
+    "lint": "tslint \"src/**/*.ts\" -e \"**/__test__/**\"",
     "build": "rimraf dist && tsc",
     "dependency-check": "dependency-check . --unused --no-dev && dependency-check . --missing --no-dev",
     "test-spec": "ts-node node_modules/blue-tape/bin/blue-tape.js \"src/**/*.spec.ts\" | tap-diff",

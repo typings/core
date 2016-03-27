@@ -1,6 +1,7 @@
 import { resolve, relative, normalize } from 'path'
 import isAbsolute = require('is-absolute')
 import { normalizeSlashes, EOL } from './path'
+import { MAIN_TYPINGS_DIR, BROWSER_TYPINGS_DIR, DEFINITIONS_DIR, AMBIENT_DEFINITIONS_DIR } from './config'
 
 /**
  * Match reference tags in a file. Matching the newline before the
@@ -43,4 +44,48 @@ export function stringifyReferences (paths: string[], cwd: string): string {
 
 export function toReference (path: string, cwd: string): string {
   return `/// <reference path="${normalizeSlashes(isAbsolute(path) ? relative(cwd, path) : normalize(path))}" />`
+}
+
+export enum DependencyTarget {
+  Main,
+  Browser
+}
+
+export enum DependencyType {
+  Ambient,
+  External
+}
+
+export interface DependencyInfo {
+  target: DependencyTarget
+  type: DependencyType
+  name: string
+}
+
+export function parseReferencePath(path: string): DependencyInfo {
+  const referencePathRegexPattern =
+    `\\/(` + MAIN_TYPINGS_DIR + `|` + BROWSER_TYPINGS_DIR + `)` +
+    `\\/(` + DEFINITIONS_DIR + `|` + AMBIENT_DEFINITIONS_DIR + `)` +
+    `\\/(\\w+)\\/`
+  const referencePathRegex = new RegExp(referencePathRegexPattern)
+  const matchResults = referencePathRegex.exec(path)
+
+  if (matchResults) {
+    const [, mainOrBrowser, ambientOrExternal, name] = matchResults
+    const target = mainOrBrowser === MAIN_TYPINGS_DIR
+      ? DependencyTarget.Main
+      : DependencyTarget.Browser
+
+    const type = ambientOrExternal === DEFINITIONS_DIR
+      ? DependencyType.External
+      : DependencyType.Ambient
+
+    return {
+      target,
+      type,
+      name
+    }
+  }
+
+  return null
 }

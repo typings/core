@@ -1,8 +1,7 @@
 import extend = require('xtend')
 import Promise = require('any-promise')
 import { EventEmitter } from 'events'
-import { dirname } from 'path'
-import { transformConfig, transformDtsFile, unlink, isFile, rmdirUntil } from './utils/fs'
+import { transformConfig, transformDtsFile, rmUntil } from './utils/fs'
 import { findProject } from './utils/find'
 import { getDependencyLocation, getTypingsLocation } from './utils/path'
 import { Emitter } from './interfaces'
@@ -49,28 +48,13 @@ export function uninstallDependencies (names: string[], options: UninstallDepend
  * Uninstall the dependency.
  */
 function uninstallFrom (name: string, options: UninstallDependencyOptions) {
-  const { cwd, ambient } = options
+  const { cwd, ambient, emitter } = options
   const location = getDependencyLocation({ name, cwd, ambient })
 
   return Promise.all([
-    uninstall(location.main, location.mainDir, options),
-    uninstall(location.browser, location.browserDir, options)
+    rmUntil(location.main, { cwd, emitter }),
+    rmUntil(location.browser, { cwd, emitter })
   ])
-}
-
-/**
- * Uninstall a path recursively.
- */
-function uninstall (path: string, root: string, options: UninstallDependencyOptions) {
-  return isFile(path)
-    .then(exists => {
-      if (exists) {
-        return unlink(path)
-      }
-
-      options.emitter.emit('enoent', { path })
-    })
-    .then(() => rmdirUntil(dirname(path), root))
 }
 
 /**
@@ -133,9 +117,11 @@ function writeBundle (names: string[], options: UninstallDependencyOptions) {
   const { cwd, ambient } = options
   const bundle = getTypingsLocation(options)
   const locations = names.map(name => getDependencyLocation({ name, cwd, ambient }))
+  const mainLocations = locations.map(x => x.main)
+  const browserLocations = locations.map(x => x.browser)
 
   return Promise.all([
-    transformDtsFile(bundle.main, x => x.concat(locations.map(x => x.main))),
-    transformDtsFile(bundle.browser, x => x.concat(locations.map(x => x.browser)))
+    transformDtsFile(bundle.main, x => x.filter(x => mainLocations.indexOf(x) === -1)),
+    transformDtsFile(bundle.browser, x => x.filter(x => browserLocations.indexOf(x) === -1))
   ])
 }

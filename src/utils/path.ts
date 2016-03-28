@@ -1,4 +1,4 @@
-import { resolve, dirname, relative, extname, join } from 'path'
+import { resolve, dirname, relative, extname, join, sep } from 'path'
 import { resolve as resolveUrl, parse as parseUrl, format as formatUrl } from 'url'
 import { TYPINGS_DIR, DTS_MAIN_FILE, DTS_BROWSER_FILE } from './config'
 import isAbsolute = require('is-absolute')
@@ -182,6 +182,20 @@ export function getDependencyLocation (options: LocationOptions): DependencyLoca
   const browser = join(options.cwd, browserDir, options.name, 'index.d.ts')
 
   return { mainDir, browserDir, main, browser }
+}
+
+/**
+ * Return information about the typings path.
+ */
+export function getInfoFromDependencyLocation (path: string, options: { cwd: string }) {
+  const parts = relative(options.cwd, path).split(sep)
+
+  return {
+    path: path,
+    browser: parts[0] === 'browser',
+    ambient: parts[1] === 'ambient',
+    name: parts.slice(2, -1).join('/')
+  }
 }
 
 /**

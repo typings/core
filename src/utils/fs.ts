@@ -22,7 +22,7 @@ import template = require('string-template')
 import { CONFIG_FILE } from './config'
 import { isHttp, EOL, detectEOL, normalizeEOL } from './path'
 import { parseReferences, stringifyReferences } from './references'
-import { ConfigJson } from '../interfaces'
+import { ConfigJson, Emitter } from '../interfaces'
 import rc from './rc'
 import store from './store'
 import debug from './debug'
@@ -59,10 +59,25 @@ export function mkdirpAndWriteFile (path: string, contents: string | Buffer) {
 }
 
 /**
+ * Remove a file, and directories, recursively until we hit cwd.
+ */
+export function rmUntil (path: string, options: { cwd: string, emitter: Emitter }) {
+  return isFile(path)
+    .then(exists => {
+      if (exists) {
+        return unlink(path)
+      }
+
+      options.emitter.emit('enoent', { path })
+    })
+    .then(() => rmdirUntil(dirname(path), options))
+}
+
+/**
  * Remove directories until a root directory, while empty.
  */
-export function rmdirUntil (path: string, root: string): Promise<void> {
-  if (path === root) {
+export function rmdirUntil (path: string, options: { cwd: string }): Promise<void> {
+  if (path === options.cwd) {
     return Promise.resolve()
   }
 
@@ -74,7 +89,14 @@ export function rmdirUntil (path: string, root: string): Promise<void> {
       }
 
       return rmdir(path)
-        .then(() => rmdirUntil(dirname(path), root))
+        .then(() => rmdirUntil(dirname(path), options))
+    })
+    .catch(err => {
+      if (err.code === 'ENOENT') {
+        return
+      }
+
+      return Promise.reject<void>(err)
     })
 }
 
@@ -301,7 +323,7 @@ export function transformConfig (cwd: string, transform: (config: ConfigJson) =>
   )
 }
 
-export function transformDtsFile (path: string, transform: (typings: string[]) => string[]) {
+export function transformDtsFile (path: string, transform: (typings: string[]) => string[] | Promise<string[]>) {
   const cwd = dirname(path)
 
   return transformFile(path, contents => {

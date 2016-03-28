@@ -262,7 +262,7 @@ export function transformConfig (cwd: string, transform: (config: ConfigJson) =>
   )
 }
 
-export function transformDtsFile (path: string, transform: (typings: string[]) => string[]) {
+export function transformDtsFile (path: string, transform: (typings: string[]) => string[] | Promise<string[]>) {
   const cwd = dirname(path)
 
   return transformFile(path, contents => {

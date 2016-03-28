@@ -8,6 +8,10 @@ notifications:
 before_install:
   - npm run bootstrap
 
+branches:
+  only:
+    - master
+
 node_js:
   - "0.10"
   - "0.12"

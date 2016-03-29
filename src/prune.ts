@@ -6,6 +6,7 @@ import { findProject, findConfigFile } from './utils/find'
 import { readConfig, isFile, transformDtsFile, rimraf } from './utils/fs'
 import { TYPINGS_DIR, DTS_BROWSER_FILE, DTS_MAIN_FILE } from './utils/config'
 import { relativeTo, isDefinition } from './utils/path'
+import { ConfigJson } from './interfaces'
 
 const AMBIENT_TYPE_DIR = 'ambient'
 
@@ -47,14 +48,7 @@ export function prune(options: PruneOptions): Promise<void> {
     })
 }
 
-interface TypeDependencies {
-  ambientDependencies?: { [type: string]: string }
-  ambientDevDependencies?: { [type: string]: string }
-  dependencies?: { [type: string]: string }
-  devDependencies?: { [type: string]: string }
-}
-
-function readMasterDependencies(directory: string): Promise<TypeDependencies> {
+function readMasterDependencies(directory: string): Promise<ConfigJson> {
   return findConfigFile(directory)
     .then(configPath => {
       return readConfig(configPath)
@@ -62,7 +56,7 @@ function readMasterDependencies(directory: string): Promise<TypeDependencies> {
 }
 
 interface PruneExtraneousOptions {
-  masterDependencies: TypeDependencies
+  masterDependencies: ConfigJson
   typingsPath: string
   includeDev: boolean
   dtsPath: string
@@ -124,7 +118,7 @@ function parseReferencePath(typingsDirectory: string, path: string): DependencyI
   }
 }
 
-function isExtraneous(masterDependencies: TypeDependencies, dependency: DependencyInfo, includeDev: boolean): boolean {
+function isExtraneous(masterDependencies: ConfigJson, dependency: DependencyInfo, includeDev: boolean): boolean {
   if (dependency.isAmbient) {
     if (masterDependencies.ambientDependencies &&
         masterDependencies.ambientDependencies[dependency.name]) {

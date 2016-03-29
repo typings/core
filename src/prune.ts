@@ -2,9 +2,9 @@ import { join, dirname, sep as pathSeparator } from 'path'
 import Promise = require('any-promise')
 import { EventEmitter } from 'events'
 import { Emitter } from './interfaces'
-import { findProject } from './utils/find'
+import { findProject, findConfigFile } from './utils/find'
 import { readConfig, isFile, transformDtsFile, rimraf } from './utils/fs'
-import { CONFIG_FILE, TYPINGS_DIR, DTS_BROWSER_FILE, DTS_MAIN_FILE } from './utils/config'
+import { TYPINGS_DIR, DTS_BROWSER_FILE, DTS_MAIN_FILE } from './utils/config'
 import { relativeTo, isDefinition } from './utils/path'
 
 const AMBIENT_TYPE_DIR = 'ambient'
@@ -19,31 +19,31 @@ export function prune(options: PruneOptions): Promise<void> {
   const { cwd, production } = options
   const emitter = options.emitter || new EventEmitter()
 
-  return findProject(cwd)
-    .then((project: string) => {
-      return readMasterDependencies(project)
-        .then((masterDependencies: TypeDependencies) => {
-          const typingsPath = join(project, TYPINGS_DIR)
+  return Promise.all([
+      findProject(cwd),
+      readMasterDependencies(cwd)
+  ])
+    .then(([project, config]) => {
+      const typingsPath = join(project, TYPINGS_DIR)
 
-          return Promise.all([
-            // Prune browser.d.ts
-            pruneExtraneous({
-              masterDependencies,
-              typingsPath,
-              includeDev: !production,
-              dtsPath: join(typingsPath, DTS_BROWSER_FILE),
-              emitter
-            }),
-            // Prune main.d.ts
-            pruneExtraneous({
-              masterDependencies,
-              typingsPath,
-              includeDev: !production,
-              dtsPath: join(typingsPath, DTS_MAIN_FILE),
-              emitter
-            })
-          ]).then(() => undefined)
+      return Promise.all([
+        // Prune browser.d.ts
+        pruneExtraneous({
+            masterDependencies: config,
+            typingsPath,
+            includeDev: !production,
+            dtsPath: join(typingsPath, DTS_BROWSER_FILE),
+            emitter
+        }),
+        // Prune main.d.ts
+        pruneExtraneous({
+            masterDependencies: config,
+            typingsPath,
+            includeDev: !production,
+            dtsPath: join(typingsPath, DTS_MAIN_FILE),
+            emitter
         })
+      ]).then(() => undefined)
     })
 }
 
@@ -54,8 +54,11 @@ interface TypeDependencies {
   devDependencies?: { [type: string]: string }
 }
 
-function readMasterDependencies(projectDirectory: string): Promise<TypeDependencies> {
-  return readConfig(join(projectDirectory, CONFIG_FILE))
+function readMasterDependencies(directory: string): Promise<TypeDependencies> {
+  return findConfigFile(directory)
+    .then(configPath => {
+      return readConfig(configPath)
+    })
 }
 
 interface PruneExtraneousOptions {

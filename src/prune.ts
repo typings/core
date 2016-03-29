@@ -1,4 +1,4 @@
-import { join, sep as pathSeparator } from 'path'
+import { join, dirname, sep as pathSeparator } from 'path'
 import Promise = require('any-promise')
 import { EventEmitter } from 'events'
 import { Emitter } from './interfaces'
@@ -111,12 +111,11 @@ function parseReferencePath(typingsDirectory: string, path: string): DependencyI
     parts.pop()
   }
 
-  const [ /* main|browser */ , type, ...names] = parts
-  const relativeDirPath = parts.join(pathSeparator)
+  const [/* main|browser */ , type, ...names] = parts
 
   return {
     path,
-    directory: join(typingsDirectory, relativeDirPath),
+    directory: dirname(path),
     name: names.join(pathSeparator),
     isAmbient: type === AMBIENT_TYPE_DIR
   }

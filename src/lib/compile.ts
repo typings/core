@@ -55,9 +55,10 @@ export default function compile (tree: DependencyTree, options: Options): Promis
     ))
   }
 
+  // Re-use "reads" over all compilations, created separate "imported" instances.
   return Promise.all([
-    compileDependencyTree(tree, extend(options, { browser: false, readFiles })),
-    compileDependencyTree(tree, extend(options, { browser: true, readFiles }))
+    compileDependencyTree(tree, extend(options, { browser: false, readFiles, imported: {} as ts.Map<boolean> })),
+    compileDependencyTree(tree, extend(options, { browser: true, readFiles, imported: {} as ts.Map<boolean> }))
   ])
     .then(([main, browser]) => {
       return {
@@ -75,6 +76,7 @@ export default function compile (tree: DependencyTree, options: Options): Promis
 interface CompileOptions extends Options {
   browser: boolean
   readFiles: ts.Map<Promise<string>>
+  imported: ts.Map<boolean>
   name: string
   emitter: Emitter
 }
@@ -138,7 +140,6 @@ function getStringifyOptions (
     }
   }
 
-  const imported: ts.Map<boolean> = {}
   const referenced: ts.Map<boolean> = {}
   const dependencies: ts.Map<StringifyOptions> = {}
   const entry = main == null ? main : resolveFrom(tree.src, normalizeToDefinition(main))
@@ -150,7 +151,6 @@ function getStringifyOptions (
     prefix,
     isTypings,
     overrides,
-    imported,
     referenced,
     dependencies,
     parent
@@ -207,7 +207,6 @@ interface StringifyOptions extends CompileOptions {
   prefix: string
   isTypings: boolean
   overrides: Overrides
-  imported: ts.Map<boolean>
   referenced: ts.Map<boolean>
   dependencies: ts.Map<StringifyOptions>
   tree: DependencyTree
@@ -273,14 +272,24 @@ function getDependency (name: string, options: StringifyOptions): DependencyTree
  */
 function stringifyDependencyPath (path: string, options: StringifyOptions): Promise<string> {
   const resolved = getPath(path, options)
-  const { tree, ambient, cwd, browser, name, readFiles, meta, entry, emitter } = options
+  const { tree, ambient, cwd, browser, name, readFiles, imported, meta, entry, emitter } = options
+  const importedPath = importPath(path, pathFromDefinition(path), options)
 
+  // Return `null` to skip the dependency writing, could have the same import twice.
+  if (has(options.imported, importedPath)) {
+    return Promise.resolve<string>(null)
+  }
+
+  // Set the file to "already imported" to avoid duplication.
+  options.imported[importedPath] = true
+
+  // Emit compile events for progression.
   emitter.emit('compile', { name, path, tree, browser })
 
   // Load a dependency path.
   function loadByModuleName (path: string) {
     const [moduleName, modulePath] = getModuleNameParts(path)
-    const compileOptions = { cwd, browser, readFiles, emitter, name: moduleName, ambient: false, meta }
+    const compileOptions = { cwd, browser, readFiles, imported, emitter, name: moduleName, ambient: false, meta }
     const stringifyOptions = cachedStringifyOptions(moduleName, compileOptions, options)
 
     // When no options are returned, the dependency is missing.
@@ -316,14 +325,6 @@ function stringifyDependencyPath (path: string, options: StringifyOptions): Prom
 
         const imports = importedFiles.map(importedFile => {
           const path = getPath(importedFile, options)
-
-          // Return `null` to skip the dependency writing, could have the same import twice.
-          if (has(options.imported, path)) {
-            return
-          }
-
-          // Set the file to "already imported" to avoid duplication.
-          options.imported[path] = true
 
           if (isModuleName(path)) {
             return loadByModuleName(path)

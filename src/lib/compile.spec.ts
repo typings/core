@@ -276,6 +276,69 @@ test('compile', t => {
         })
     })
 
+    t.test('compile duplicate files from different import contexts', t => {
+      const FIXTURE_DIR = join(FIXTURES_DIR, 'compile-dep-dupe')
+
+      const root: DependencyTree = {
+        src: join(FIXTURE_DIR, CONFIG_FILE),
+        main: 'index.d.ts',
+        raw: undefined,
+        postmessage: undefined,
+        ambient: false,
+        dependencies: {},
+        devDependencies: {},
+        peerDependencies: {},
+        ambientDependencies: {},
+        ambientDevDependencies: {}
+      }
+
+      const foo: DependencyTree = {
+        src: join(FIXTURE_DIR, 'foo', CONFIG_FILE),
+        main: 'index.d.ts',
+        parent: root,
+        raw: undefined,
+        postmessage: undefined,
+        ambient: false,
+        dependencies: {},
+        devDependencies: {},
+        peerDependencies: {},
+        ambientDependencies: {},
+        ambientDevDependencies: {}
+      }
+
+      ;(root as any).dependencies.foo = foo
+
+      const emitter = new EventEmitter()
+
+      return compile(root, { name: 'test', cwd: __dirname, ambient: false, meta: false, emitter })
+        .then(results => {
+          t.equal(results.main, [
+            'declare module \'~test~foo/x\' {',
+            'export const wow: boolean',
+            '}',
+            '',
+            'declare module \'~test~foo/index\' {',
+            'export * from \'~test~foo/x\'',
+            '}',
+            'declare module \'~test~foo\' {',
+            'export * from \'~test~foo/index\';',
+            '}',
+            '',
+            'declare module \'~test/index\' {',
+            'import * as x from \'~test~foo/x\'',
+            'export * from \'~test~foo\'',
+            '}',
+            'declare module \'test/index\' {',
+            'export * from \'~test/index\';',
+            '}',
+            'declare module \'test\' {',
+            'export * from \'~test/index\';',
+            '}',
+            ''
+          ].join('\n'))
+        })
+    })
+
     t.test('compile module augmentation', t => {
       const FIXTURE_DIR = join(FIXTURES_DIR, 'compile-module-augmentation')
 

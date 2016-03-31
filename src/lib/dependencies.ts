@@ -106,6 +106,7 @@ function resolveDependencyRegistry (dependency: Dependency, options: Options, pa
         // Emit deprecated registry warnings.
         if (entry.deprecated) {
           options.emitter.emit('deprecated', {
+            parent,
             raw: dependency.raw,
             date: new Date(entry.deprecated)
           })

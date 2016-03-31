@@ -127,4 +127,5 @@ export interface BadLocationEvent {
 export interface DeprecatedEvent {
   raw: string
   date: Date
+  parent: DependencyTree
 }

@@ -114,6 +114,16 @@ export function readHttp (url: string): Promise<string> {
       popsicle.plugins.concatStream('string')
     ]
   })
+    // Enable HTTP response debugging.
+    .use(function (self) {
+      self.always(function (request) {
+        if (request.errored) {
+          debug('http errored', request.errored)
+        } else {
+          debug('http response', request.response.toJSON())
+        }
+      })
+    })
     // Enable HTTP(s) proxies and environment variable support.
     .use(popsicleProxy({ proxy, httpProxy, httpsProxy, noProxy }))
     // Retry failed HTTP requests.
@@ -145,11 +155,7 @@ export function readHttp (url: string): Promise<string> {
       }
     })
     // Return only the response body.
-    .then(response => {
-      debug('http response', response.toJSON())
-
-      return response.body
-    })
+    .then(response => response.body)
 }
 
 /**

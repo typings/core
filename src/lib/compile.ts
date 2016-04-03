@@ -57,8 +57,16 @@ export default function compile (tree: DependencyTree, options: Options): Promis
 
   // Re-use "reads" over all compilations, created separate "imported" instances.
   return Promise.all([
-    compileDependencyTree(tree, extend(options, { browser: false, readFiles, imported: {} as ts.Map<boolean> })),
-    compileDependencyTree(tree, extend(options, { browser: true, readFiles, imported: {} as ts.Map<boolean> }))
+    compileDependencyTree(tree, extend(options, {
+      browser: false,
+      readFiles,
+      imported: {} as ts.Map<boolean>
+    })),
+    compileDependencyTree(tree, extend(options, {
+      browser: true,
+      readFiles,
+      imported: {} as ts.Map<boolean>
+    }))
   ])
     .then(([main, browser]) => {
       return {
@@ -84,10 +92,10 @@ interface CompileOptions extends Options {
 /**
  * Resolve override paths.
  */
-function resolveFromOverride (src: string, to: string | boolean): string {
+function resolveFromOverride (src: string, to: string | boolean, tree: DependencyTree): string {
   if (typeof to === 'string') {
     if (isModuleName(to)) {
-      const [moduleName, modulePath] = getModuleNameParts(to)
+      const [moduleName, modulePath] = getModuleNameParts(to, tree)
 
       return modulePath ? normalizeToDefinition(to) : moduleName
     }
@@ -101,9 +109,9 @@ function resolveFromOverride (src: string, to: string | boolean): string {
 /**
  * Resolve module locations (appending `.d.ts` to paths).
  */
-function resolveFromWithModuleName (src: string, to: string): string {
+function resolveFromWithModuleName (src: string, to: string, tree: DependencyTree): string {
   if (isModuleName(to)) {
-    const [moduleName, modulePath] = getModuleNameParts(to)
+    const [moduleName, modulePath] = getModuleNameParts(to, tree)
 
     return modulePath ? toDefinition(to) : moduleName
   }
@@ -132,8 +140,8 @@ function getStringifyOptions (
       overrides[mainDefinition] = browserDefinition
     } else {
       for (const key of Object.keys(browser)) {
-        const from = resolveFromOverride(tree.src, key) as string
-        const to = resolveFromOverride(tree.src, browser[key])
+        const from = resolveFromOverride(tree.src, key, tree) as string
+        const to = resolveFromOverride(tree.src, browser[key], tree)
 
         overrides[from] = to
       }
@@ -288,7 +296,7 @@ function stringifyDependencyPath (path: string, options: StringifyOptions): Prom
 
   // Load a dependency path.
   function loadByModuleName (path: string) {
-    const [moduleName, modulePath] = getModuleNameParts(path)
+    const [moduleName, modulePath] = getModuleNameParts(path, tree)
     const compileOptions = { cwd, browser, readFiles, imported, emitter, name: moduleName, ambient: false, meta }
     const stringifyOptions = cachedStringifyOptions(moduleName, compileOptions, options)
 
@@ -315,7 +323,7 @@ function stringifyDependencyPath (path: string, options: StringifyOptions): Prom
           return
         }
 
-        const importedFiles = info.importedFiles.map(x => resolveFromWithModuleName(resolved, x.fileName))
+        const importedFiles = info.importedFiles.map(x => resolveFromWithModuleName(resolved, x.fileName, tree))
         const referencedFiles = info.referencedFiles.map(x => resolveFrom(resolved, x.fileName))
 
         // All dependencies MUST be imported for ambient modules.
@@ -375,26 +383,34 @@ function stringifyDependencyPath (path: string, options: StringifyOptions): Prom
 /**
  * Separate the module name into pieces.
  */
-function getModuleNameParts (name: string): [string, string] {
-  const parts = name.split(/[\\\/]/)
-  const moduleName = parts.shift()
-  const modulePath = parts.length === 0 ? null : parts.join('/')
+function getModuleNameParts (name: string, tree: DependencyTree): [string, string] {
+  const parts = name.split(/[\\\/]/g)
+  let len = parts.length
 
-  return [moduleName, modulePath]
+  while (len--) {
+    const name = parts.slice(0, len).join('/')
+    const path = parts.slice(len).join('/')
+
+    if (tree.dependencies[name]) {
+      return [name, path]
+    }
+  }
+
+  return [parts.join('/'), null]
 }
 
 /**
  * Normalize import paths against the prefix.
  */
 function importPath (path: string, name: string, options: StringifyOptions) {
-  const resolved = getPath(resolveFromWithModuleName(path, name), options)
   const { prefix, tree } = options
+  const resolved = getPath(resolveFromWithModuleName(path, name, tree), options)
 
   if (isModuleName(resolved)) {
-    const [moduleName, modulePath] = getModuleNameParts(resolved)
+    const [moduleName, modulePath] = getModuleNameParts(resolved, tree)
 
     // If the dependency is not available, *do not* transform - it's probably ambient.
-    if (options.dependencies[moduleName] == null) {
+    if (tree.dependencies[moduleName] == null) {
       return name
     }
 

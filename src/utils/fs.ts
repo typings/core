@@ -127,7 +127,7 @@ export function readHttp (url: string): Promise<string> {
     // Enable HTTP(s) proxies and environment variable support.
     .use(popsicleProxy({ proxy, httpProxy, httpsProxy, noProxy }))
     // Retry failed HTTP requests.
-    .use(popsicleRetry({ maxRetries: 3, retryDelay: 3000 }))
+    .use(popsicleRetry())
     // Check responses are "200 OK".
     .use(popsicleStatus(200))
     // Request "middleware".

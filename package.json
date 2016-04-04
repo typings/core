@@ -67,6 +67,7 @@
     "string-template": "^1.0.0",
     "strip-bom": "^2.0.0",
     "thenify": "^3.1.0",
+    "throat": "^2.0.2",
     "touch": "^1.0.0",
     "typescript": "1.8.9",
     "xtend": "^4.0.0",

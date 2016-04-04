@@ -8,13 +8,14 @@ import popsicleStatus = require('popsicle-status')
 import popsicleRetry = require('popsicle-retry')
 import detectIndent = require('detect-indent')
 import sortKeys = require('sort-keys')
-import mdp = require('mkdirp')
+import Mkdirp = require('mkdirp')
 import uniq = require('array-uniq')
 import lockfile = require('lockfile')
-import rmrf = require('rimraf')
+import Rimraf = require('rimraf')
 import popsicleProxy = require('popsicle-proxy-agent')
+import Throat = require('throat')
 import promiseFinally from 'promise-finally'
-import tch = require('touch')
+import Touch = require('touch')
 import { join, dirname } from 'path'
 import { parse as parseUrl } from 'url'
 import template = require('string-template')
@@ -28,18 +29,27 @@ import debug from './debug'
 
 const pkg = require('../../package.json')
 const registryURL = parseUrl(rc.registryURL)
+const throat = Throat(Promise)
 
 export type Stats = fs.Stats
 
-export const touch: (path: string, options?: tch.Options) => Promise<void> = thenify<string, tch.Options, void>(tch)
-export const stat: (path: string) => Promise<Stats> = thenify(fs.stat)
-export const readFile: (path: string, encoding: string) => Promise<string> = thenify<string, string, string>(fs.readFile)
-export const writeFile: (path: string, contents: string | Buffer) => Promise<void> = thenify<string, string | Buffer, void>(fs.writeFile)
-export const mkdirp: (path: string) => Promise<string> = thenify<string, string>(mdp)
-export const unlink: (path: string) => Promise<void> = thenify<string, void>(fs.unlink)
-export const lock: (path: string, options?: lockfile.Options) => Promise<void> = thenify<string, lockfile.Options, void>(lockfile.lock)
-export const unlock: (path: string) => Promise<void> = thenify<string, void>(lockfile.unlock)
-export const rimraf: (path: string) => Promise<void> = thenify<string, void>(rmrf)
+export type LockOp = (path: string, options?: lockfile.Options) => Promise<void>
+export type TouchOp = (path: string, options?: Touch.Options) => Promise<void>
+export type StatOp = (path: string) => Promise<Stats>
+export type ReadFileOp = (path: string, encoding: string) => Promise<string>
+export type WriteFileOp = (path: string, contents: string | Buffer) => Promise<void>
+export type MkdirpOp = (path: string) => Promise<string>
+export type PathOp = (path: string) => Promise<void>
+
+export const touch: TouchOp = throat(10, thenify<string, Touch.Options, void>(Touch))
+export const stat: StatOp = throat(10, thenify(fs.stat))
+export const readFile: ReadFileOp = throat(10, thenify<string, string, string>(fs.readFile))
+export const writeFile: WriteFileOp = thenify<string, string | Buffer, void>(fs.writeFile)
+export const mkdirp: MkdirpOp = throat(10, thenify<string, string>(Mkdirp))
+export const unlink: PathOp = throat(10, thenify<string, void>(fs.unlink))
+export const lock: LockOp = throat(10, thenify<string, lockfile.Options, void>(lockfile.lock))
+export const unlock: PathOp = throat(10, thenify<string, void>(lockfile.unlock))
+export const rimraf: PathOp = throat(10, thenify<string, void>(Rimraf))
 
 /**
  * Verify a path exists and is a file.
@@ -89,7 +99,7 @@ export function parseConfig (config: ConfigJson, path: string): ConfigJson {
 /**
  * Read a file over HTTP, using a file cache and status check.
  */
-export function readHttp (url: string): Promise<string> {
+export const readHttp = throat(5, function readHttp (url: string): Promise<string> {
   const { proxy, httpProxy, httpsProxy, noProxy, rejectUnauthorized, ca, key, cert, userAgent } = rc
 
   return popsicle.get({
@@ -156,7 +166,7 @@ export function readHttp (url: string): Promise<string> {
     })
     // Return only the response body.
     .then(response => response.body)
-}
+})
 
 /**
  * Read a file from anywhere (HTTP or local filesystem).

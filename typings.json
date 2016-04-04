@@ -28,6 +28,7 @@
     "string-template": "github:typings/typed-string-template#4620eee24201636ca45e6dbc2505066703c770da",
     "strip-bom": "github:typings/typed-strip-bom#d1d42e7f43dcd9fce1cfd988c40421a1d37fa47b",
     "thenify": "github:typings/typed-thenify#edbd46753be5bb34b916787fcede5e9b1281a2e2",
+    "throat": "github:typed-typings/npm-throat#20e2c3c157d87a90062a8a2f4d99ab4dc475b1fd",
     "touch": "github:typings/typed-touch#9b10d0473fb5161c379df57d63d3d59fb5b62fb0",
     "typescript": "npm:typescript",
     "xtend": "github:typings/typed-xtend#63cccadf3295b3c15561ee45617ac006edcca9e0",

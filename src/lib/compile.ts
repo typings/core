@@ -475,22 +475,21 @@ function stringifySourceFile (sourceFile: ts.SourceFile, options: StringifyOptio
     }
   }
 
-  let wasDeclared = false
   let hasExports = false
-  let hasDefaultExport = false
-  let hasExportEquals = false
+  let wasDeclared = false
 
   // Custom replacer function to rewrite the file.
   function replacer (node: ts.Node) {
     // Flag `export =` as the main re-definition needs to be written different.
-    if (node.kind === ts.SyntaxKind.ExportAssignment) {
-      hasDefaultExport = !(node as ts.ExportAssignment).isExportEquals
-      hasExportEquals = !hasDefaultExport
-    } else if (node.kind === ts.SyntaxKind.ExportDeclaration) {
+    if (
+      node.kind === ts.SyntaxKind.ExportAssignment ||
+      node.kind === ts.SyntaxKind.ExportDeclaration
+    ) {
       hasExports = true
     } else {
-      hasExports = hasExports || !!(node.flags & ts.NodeFlags.Export)
-      hasDefaultExport = hasDefaultExport || !!(node.flags & ts.NodeFlags.Default)
+      hasExports = hasExports ||
+        !!(node.flags & ts.NodeFlags.Export) ||
+        !!(node.flags & ts.NodeFlags.Default)
     }
 
     if (
@@ -544,27 +543,9 @@ function stringifySourceFile (sourceFile: ts.SourceFile, options: StringifyOptio
 
   // Create an alias/proxy module namespace to expose the implementation.
   function alias (name: string) {
-    const imports: string[] = []
+    const reexport = `import alias = require('${modulePath}');${EOL}export = alias;`
 
-    if (hasExportEquals) {
-      imports.push(`import main = require('${modulePath}');`)
-      imports.push(`export = main;`)
-    } else {
-      if (hasExports) {
-        imports.push(`export * from '${modulePath}';`)
-      }
-
-      if (hasDefaultExport) {
-        imports.push(`export { default } from '${modulePath}';`)
-      }
-    }
-
-    // No aliases, nothing exported.
-    if (imports.length === 0) {
-      return ''
-    }
-
-    return declareText(name, imports.join(EOL))
+    return hasExports ? declareText(name, reexport) : ''
   }
 
   const isEntry = rawPath === entry

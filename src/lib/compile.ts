@@ -284,12 +284,12 @@ function stringifyDependencyPath (path: string, options: StringifyOptions): Prom
   const importedPath = importPath(path, pathFromDefinition(path), options)
 
   // Return `null` to skip the dependency writing, could have the same import twice.
-  if (has(options.imported, importedPath)) {
+  if (has(imported, importedPath)) {
     return Promise.resolve<string>(null)
   }
 
   // Set the file to "already imported" to avoid duplication.
-  options.imported[importedPath] = true
+  imported[importedPath] = true
 
   // Emit compile events for progression.
   emitter.emit('compile', { name, path, tree, browser })

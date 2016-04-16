@@ -8,7 +8,7 @@ export interface ViewOptions {
   ambient?: boolean
 }
 
-export function viewEntry (raw: string, options: ViewOptions = {}) {
+export function viewEntry (raw: string, options: ViewOptions) {
   return new Promise((resolve) => {
     const { meta } = parseDependency(expandRegistry(raw, options))
     const path = `entries/${encodeURIComponent(meta.source)}/${encodeURIComponent(meta.name)}`
@@ -17,7 +17,7 @@ export function viewEntry (raw: string, options: ViewOptions = {}) {
   })
 }
 
-export function viewVersions (raw: string, options: ViewOptions = {}) {
+export function viewVersions (raw: string, options: ViewOptions) {
   return new Promise((resolve) => {
     const { meta } = parseDependency(expandRegistry(raw, options))
     let path = `entries/${encodeURIComponent(meta.source)}/${encodeURIComponent(meta.name)}/versions`

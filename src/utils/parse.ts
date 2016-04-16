@@ -1,7 +1,7 @@
 import invariant = require('invariant')
 import { resolve as resolveUrl } from 'url'
 import { normalize, join, basename, dirname } from 'path'
-import { Dependency } from '../interfaces'
+import { Dependency, DependencyMeta } from '../interfaces'
 import { CONFIG_FILE } from './config'
 import { isDefinition, normalizeSlashes, pathFromDefinition } from './path'
 import rc from './rc'
@@ -193,28 +193,31 @@ export function parseDependency (raw: string): Dependency {
 /**
  * Resolve a path relative to the raw string.
  */
-export function resolveDependency (raw: string, path: string) {
+export function resolveDependency (raw: string, filename: string) {
   const { type, meta, location } = parseDependency(raw)
+
+  if (type === 'http' || type === 'https') {
+    return resolveUrl(location, filename)
+  }
 
   if (type === 'github' || type === 'bitbucket') {
     const { org, repo, sha } = meta
-    const resolvedPath = normalizeSlashes(join(dirname(meta.path), path))
+    const path = join(dirname(meta.path), filename)
 
-    return `${type}:${org}/${repo}/${resolvedPath}${sha === 'master' ? '' : '#' + sha}`
+    return buildDependencyExpression(type, { org, repo, sha, path })
   }
 
   if (type === 'npm' || type === 'bower') {
-    const resolvedPath = normalizeSlashes(join(dirname(meta.path), path))
+    const { name } = meta
+    const path = join(dirname(meta.path), filename)
 
-    return `${type}:${meta.name}/${resolvedPath}`
-  }
-
-  if (type === 'http' || type === 'https') {
-    return resolveUrl(location, path)
+    return buildDependencyExpression(type, { name, path })
   }
 
   if (type === 'file') {
-    return `file:${normalizeSlashes(join(location, path))}`
+    const path = join(location, filename)
+
+    return buildDependencyExpression(type, { path })
   }
 
   throw new TypeError(`Unable to resolve dependency from "${raw}"`)
@@ -235,9 +238,34 @@ export function parseDependencyExpression (raw: string, options: { ambient?: boo
 }
 
 /**
+ * Build a dependency expression from metadata.
+ */
+export function buildDependencyExpression (type: string, meta: DependencyMeta): string {
+  if (type === 'github' || type === 'bitbucket') {
+    const { org, repo, sha } = meta
+    const resolvedPath = normalizeSlashes(meta.path)
+
+    return `${type}:${org}/${repo}/${resolvedPath}${sha === 'master' ? '' : '#' + sha}`
+  }
+
+  if (type === 'npm' || type === 'bower') {
+    const { path } = meta
+    const resolvedPath = path ? `/${normalizeSlashes(path)}` : ''
+
+    return `${type}:${meta.name}${resolvedPath}`
+  }
+
+  if (type === 'file') {
+    return `file:${normalizeSlashes(meta.path)}`
+  }
+
+  throw new TypeError(`Unable to expand dependency type: "${type}"`)
+}
+
+/**
  * Parse the registry dependency string.
  */
-export function expandRegistry (raw: string, options: { ambient?: boolean } = {}) {
+export function expandRegistry (raw: string, options: { ambient?: boolean }) {
   if (typeof raw !== 'string') {
     throw new TypeError(`Expected registry name to be a string, not ${typeof raw}`)
   }

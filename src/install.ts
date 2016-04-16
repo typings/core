@@ -3,12 +3,14 @@ import Promise = require('any-promise')
 import { dirname, join } from 'path'
 import { EventEmitter } from 'events'
 import { resolveDependency, resolveTypeDependencies } from './lib/dependencies'
-import compile, { Options as CompileOptions, CompiledOutput } from './lib/compile'
+import compile, { CompileResult } from './lib/compile'
 import { findProject, findUp } from './utils/find'
-import { transformConfig, mkdirp, touch, writeFile, transformDtsFile, readJson } from './utils/fs'
+import { transformConfig, mkdirp, touch, transformDtsFile, readJson, mkdirpAndWriteFile } from './utils/fs'
 import { getTypingsLocation, getDependencyLocation, resolveFrom } from './utils/path'
-import { parseDependency, parseDependencyExpression } from './utils/parse'
+import { parseDependency, parseDependencyExpression, buildDependencyExpression } from './utils/parse'
 import { DependencyTree, Dependency, DependencyBranch, Emitter } from './interfaces'
+
+export { parseDependencyExpression, buildDependencyExpression }
 
 /**
  * Options for installing a new dependency.
@@ -32,22 +34,30 @@ export interface InstallOptions {
 }
 
 /**
+ * Consistent installation result.
+ */
+export interface InstallResult {
+  tree: DependencyTree
+  name?: string
+}
+
+/**
  * Install all dependencies on the current project.
  */
-export function install (options: InstallOptions): Promise<{ tree: DependencyTree }> {
+export function install (options: InstallOptions): Promise<InstallResult> {
   const { cwd, production } = options
   const emitter = options.emitter || new EventEmitter()
 
   return resolveTypeDependencies({ cwd, emitter, ambient: true, peer: true, dev: !production })
     .then(tree => {
       const cwd = dirname(tree.src)
-      const queue: Array<Promise<any>> = []
+      const queue: Array<Promise<CompileResult>> = []
 
       function addToQueue (deps: DependencyBranch, ambient: boolean) {
         for (const name of Object.keys(deps)) {
           const tree = deps[name]
 
-          queue.push(installDependencyTree(tree, { cwd, name, ambient, emitter, meta: true }))
+          queue.push(compile(tree, { cwd, name, ambient, emitter, meta: true }))
         }
       }
 
@@ -58,58 +68,81 @@ export function install (options: InstallOptions): Promise<{ tree: DependencyTre
       addToQueue(tree.ambientDevDependencies, true)
 
       return Promise.all(queue)
-        .then(installed => {
-          if (installed.length === 0) {
-            const { typingsDir, mainDtsFile, browserDtsFile } = getTypingsLocation({ cwd })
-
-            return mkdirp(typingsDir)
-              .then(() => {
-                return Promise.all([
-                  touch(mainDtsFile, {}),
-                  touch(browserDtsFile, {})
-                ])
-              })
-          }
+        .then(results => {
+          return Promise.all(results.map(x => writeResult(x)))
+            .then(() => writeBundle(results, options))
+            .then(() => ({ tree }))
         })
-        .then(() => ({ tree }))
     })
 }
 
 /**
- * Parse the raw dependency string before installing.
+ * Multiple installation expressions.
  */
-export function installDependencyRaw (raw: string, options: InstallDependencyOptions): Promise<CompiledOutput> {
-  return new Promise((resolve) => {
-    return resolve(installDependency(parseDependencyExpression(raw, options), options))
-  })
-}
-
 export interface InstallExpression {
   name: string
   location: string
 }
 
 /**
- * Install a dependency into the currect project.
+ * Backward compat with single dependency install.
  */
-export function installDependency (expression: InstallExpression, options: InstallDependencyOptions): Promise<CompiledOutput> {
+export function installDependencyRaw (raw: string, options: InstallDependencyOptions) {
+  return installDependenciesRaw([raw], options).then(x => x[0])
+}
+
+/**
+ * Install raw dependency strings.
+ */
+export function installDependenciesRaw (raw: string[], options: InstallDependencyOptions): Promise<InstallResult[]> {
+  return new Promise(resolve => {
+    const expressions = raw.map(x => parseDependencyExpression(x, options))
+
+    return resolve(installDependencies(expressions, options))
+  })
+}
+
+/**
+ * Single wrapper to install a single dependency.
+ */
+export function installDependency (expression: InstallExpression, options: InstallDependencyOptions): Promise<InstallResult> {
+  return installDependencies([expression], options).then(x => x[0])
+}
+
+/**
+ * Install a list of dependencies into the current project.
+ */
+export function installDependencies (expressions: InstallExpression[], options: InstallDependencyOptions): Promise<InstallResult[]> {
+  const emitter = options.emitter || new EventEmitter()
+
   return findProject(options.cwd)
     .then(
-      (cwd) => installTo(expression, extend(options, { cwd })),
-      () => installTo(expression, options)
+      (cwd) => extend(options, { cwd, emitter }),
+      () => extend(options, { emitter })
     )
+    .then(options => {
+      return Promise.all(expressions.map(x => compileDependency(x, options)))
+        .then(results => {
+          return Promise.all(results.map(x => writeResult(x)))
+            .then(() => writeBundle(results, options))
+            .then(() => writeToConfig(results, options))
+            .then(() => results.map(({ name, tree }) => ({ name, tree })))
+        })
+    })
 }
 
 /**
  * Install from a dependency string.
  */
-function installTo (expression: InstallExpression, options: InstallDependencyOptions): Promise<CompiledOutput> {
+function compileDependency (expression: InstallExpression, options: InstallDependencyOptions): Promise<CompileResult> {
   const dependency = parseDependency(expression.location)
   const { cwd, ambient } = options
   const emitter = options.emitter || new EventEmitter()
 
   return checkTypings(dependency, options)
-    .then(() => resolveDependency(dependency, { cwd, emitter, dev: false, peer: false, ambient: false }))
+    .then(() => {
+      return resolveDependency(dependency, { cwd, emitter, dev: false, peer: false, ambient: false })
+    })
     .then(tree => {
       const name = expression.name || dependency.meta.name || tree.name
 
@@ -117,58 +150,48 @@ function installTo (expression: InstallExpression, options: InstallDependencyOpt
         return Promise.reject(new TypeError(`Unable to install dependency from "${tree.raw}" without a name`))
       }
 
-      return installDependencyTree(tree, {
+      if (tree.postmessage) {
+        emitter.emit('postmessage', { name, message: tree.postmessage })
+      }
+
+      return compile(tree, {
         cwd,
         name,
         ambient,
         emitter,
         meta: true
       })
-        .then(result => {
-          return writeToConfig(name, tree.raw, options)
-            .then(() => {
-              // Emit postinstall messages.
-              if (tree.postmessage) {
-                emitter.emit('postmessage', { name, message: tree.postmessage })
-              }
-
-              return result
-            })
-        })
     })
-}
-
-/**
- * Compile a dependency tree into the users typings.
- */
-function installDependencyTree (tree: DependencyTree, options: CompileOptions): Promise<CompiledOutput> {
-  return compile(tree, options).then(result => writeDependency(result, options))
 }
 
 /**
  * Write a dependency to the configuration file.
  */
-function writeToConfig (name: string, raw: string, options: InstallDependencyOptions) {
+function writeToConfig (results: CompileResult[], options: InstallDependencyOptions) {
   if (options.save || options.saveDev || options.savePeer) {
     return transformConfig(options.cwd, config => {
-      // Extend different fields depending on the option passed in.
-      if (options.save) {
-        if (options.ambient) {
-          config.ambientDependencies = extend(config.ambientDependencies, { [name]: raw })
-        } else {
-          config.dependencies = extend(config.dependencies, { [name]: raw })
-        }
-      } else if (options.saveDev) {
-        if (options.ambient) {
-          config.ambientDevDependencies = extend(config.ambientDevDependencies, { [name]: raw })
-        } else {
-          config.devDependencies = extend(config.devDependencies, { [name]: raw })
-        }
-      } else if (options.savePeer) {
-        if (options.ambient) {
-          return Promise.reject(new TypeError('Unable to use `savePeer` with the `ambient` flag'))
-        } else {
-          config.peerDependencies = extend(config.peerDependencies, { [name]: raw })
+      for (const { name, tree } of results) {
+        const { raw } = tree
+
+        // Extend different fields depending on the option passed in.
+        if (options.save) {
+          if (options.ambient) {
+            config.ambientDependencies = extend(config.ambientDependencies, { [name]: raw })
+          } else {
+            config.dependencies = extend(config.dependencies, { [name]: raw })
+          }
+        } else if (options.saveDev) {
+          if (options.ambient) {
+            config.ambientDevDependencies = extend(config.ambientDevDependencies, { [name]: raw })
+          } else {
+            config.devDependencies = extend(config.devDependencies, { [name]: raw })
+          }
+        } else if (options.savePeer) {
+          if (options.ambient) {
+            throw new TypeError('Unable to use `savePeer` with the `ambient` flag')
+          } else {
+            config.peerDependencies = extend(config.peerDependencies, { [name]: raw })
+          }
         }
       }
 
@@ -182,21 +205,37 @@ function writeToConfig (name: string, raw: string, options: InstallDependencyOpt
 /**
  * Write a dependency to the filesytem.
  */
-function writeDependency (output: CompiledOutput, options: CompileOptions): Promise<CompiledOutput> {
-  const location = getDependencyLocation(options)
+function writeBundle (results: CompileResult[], options: { cwd: string }): Promise<any> {
+  const bundle = getTypingsLocation(options)
+  const locations = results.map(x => getDependencyLocation(x))
 
-  // Execute the dependency creation flow.
-  function create (path: string, file: string, contents: string, dtsFile: string) {
-    return mkdirp(path)
-      .then(() => writeFile(file, contents))
-      .then(() => transformDtsFile(dtsFile, typings => typings.concat([file])))
-  }
+  return mkdirp(bundle.typings)
+    .then(() => {
+      // Touch typings when no locations are installed.
+      if (locations.length === 0) {
+        return Promise.all([
+          touch(bundle.main),
+          touch(bundle.browser)
+        ])
+      }
 
-  // Create both typings concurrently.
+      return Promise.all([
+        transformDtsFile(bundle.main, x => x.concat(locations.map(x => x.main))),
+        transformDtsFile(bundle.browser, x => x.concat(locations.map(x => x.browser)))
+      ])
+    })
+}
+
+/**
+ * Write a compilation result.
+ */
+function writeResult (result: CompileResult): Promise<any> {
+  const location = getDependencyLocation(result)
+
   return Promise.all([
-    create(location.mainPath, location.mainFile, output.main, location.mainDtsFile),
-    create(location.browserPath, location.browserFile, output.browser, location.browserDtsFile)
-  ]).then(() => output)
+    mkdirpAndWriteFile(location.main, result.main),
+    mkdirpAndWriteFile(location.browser, result.browser)
+  ])
 }
 
 /**

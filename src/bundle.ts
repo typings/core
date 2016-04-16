@@ -2,9 +2,10 @@ import Promise = require('any-promise')
 import { resolve, join } from 'path'
 import { EventEmitter } from 'events'
 import { resolveAllDependencies } from './lib/dependencies'
-import compile, { CompiledOutput } from './lib/compile'
+import compile, { CompileResult } from './lib/compile'
 import { writeFile, mkdirp } from './utils/fs'
 import { Emitter } from './interfaces'
+import { InstallResult } from './install'
 
 /**
  * Bundle configuration options.
@@ -20,7 +21,7 @@ export interface BundleOptions {
 /**
  * Bundle the current typings project into a single ambient definition.
  */
-export function bundle (options: BundleOptions): Promise<CompiledOutput> {
+export function bundle (options: BundleOptions): Promise<InstallResult> {
   const { cwd, ambient, out } = options
   const emitter = options.emitter || new EventEmitter()
 
@@ -40,7 +41,7 @@ export function bundle (options: BundleOptions): Promise<CompiledOutput> {
 
       return compile(tree, { cwd, name, ambient, emitter, meta: true })
     })
-    .then((output: CompiledOutput) => {
+    .then((output: CompileResult) => {
       const path = resolve(cwd, out)
 
       return mkdirp(path)
@@ -50,6 +51,6 @@ export function bundle (options: BundleOptions): Promise<CompiledOutput> {
             writeFile(join(path, 'browser.d.ts'), output.browser)
           ])
         })
-        .then(() => output)
+        .then(() => ({ tree: output.tree }))
     })
 }

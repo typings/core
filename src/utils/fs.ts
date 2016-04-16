@@ -35,21 +35,48 @@ export type Stats = fs.Stats
 
 export type LockOp = (path: string, options?: lockfile.Options) => Promise<void>
 export type TouchOp = (path: string, options?: Touch.Options) => Promise<void>
-export type StatOp = (path: string) => Promise<Stats>
 export type ReadFileOp = (path: string, encoding: string) => Promise<string>
 export type WriteFileOp = (path: string, contents: string | Buffer) => Promise<void>
-export type MkdirpOp = (path: string) => Promise<string>
-export type PathOp = (path: string) => Promise<void>
+export type PathOp <T> = (path: string) => Promise<T>
 
 export const touch: TouchOp = throat(10, thenify<string, Touch.Options, void>(Touch))
-export const stat: StatOp = throat(10, thenify(fs.stat))
+export const stat: PathOp<Stats> = throat(10, thenify(fs.stat))
 export const readFile: ReadFileOp = throat(10, thenify<string, string, string>(fs.readFile))
 export const writeFile: WriteFileOp = thenify<string, string | Buffer, void>(fs.writeFile)
-export const mkdirp: MkdirpOp = throat(10, thenify<string, string>(Mkdirp))
-export const unlink: PathOp = throat(10, thenify<string, void>(fs.unlink))
+export const mkdirp: PathOp<string> = throat(10, thenify<string, string>(Mkdirp))
+export const unlink: PathOp<void> = throat(10, thenify<string, void>(fs.unlink))
 export const lock: LockOp = throat(10, thenify<string, lockfile.Options, void>(lockfile.lock))
-export const unlock: PathOp = throat(10, thenify<string, void>(lockfile.unlock))
-export const rimraf: PathOp = throat(10, thenify<string, void>(Rimraf))
+export const unlock: PathOp<void> = throat(10, thenify<string, void>(lockfile.unlock))
+export const rimraf: PathOp<void> = throat(10, thenify<string, void>(Rimraf))
+export const readdir: PathOp<string[]> = throat(10, thenify(fs.readdir))
+export const rmdir: PathOp<void> = throat(10, thenify<string, void>(fs.rmdir))
+
+/**
+ * Recursively mkdir and write the file contents.
+ */
+export function mkdirpAndWriteFile (path: string, contents: string | Buffer) {
+  return mkdirp(dirname(path)).then(() => writeFile(path, contents))
+}
+
+/**
+ * Remove directories until a root directory, while empty.
+ */
+export function rmdirUntil (path: string, root: string): Promise<void> {
+  if (path === root) {
+    return Promise.resolve()
+  }
+
+  return readdir(path)
+    .then(files => {
+      // Exit loop when files exist.
+      if (files.length) {
+        return
+      }
+
+      return rmdir(path)
+        .then(() => rmdirUntil(dirname(path), root))
+    })
+}
 
 /**
  * Verify a path exists and is a file.

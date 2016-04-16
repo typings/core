@@ -317,7 +317,7 @@ test('parse', t => {
     })
 
     t.test('expand registry with default source', t => {
-      const actual = expandRegistry('domready')
+      const actual = expandRegistry('domready', {})
       const expected = 'registry:npm/domready'
 
       t.deepEqual(actual, expected)
@@ -325,7 +325,7 @@ test('parse', t => {
     })
 
     t.test('expand registry with provided source', t => {
-      const actual = expandRegistry('env!atom')
+      const actual = expandRegistry('env!atom', {})
       const expected = 'registry:env/atom'
 
       t.deepEqual(actual, expected)

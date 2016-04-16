@@ -140,48 +140,48 @@ export function normalizeToDefinition (path: string) {
   return toDefinition(ext ? path.slice(0, -ext.length) : path)
 }
 
-/**
- * Get definition installation paths.
- */
-export function getTypingsLocation (options: { cwd: string }) {
-  const typingsDir = join(options.cwd, TYPINGS_DIR)
-  const mainDtsFile = join(typingsDir, DTS_MAIN_FILE)
-  const browserDtsFile = join(typingsDir, DTS_BROWSER_FILE)
-
-  return { typingsDir, mainDtsFile, browserDtsFile }
+export interface TypingsLocationResult extends LocationResult {
+  typings: string
 }
 
 /**
- * Options for interacting with dependencies.
+ * Get definition installation paths.
  */
-export interface DefinitionOptions {
+export function getTypingsLocation (options: { cwd: string }): TypingsLocationResult {
+  const typings = join(options.cwd, TYPINGS_DIR)
+  const main = join(typings, DTS_MAIN_FILE)
+  const browser = join(typings, DTS_BROWSER_FILE)
+
+  return { main, browser, typings }
+}
+
+export interface LocationOptions {
   cwd: string
   name: string
-  ambient?: boolean
+  ambient: boolean
+}
+
+export interface LocationResult {
+  main: string
+  browser: string
+}
+
+export interface DependencyLocationResult extends LocationResult {
+  mainDir: string
+  browserDir: string
 }
 
 /**
  * Return the dependency output locations based on definition options.
  */
-export function getDependencyLocation (options: DefinitionOptions) {
+export function getDependencyLocation (options: LocationOptions): DependencyLocationResult {
   const mainDir = options.ambient ? ambientMainTypingsDir : mainTypingsDir
   const browserDir = options.ambient ? ambientBrowserTypingsDir : browserTypingsDir
 
-  const { mainDtsFile, browserDtsFile } = getTypingsLocation(options)
+  const main = join(options.cwd, mainDir, options.name, 'index.d.ts')
+  const browser = join(options.cwd, browserDir, options.name, 'index.d.ts')
 
-  const mainPath = join(options.cwd, mainDir, options.name)
-  const browserPath = join(options.cwd, browserDir, options.name)
-  const mainFile = join(mainPath, 'index.d.ts')
-  const browserFile = join(browserPath, 'index.d.ts')
-
-  return {
-    mainFile,
-    browserFile,
-    mainPath,
-    browserPath,
-    mainDtsFile,
-    browserDtsFile
-  }
+  return { mainDir, browserDir, main, browser }
 }
 
 /**

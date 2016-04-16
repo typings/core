@@ -1,10 +1,10 @@
 import extend = require('xtend')
 import Promise = require('any-promise')
-import promiseFinally from 'promise-finally'
 import { EventEmitter } from 'events'
-import { transformConfig, transformDtsFile, rimraf, isFile } from './utils/fs'
+import { dirname } from 'path'
+import { transformConfig, transformDtsFile, unlink, isFile, rmdirUntil } from './utils/fs'
 import { findProject } from './utils/find'
-import { getDependencyLocation } from './utils/path'
+import { getDependencyLocation, getTypingsLocation } from './utils/path'
 import { Emitter } from './interfaces'
 
 /**
@@ -20,66 +20,104 @@ export interface UninstallDependencyOptions {
 }
 
 /**
- * Uninstall a dependency, given a name.
+ * Uninstall a single dependency.
  */
 export function uninstallDependency (name: string, options: UninstallDependencyOptions) {
-  const emitter = options.emitter || new EventEmitter()
+  return uninstallDependencies([name], options)
+}
 
-  // Remove the dependency from fs and config.
-  function uninstall (name: string, options: UninstallDependencyOptions) {
-    return removeDependency(name, options).then(() => writeToConfig(name, options))
-  }
+/**
+ * Uninstall a list of dependencies.
+ */
+export function uninstallDependencies (names: string[], options: UninstallDependencyOptions) {
+  const emitter = options.emitter || new EventEmitter()
 
   return findProject(options.cwd)
     .then(
-      (cwd) => uninstall(name, extend({ emitter }, options, { cwd })),
-      () => uninstall(name, extend({ emitter }, options))
+      (cwd) => extend(options, { cwd, emitter }),
+      () => extend(options, { emitter })
     )
+    .then(options => {
+      return Promise.all(names.map(x => uninstallFrom(x, options)))
+        .then(() => writeBundle(names, options))
+        .then(() => writeToConfig(names, options))
+        .then(() => undefined)
+    })
+}
+
+/**
+ * Uninstall the dependency.
+ */
+function uninstallFrom (name: string, options: UninstallDependencyOptions) {
+  const { cwd, ambient } = options
+  const location = getDependencyLocation({ name, cwd, ambient })
+
+  return Promise.all([
+    uninstall(location.main, location.mainDir, options),
+    uninstall(location.browser, location.browserDir, options)
+  ])
+}
+
+/**
+ * Uninstall a path recursively.
+ */
+function uninstall (path: string, root: string, options: UninstallDependencyOptions) {
+  return isFile(path)
+    .then(exists => {
+      if (exists) {
+        return unlink(path)
+      }
+
+      options.emitter.emit('enoent', { path })
+    })
+    .then(() => rmdirUntil(dirname(path), root))
 }
 
 /**
  * Delete the dependency from the configuration file.
  */
-function writeToConfig (name: string, options: UninstallDependencyOptions) {
-  if (options.save || options.saveDev) {
+function writeToConfig (names: string[], options: UninstallDependencyOptions) {
+  if (options.save || options.saveDev || options.savePeer) {
     return transformConfig(options.cwd, config => {
-      if (options.save) {
-        if (options.ambient) {
-          if (config.ambientDependencies && config.ambientDependencies[name]) {
-            delete config.ambientDependencies[name]
+      for (const name of names) {
+        if (options.save) {
+          if (options.ambient) {
+            if (config.ambientDependencies && config.ambientDependencies[name]) {
+              delete config.ambientDependencies[name]
+            } else {
+              return Promise.reject(new TypeError(`Typings for "${name}" are not listed in ambient dependencies`))
+            }
           } else {
-            return Promise.reject(new TypeError(`Typings for "${name}" are not listed in ambient dependencies`))
-          }
-        } else {
-          if (config.dependencies && config.dependencies[name]) {
-            delete config.dependencies[name]
-          } else {
-            return Promise.reject(new TypeError(`Typings for "${name}" are not listed in dependencies`))
-          }
-        }
-      }
-
-      if (options.saveDev) {
-        if (options.ambient) {
-          if (config.ambientDevDependencies && config.ambientDevDependencies[name]) {
-            delete config.ambientDevDependencies[name]
-          } else {
-            return Promise.reject(new TypeError(`Typings for "${name}" are not listed in ambient dev dependencies`))
-          }
-        } else {
-          if (config.devDependencies && config.devDependencies[name]) {
-            delete config.devDependencies[name]
-          } else {
-            return Promise.reject(new TypeError(`Typings for "${name}" are not listed in dev dependencies`))
+            if (config.dependencies && config.dependencies[name]) {
+              delete config.dependencies[name]
+            } else {
+              return Promise.reject(new TypeError(`Typings for "${name}" are not listed in dependencies`))
+            }
           }
         }
-      }
 
-      if (options.savePeer) {
-        if (config.peerDependencies && config.peerDependencies[name]) {
-          delete config.peerDependencies[name]
-        } else {
-          return Promise.reject(new TypeError(`Typings for "${name}" are not listed in peer dependencies`))
+        if (options.saveDev) {
+          if (options.ambient) {
+            if (config.ambientDevDependencies && config.ambientDevDependencies[name]) {
+              delete config.ambientDevDependencies[name]
+            } else {
+              return Promise.reject(new TypeError(`Typings for "${name}" are not listed in ambient dev dependencies`))
+            }
+          } else {
+            if (config.devDependencies && config.devDependencies[name]) {
+              delete config.devDependencies[name]
+            } else {
+              return Promise.reject(new TypeError(`Typings for "${name}" are not listed in dev dependencies`))
+            }
+          }
+        }
+
+        if (options.savePeer) {
+          if (config.peerDependencies && config.peerDependencies[name]) {
+            delete config.peerDependencies[name]
+          } else {
+            return Promise.reject(new TypeError(`Typings for "${name}" are not listed in peer dependencies`))
+          }
         }
       }
 
@@ -89,31 +127,15 @@ function writeToConfig (name: string, options: UninstallDependencyOptions) {
 }
 
 /**
- * Remove a dependency from the filesystem.
+ * Write the uninstall result to the bundle.
  */
-function removeDependency (name: string, options: UninstallDependencyOptions) {
+function writeBundle (names: string[], options: UninstallDependencyOptions) {
   const { cwd, ambient } = options
-  const location = getDependencyLocation({ name, cwd, ambient })
+  const bundle = getTypingsLocation(options)
+  const locations = names.map(name => getDependencyLocation({ name, cwd, ambient }))
 
-  // Remove the dependency from typings.
-  function remove (dir: string, path: string, dtsPath: string) {
-    return isFile(path)
-      .then(exists => {
-        if (!exists) {
-          options.emitter.emit('enoent', { path })
-        }
-
-        return promiseFinally(rimraf(dir), () => {
-          return transformDtsFile(dtsPath, (typings) => {
-            return typings.filter(x => x !== path)
-          })
-        })
-      })
-  }
-
-  // Remove dependencies concurrently.
   return Promise.all([
-    remove(location.mainPath, location.mainFile, location.mainDtsFile),
-    remove(location.browserPath, location.browserFile, location.browserDtsFile)
-  ]).then(() => undefined)
+    transformDtsFile(bundle.main, x => x.concat(locations.map(x => x.main))),
+    transformDtsFile(bundle.browser, x => x.concat(locations.map(x => x.browser)))
+  ])
 }

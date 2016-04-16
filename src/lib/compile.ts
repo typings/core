@@ -34,23 +34,25 @@ export interface Options {
 /**
  * The compiled output data.
  */
-export interface CompiledOutput {
+export interface CompileResult {
+  cwd: string
   name: string
   tree: DependencyTree
   main: string
   browser: string
+  ambient: boolean
 }
 
 /**
  * Compile a dependency tree using a root name.
  */
-export default function compile (tree: DependencyTree, options: Options): Promise<CompiledOutput> {
-  const { name } = options
+export default function compile (tree: DependencyTree, options: Options): Promise<CompileResult> {
+  const { name, cwd, ambient } = options
   const readFiles: ts.Map<Promise<string>> = {}
 
-  if (tree.ambient && !options.ambient) {
+  if (tree.ambient && !ambient) {
     return Promise.reject(new TypingsError(
-      `Unable to compile "${options.name}", the typings are meant to be installed as ` +
+      `Unable to compile "${name}", the typings are meant to be installed as ` +
       `ambient but attempted to be compiled as an external module`
     ))
   }
@@ -73,7 +75,9 @@ export default function compile (tree: DependencyTree, options: Options): Promis
         name,
         tree,
         main,
-        browser
+        browser,
+        cwd,
+        ambient
       }
     })
 }

@@ -7,20 +7,25 @@ export interface Dependency {
   type: string
   raw: string
   location: string
-  meta: {
-    // Packages.
-    name?: string
-    // Common.
-    path?: string
-    // Git-based.
-    org?: string
-    repo?: string
-    sha?: string
-    // Registry.
-    version?: string
-    tag?: string
-    source?: string
-  }
+  meta: DependencyMeta
+}
+
+/**
+ * Dependency metadata.
+ */
+export interface DependencyMeta {
+  // Packages.
+  name?: string
+  // Common.
+  path?: string
+  // Git-based.
+  org?: string
+  repo?: string
+  sha?: string
+  // Registry.
+  version?: string
+  tag?: string
+  source?: string
 }
 
 /**

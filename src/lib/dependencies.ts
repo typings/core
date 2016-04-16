@@ -9,7 +9,7 @@ import { parseDependency } from '../utils/parse'
 import { findUp, findConfigFile } from '../utils/find'
 import { isDefinition, isHttp } from '../utils/path'
 import { CONFIG_FILE, PROJECT_NAME } from '../utils/config'
-import { Dependency, DependencyBranch, DependencyTree, Emitter } from '../interfaces'
+import { Dependency, DependencyBranch, Dependencies, DependencyTree, Emitter } from '../interfaces'
 import TypingsError from './error'
 
 /**
@@ -39,9 +39,11 @@ const DEFAULT_DEPENDENCY: DependencyTree = {
 export interface Options {
   cwd: string
   emitter: Emitter
+  name?: string
   dev?: boolean
   peer?: boolean
   ambient?: boolean
+  parent?: DependencyTree
 }
 
 /**
@@ -59,11 +61,11 @@ export function resolveAllDependencies (options: Options): Promise<DependencyTre
 /**
  * Resolve a single dependency object.
  */
-export function resolveDependency (dependency: Dependency, options: Options, parent?: DependencyTree): Promise<DependencyTree> {
+export function resolveDependency (dependency: Dependency, options: Options): Promise<DependencyTree> {
   const { type, location, raw, meta } = dependency
 
   if (type === 'registry') {
-    return resolveDependencyRegistry(dependency, options, parent)
+    return resolveDependencyRegistry(dependency, options)
   }
 
   if (type === 'github' || type === 'bitbucket') {
@@ -72,28 +74,28 @@ export function resolveDependency (dependency: Dependency, options: Options, par
     }
   }
 
-  return resolveDependencyInternally(type, location, raw, options, parent)
+  return resolveDependencyInternally(type, location, raw, options)
 }
 
 /**
  * Internal version of `resolveDependency`, skipping the registry handling.
  */
-function resolveDependencyInternally (type: string, location: string, raw: string, options: Options, parent?: DependencyTree) {
+function resolveDependencyInternally (type: string, location: string, raw: string, options: Options) {
   if (type === 'npm') {
-    return resolveNpmDependency(location, raw, options, parent)
+    return resolveNpmDependency(location, raw, options)
   }
 
   if (type === 'bower') {
-    return resolveBowerDependency(location, raw, options, parent)
+    return resolveBowerDependency(location, raw, options)
   }
 
-  return resolveFileDependency(location, raw, options, parent)
+  return resolveFileDependency(location, raw, options)
 }
 
 /**
  * Resolving a registry dependency has an intermediate step.
  */
-function resolveDependencyRegistry (dependency: Dependency, options: Options, parent?: DependencyTree) {
+function resolveDependencyRegistry (dependency: Dependency, options: Options) {
   const { location, meta } = dependency
 
   return readJsonFrom(location)
@@ -103,26 +105,14 @@ function resolveDependencyRegistry (dependency: Dependency, options: Options, pa
         const { type, location } = parseDependency(entry.location)
         const raw = `registry:${meta.source}/${meta.name}#${entry.tag}`
 
-        // Emit deprecated registry warnings.
-        if (entry.deprecated) {
-          options.emitter.emit('deprecated', {
-            parent,
-            raw: dependency.raw,
-            date: new Date(entry.deprecated)
-          })
-        }
-
-        return resolveDependencyInternally(type, location, raw, options, parent)
+        return resolveDependencyInternally(type, location, raw, options)
       },
       function (error) {
         // Wrap 404 responses in user prompt.
         if (error.code === 'EINVALIDSTATUS' && error.status === 404) {
-          const prompt = parent ? '' : options.ambient ?
-            'Have you checked for regular typings without using ambient? ' :
-            'Did you want to install ambient typings with the ambient flag? '
-
-          const message = `Unable to find "${meta.name}" for "${meta.source}" in the registry. ` +
-            prompt + `If you can contribute these typings, please help us: ` +
+          const message = `Unable to find "${meta.name}" ("${meta.source}") in the registry. ` +
+            `Did you want to try searching another source?` +
+            `Also, if you want contribute these typings, please help us: ` +
             `https://github.com/typings/registry`
 
           return Promise.reject(new TypingsError(message, error))
@@ -136,18 +126,18 @@ function resolveDependencyRegistry (dependency: Dependency, options: Options, pa
 /**
  * Resolve a dependency in NPM.
  */
-function resolveNpmDependency (name: string, raw: string, options: Options, parent?: DependencyTree) {
-  return findUp(options.cwd, join('node_modules', name))
+function resolveNpmDependency (pkgName: string, raw: string, options: Options) {
+  return findUp(options.cwd, join('node_modules', pkgName))
     .then(
       function (modulePath: string) {
         if (isDefinition(modulePath)) {
-          return resolveFileDependency(modulePath, raw, options, parent)
+          return resolveFileDependency(modulePath, raw, options)
         }
 
-        return resolveNpmDependencyFrom(modulePath, raw, options, parent)
+        return resolveNpmDependencyFrom(modulePath, raw, options)
       },
       function (error) {
-        return Promise.reject(resolveError(raw, error, parent))
+        return Promise.reject(resolveError(raw, error, options))
       }
     )
 }
@@ -155,20 +145,20 @@ function resolveNpmDependency (name: string, raw: string, options: Options, pare
 /**
  * Resolve a dependency in Bower.
  */
-function resolveBowerDependency (name: string, raw: string, options: Options, parent?: DependencyTree) {
+function resolveBowerDependency (name: string, raw: string, options: Options) {
   return resolveBowerComponentPath(options.cwd)
     .then(
       function (componentPath: string) {
         const modulePath = resolve(componentPath, name)
 
         if (isDefinition(modulePath)) {
-          return resolveFileDependency(modulePath, raw, options, parent)
+          return resolveFileDependency(modulePath, raw, options)
         }
 
-        return resolveBowerDependencyFrom(modulePath, raw, componentPath, options, parent)
+        return resolveBowerDependencyFrom(modulePath, raw, componentPath, options)
       },
       function (error) {
-        return Promise.reject(resolveError(raw, error, parent))
+        return Promise.reject(resolveError(raw, error, options))
       }
     )
 }
@@ -176,7 +166,8 @@ function resolveBowerDependency (name: string, raw: string, options: Options, pa
 /**
  * Resolve a local file dependency.
  */
-function resolveFileDependency (location: string, raw: string, options: Options, parent?: DependencyTree): Promise<DependencyTree> {
+function resolveFileDependency (location: string, raw: string, options: Options): Promise<DependencyTree> {
+  const { name, parent } = options
   let src: string
 
   if (isHttp(location)) {
@@ -188,10 +179,10 @@ function resolveFileDependency (location: string, raw: string, options: Options,
   }
 
   if (!isDefinition(src)) {
-    return resolveTypeDependencyFrom(src, raw, options, parent)
+    return resolveTypeDependencyFrom(src, raw, options)
   }
 
-  options.emitter.emit('resolve', { src, raw, parent })
+  options.emitter.emit('resolve', { name, src, raw, parent })
 
   const tree: DependencyTree = extend(DEFAULT_DEPENDENCY, {
     typings: src,
@@ -200,7 +191,7 @@ function resolveFileDependency (location: string, raw: string, options: Options,
     parent
   })
 
-  options.emitter.emit('resolved', { src, tree, raw, parent })
+  options.emitter.emit('resolved', { name, src, tree, raw, parent })
 
   // Resolve direct typings using `typings` property.
   return Promise.resolve(tree)
@@ -231,12 +222,13 @@ function resolveBowerDependencyFrom (
   src: string,
   raw: string,
   componentPath: string,
-  options: Options,
-  parent?: DependencyTree
+  options: Options
 ): Promise<DependencyTree> {
+  const { name, parent } = options
+
   checkCircularDependency(parent, src)
 
-  options.emitter.emit('resolve', { src, raw, parent })
+  options.emitter.emit('resolve', { name, src, raw, parent })
 
   return readJson(src)
     .then(
@@ -256,23 +248,24 @@ function resolveBowerDependencyFrom (
 
         const dependencyMap = extend(bowerJson.dependencies)
         const devDependencyMap = extend(options.dev ? bowerJson.devDependencies : {})
+        const dependencyOptions = extend(options, { parent: tree })
+
+        options.emitter.emit('resolved', { name, src, tree, raw, parent })
 
         return Promise.all([
-          resolveBowerDependencyMap(componentPath, dependencyMap, options, tree),
-          resolveBowerDependencyMap(componentPath, devDependencyMap, options, tree),
-          maybeResolveTypeDependencyFrom(join(src, '..', CONFIG_FILE), raw, options, parent)
+          resolveBowerDependencyMap(componentPath, dependencyMap, dependencyOptions),
+          resolveBowerDependencyMap(componentPath, devDependencyMap, dependencyOptions),
+          maybeResolveTypeDependencyFrom(join(src, '..', CONFIG_FILE), raw, options)
         ])
           .then(function ([dependencies, devDependencies, typedPackage]) {
             tree.dependencies = dependencies
             tree.devDependencies = devDependencies
 
-            options.emitter.emit('resolved', { src, tree, raw, parent })
-
             return mergeDependencies(tree, typedPackage)
           })
       },
       function (error) {
-        return Promise.reject(resolveError(raw, error, parent))
+        return Promise.reject(resolveError(raw, error, options))
       }
     )
 }
@@ -295,20 +288,14 @@ function resolveBowerComponentPath (path: string): Promise<string> {
 /**
  * Recursively resolve dependencies from a list and component path.
  */
-function resolveBowerDependencyMap (
-  componentPath: string,
-  dependencies: any,
-  options: Options,
-  parent: DependencyTree
-): Promise<DependencyBranch> {
+function resolveBowerDependencyMap (componentPath: string, dependencies: Dependencies, options: Options): Promise<DependencyBranch> {
   const keys = Object.keys(dependencies)
-  const { cwd, emitter } = options
 
   return Promise.all(keys.map(function (name) {
     const modulePath = resolve(componentPath, name, 'bower.json')
-    const resolveOptions: Options = { dev: false, ambient: false, peer: false, cwd, emitter }
+    const resolveOptions: Options = extend(options, { name, dev: false, ambient: false, peer: false })
 
-    return resolveBowerDependencyFrom(modulePath, `bower:${name}`, componentPath, resolveOptions, parent)
+    return resolveBowerDependencyFrom(modulePath, `bower:${name}`, componentPath, resolveOptions)
   }))
     .then(results => zipObject(keys, results))
 }
@@ -331,15 +318,17 @@ export function resolveNpmDependencies (options: Options): Promise<DependencyTre
 /**
  * Resolve NPM dependencies from `package.json`.
  */
-function resolveNpmDependencyFrom (src: string, raw: string, options: Options, parent?: DependencyTree): Promise<DependencyTree> {
+function resolveNpmDependencyFrom (src: string, raw: string, options: Options): Promise<DependencyTree> {
+  const { name, parent } = options
+
   checkCircularDependency(parent, src)
 
-  options.emitter.emit('resolve', { src, raw, parent })
+  options.emitter.emit('resolve', { name, src, raw, parent })
 
   return readJson(src)
     .then(
       function (packageJson: any = {}) {
-        const tree = extend(DEFAULT_DEPENDENCY, {
+        const tree: DependencyTree = extend(DEFAULT_DEPENDENCY, {
           name: packageJson.name,
           version: packageJson.version,
           main: packageJson.main,
@@ -355,25 +344,26 @@ function resolveNpmDependencyFrom (src: string, raw: string, options: Options, p
         const dependencyMap = extend(packageJson.dependencies)
         const devDependencyMap = extend(options.dev ? packageJson.devDependencies : {})
         const peerDependencyMap = extend(options.peer ? packageJson.peerDependencies : {})
+        const dependencyOptions = extend(options, { parent: tree })
+
+        options.emitter.emit('resolved', { name, src, tree, raw, parent })
 
         return Promise.all([
-          resolveNpmDependencyMap(src, dependencyMap, options, tree),
-          resolveNpmDependencyMap(src, devDependencyMap, options, tree),
-          resolveNpmDependencyMap(src, peerDependencyMap, options, tree),
-          maybeResolveTypeDependencyFrom(join(src, '..', CONFIG_FILE), raw, options, parent)
+          resolveNpmDependencyMap(src, dependencyMap, dependencyOptions),
+          resolveNpmDependencyMap(src, devDependencyMap, dependencyOptions),
+          resolveNpmDependencyMap(src, peerDependencyMap, dependencyOptions),
+          maybeResolveTypeDependencyFrom(join(src, '..', CONFIG_FILE), raw, options)
         ])
           .then(function ([dependencies, devDependencies, peerDependencies, typedPackage]) {
             tree.dependencies = dependencies
             tree.devDependencies = devDependencies
             tree.peerDependencies = peerDependencies
 
-            options.emitter.emit('resolved', { src, tree, raw, parent })
-
             return mergeDependencies(tree, typedPackage)
           })
       },
       function (error) {
-        return Promise.reject(resolveError(raw, error, parent))
+        return Promise.reject(resolveError(raw, error, options))
       }
     )
 }
@@ -381,14 +371,14 @@ function resolveNpmDependencyFrom (src: string, raw: string, options: Options, p
 /**
  * Recursively resolve dependencies from a list and component path.
  */
-function resolveNpmDependencyMap (src: string, dependencies: any, options: Options, parent: DependencyTree): Promise<DependencyBranch> {
+function resolveNpmDependencyMap (src: string, dependencies: any, options: Options): Promise<DependencyBranch> {
   const cwd = dirname(src)
   const keys = Object.keys(dependencies)
 
   return Promise.all(keys.map(function (name) {
-    const resolveOptions: Options = { dev: false, peer: false, ambient: false, cwd, emitter: options.emitter }
+    const resolveOptions: Options = extend(options, { name, cwd, dev: false, peer: false, ambient: false })
 
-    return resolveNpmDependency(join(name, 'package.json'), `npm:${name}`, resolveOptions, parent)
+    return resolveNpmDependency(join(name, 'package.json'), `npm:${name}`, resolveOptions)
   }))
     .then(results => zipObject(keys, results))
 }
@@ -411,10 +401,12 @@ export function resolveTypeDependencies (options: Options): Promise<DependencyTr
 /**
  * Resolve type dependencies from an exact path.
  */
-function resolveTypeDependencyFrom (src: string, raw: string, options: Options, parent?: DependencyTree) {
+function resolveTypeDependencyFrom (src: string, raw: string, options: Options) {
+  const { name, parent } = options
+
   checkCircularDependency(parent, src)
 
-  options.emitter.emit('resolve', { src, raw, parent })
+  options.emitter.emit('resolve', { name, src, raw, parent })
 
   return readConfigFrom(src)
     .then<DependencyTree>(
@@ -440,22 +432,25 @@ function resolveTypeDependencyFrom (src: string, raw: string, options: Options, 
         const peerDependencyMap = extend(peer ? config.peerDependencies : {})
         const ambientDependencyMap = extend(ambient ? config.ambientDependencies : {})
         const ambientDevDependencyMap = extend(ambient && dev ? config.ambientDevDependencies : {})
+        const dependencyOptions = extend(options, { parent: tree })
+
+        options.emitter.emit('resolved', { name, src, tree, raw, parent })
 
         // Emit "expected" ambient modules when installing top-level.
         if (parent == null && config.ambientDependencies) {
           options.emitter.emit('ambientdependencies', {
-            name: config.name,
-            raw: raw,
+            name,
+            raw,
             dependencies: config.ambientDependencies
           })
         }
 
         return Promise.all([
-          resolveTypeDependencyMap(src, dependencyMap, options, tree),
-          resolveTypeDependencyMap(src, devDependencyMap, options, tree),
-          resolveTypeDependencyMap(src, peerDependencyMap, options, tree),
-          resolveTypeDependencyMap(src, ambientDependencyMap, options, tree),
-          resolveTypeDependencyMap(src, ambientDevDependencyMap, options, tree),
+          resolveTypeDependencyMap(src, dependencyMap, dependencyOptions),
+          resolveTypeDependencyMap(src, devDependencyMap, dependencyOptions),
+          resolveTypeDependencyMap(src, peerDependencyMap, dependencyOptions),
+          resolveTypeDependencyMap(src, ambientDependencyMap, dependencyOptions),
+          resolveTypeDependencyMap(src, ambientDevDependencyMap, dependencyOptions),
         ])
           .then(function ([dependencies, devDependencies, peerDependencies, ambientDependencies, ambientDevDependencies]) {
             tree.dependencies = dependencies
@@ -464,13 +459,11 @@ function resolveTypeDependencyFrom (src: string, raw: string, options: Options, 
             tree.ambientDependencies = ambientDependencies
             tree.ambientDevDependencies = ambientDevDependencies
 
-            options.emitter.emit('resolved', { src, tree, raw, parent })
-
             return tree
           })
       },
       function (error) {
-        return Promise.reject(resolveError(raw, error, parent))
+        return Promise.reject(resolveError(raw, error, options))
       }
     )
 }
@@ -478,21 +471,21 @@ function resolveTypeDependencyFrom (src: string, raw: string, options: Options, 
 /**
  * Resolve type dependency ignoring not found issues (E.g. when mixed resolve NPM/Bower).
  */
-function maybeResolveTypeDependencyFrom (src: string, raw: string, options: Options, parent?: DependencyTree) {
-  return resolveTypeDependencyFrom(src, raw, options, parent).catch(() => extend(DEFAULT_DEPENDENCY))
+function maybeResolveTypeDependencyFrom (src: string, raw: string, options: Options) {
+  return resolveTypeDependencyFrom(src, raw, options).catch(() => extend(DEFAULT_DEPENDENCY))
 }
 
 /**
  * Resolve type dependency map from a cache directory.
  */
-function resolveTypeDependencyMap (src: string, dependencies: any, options: Options, parent: DependencyTree) {
+function resolveTypeDependencyMap (src: string, dependencies: any, options: Options) {
   const cwd = dirname(src)
   const keys = Object.keys(dependencies)
 
   return Promise.all(keys.map(function (name) {
-    const resolveOptions: Options = { dev: false, ambient: false, peer: false, cwd, emitter: options.emitter }
+    const resolveOptions: Options = extend(options, { name, cwd, dev: false, ambient: false, peer: false })
 
-    return resolveDependency(parseDependency(dependencies[name]), resolveOptions, parent)
+    return resolveDependency(parseDependency(dependencies[name]), resolveOptions)
   }))
     .then(results => zipObject(keys, results))
 }
@@ -513,11 +506,12 @@ function checkCircularDependency (tree: DependencyTree, filename: string) {
 /**
  * Create a resolved failure error message.
  */
-function resolveError (raw: string, cause: Error, parent?: DependencyTree) {
+function resolveError (raw: string, cause: Error, options: Options) {
+  const { name } = options
   let message = `Unable to resolve ${raw == null ? 'typings' : `"${raw}"`}`
 
-  if (parent != null && parent.raw != null) {
-    message += ` from "${parent.raw}"`
+  if (name != null) {
+    message += ` from "${name}"`
   }
 
   return new TypingsError(message, cause)

@@ -17,7 +17,6 @@ export interface Emitter extends EventEmitter {
   on (event: 'postmessage', listener: (e: PostMessageEvent) => any): this
   on (event: 'ambientdependencies', listener: (e: AmbientDependenciesEvent) => any): this
   on (event: 'badlocation', listener: (e: BadLocationEvent) => any): this
-  on (event: 'deprecated', listener: (e: DeprecatedEvent) => any): this
   on (event: string, listener: Function): this
 
   emit (event: 'reference', e: ReferenceEvent): boolean
@@ -30,7 +29,6 @@ export interface Emitter extends EventEmitter {
   emit (event: 'postmessage', e: PostMessageEvent): boolean
   emit (event: 'ambientdependencies', e: AmbientDependenciesEvent): boolean
   emit (event: 'badlocation', e: BadLocationEvent): boolean
-  emit (event: 'deprecated', e: DeprecatedEvent): boolean
   emit (event: string, ...args: any[]): boolean
 }
 
@@ -51,7 +49,8 @@ export interface ReferenceEvent {
 export interface ResolveEvent {
   src: string
   raw: string
-  parent?: DependencyTree
+  name: string
+  parent: DependencyTree
 }
 
 /**
@@ -119,13 +118,4 @@ export interface BadLocationEvent {
   type: string
   raw: string
   location: string
-}
-
-/**
- * Emit a deprecation warning.
- */
-export interface DeprecatedEvent {
-  raw: string
-  date: Date
-  parent: DependencyTree
 }

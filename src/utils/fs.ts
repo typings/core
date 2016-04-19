@@ -163,15 +163,17 @@ export const readHttp = throat(5, function readHttp (url: string): Promise<strin
 
       // Enable tracking of repeat users on the registry.
       if (self.Url.host === registryURL.host) {
-        if (store.get('clientId')) {
-          self.before(function (req) {
+        self.before(function (req) {
+          if (store.get('clientId')) {
             req.set('Typings-Client-Id', store.get('clientId'))
-          })
-        } else {
-          self.after(function (res) {
+          }
+        })
+
+        self.after(function (res) {
+          if (res.get('Typings-Client-Id')) {
             store.set('clientId', res.get('Typings-Client-Id'))
-          })
-        }
+          }
+        })
       }
 
       // Enable access tokens with GitHub.

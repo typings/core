@@ -111,7 +111,7 @@ function resolveDependencyRegistry (dependency: Dependency, options: Options) {
         // Wrap 404 responses in user prompt.
         if (error.code === 'EINVALIDSTATUS' && error.status === 404) {
           const message = `Unable to find "${meta.name}" ("${meta.source}") in the registry. ` +
-            `Did you want to try searching another source?` +
+            `Did you want to try searching another source? ` +
             `Also, if you want contribute these typings, please help us: ` +
             `https://github.com/typings/registry`
 

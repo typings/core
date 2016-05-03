@@ -193,7 +193,7 @@ function compileDependencyTree (tree: DependencyTree, options: CompileOptions): 
 /**
  * Compile a dependency for a path, with pre-created stringify options.
  */
-function compileDependencyPath (path: string, options: StringifyOptions): Promise<string> {
+function compileDependencyPath (path: string, options: StringifyOptions, parentModule?: ModuleOptions): Promise<string> {
   const { tree, entry } = options
 
   // Fallback to resolving the entry file.
@@ -205,10 +205,10 @@ function compileDependencyPath (path: string, options: StringifyOptions): Promis
       ))
     }
 
-    return stringifyDependencyPath(resolveFrom(tree.src, entry), options)
+    return stringifyDependencyPath(resolveFrom(tree.src, entry), options, parentModule)
   }
 
-  return stringifyDependencyPath(resolveFrom(tree.src, path), options)
+  return stringifyDependencyPath(resolveFrom(tree.src, path), options, parentModule)
 }
 
 /**
@@ -280,12 +280,22 @@ function getDependency (name: string, options: StringifyOptions): DependencyTree
 }
 
 /**
+ * Track options per-file.
+ */
+interface ModuleOptions {
+  path: string
+  rawPath: string
+  parent?: ModuleOptions
+  isExternal: boolean
+}
+
+/**
  * Stringify a dependency file.
  */
-function stringifyDependencyPath (path: string, options: StringifyOptions): Promise<string> {
-  const resolved = getPath(path, options)
+function stringifyDependencyPath (rawPath: string, options: StringifyOptions, moduleOptions: ModuleOptions): Promise<string> {
+  const path = getPath(rawPath, options)
   const { tree, ambient, cwd, browser, name, readFiles, imported, meta, entry, emitter } = options
-  const importedPath = importPath(path, pathFromDefinition(path), options)
+  const importedPath = importPath(rawPath, pathFromDefinition(rawPath), options)
 
   // Return `null` to skip the dependency writing, could have the same import twice.
   if (has(imported, importedPath)) {
@@ -296,7 +306,7 @@ function stringifyDependencyPath (path: string, options: StringifyOptions): Prom
   imported[importedPath] = true
 
   // Emit compile events for progression.
-  emitter.emit('compile', { name, path, tree, browser })
+  emitter.emit('compile', { name, rawPath, tree, browser })
 
   // Load a dependency path.
   function loadByModuleName (path: string) {
@@ -309,15 +319,15 @@ function stringifyDependencyPath (path: string, options: StringifyOptions): Prom
       return Promise.resolve<string>(null)
     }
 
-    return compileDependencyPath(modulePath, stringifyOptions)
+    return compileDependencyPath(modulePath, stringifyOptions, moduleOptions)
   }
 
   // Check if the path is resolving to a module name before reading.
-  if (isModuleName(resolved)) {
-    return loadByModuleName(resolved)
+  if (isModuleName(path)) {
+    return loadByModuleName(path)
   }
 
-  return cachedReadFileFrom(resolved, options)
+  return cachedReadFileFrom(path, options)
     .then(
       function (rawContents) {
         const info = ts.preProcessFile(rawContents)
@@ -327,8 +337,17 @@ function stringifyDependencyPath (path: string, options: StringifyOptions): Prom
           return
         }
 
-        const importedFiles = info.importedFiles.map(x => resolveFromWithModuleName(resolved, x.fileName, tree))
-        const referencedFiles = info.referencedFiles.map(x => resolveFrom(resolved, x.fileName))
+        const contents = rawContents.replace(REFERENCE_REGEXP, '')
+        const sourceFile = ts.createSourceFile(rawPath, contents, ts.ScriptTarget.Latest, true)
+        const importedFiles = info.importedFiles.map(x => resolveFromWithModuleName(path, x.fileName, tree))
+        const referencedFiles = info.referencedFiles.map(x => resolveFrom(path, x.fileName))
+
+        const childModuleOptions: ModuleOptions = {
+          path: path,
+          rawPath: rawPath,
+          parent: moduleOptions,
+          isExternal: (ts as any).isExternalModule(sourceFile)
+        }
 
         // All dependencies MUST be imported for ambient modules.
         if (ambient) {
@@ -342,32 +361,32 @@ function stringifyDependencyPath (path: string, options: StringifyOptions): Prom
             return loadByModuleName(path)
           }
 
-          return stringifyDependencyPath(path, options)
+          return stringifyDependencyPath(path, options, childModuleOptions)
         })
 
         return Promise.all(imports)
           .then<string>(imports => {
-            const stringified = stringifyFile(resolved, rawContents, path, options)
+            const stringified = stringifySourceFile(sourceFile, options, childModuleOptions)
 
             for (const reference of referencedFiles) {
-              emitter.emit('reference', { name, path, reference, tree, browser })
+              emitter.emit('reference', { name, rawPath, reference, tree, browser })
             }
 
             const out = imports.filter(x => x != null)
             out.push(stringified)
             const contents = out.join(EOL)
 
-            emitter.emit('compiled', { name, path, tree, browser, contents })
+            emitter.emit('compiled', { name, rawPath, tree, browser, contents })
 
             return contents
           })
       },
       function (cause) {
         const authorPhrase = options.parent ? `The author of "${options.parent.name}" needs to` : 'You should'
-        const relativePath = relativeTo(tree.src, resolved)
+        const relativePath = relativeTo(tree.src, path)
 
         // Provide better errors for the entry path.
-        if (path === entry) {
+        if (rawPath === entry) {
           return Promise.reject(new TypingsError(
             `Unable to read typings for "${options.name}". ` +
             `${authorPhrase} check the entry paths in "${basename(tree.src)}" are up to date`,
@@ -429,24 +448,31 @@ function importPath (path: string, name: string, options: StringifyOptions) {
 /**
  * Stringify a dependency file contents.
  */
-function stringifyFile (path: string, rawContents: string, rawPath: string, options: StringifyOptions) {
-  const contents = rawContents.replace(REFERENCE_REGEXP, '')
-  const sourceFile = ts.createSourceFile(path, contents, ts.ScriptTarget.Latest, true)
+function stringifySourceFile (sourceFile: ts.SourceFile, options: StringifyOptions, moduleOptions: ModuleOptions) {
+  const { isExternal, path, rawPath } = moduleOptions
   const { tree, name, prefix, parent, isTypings, cwd, ambient, entry } = options
+  const parentModule = moduleOptions.parent
 
   // Output information for the original type source.
   const source = isHttp(path) ? path : normalizeSlashes(relative(cwd, path))
   const meta = options.meta ? `// Generated by ${PROJECT_NAME}${EOL}// Source: ${source}${EOL}` : ''
 
   if (ambient) {
-    if ((sourceFile as any).externalModuleIndicator) {
+    if (isExternal) {
       throw new TypingsError(
         `Attempted to compile "${name}" as an ambient ` +
         `module, but it looks like an external module.`
       )
     }
 
-    return `${meta}${normalizeEOL(contents.trim(), EOL)}`
+    return `${meta}${normalizeEOL(sourceFile.getText().trim(), EOL)}`
+  } else {
+    if (!isExternal && !(parentModule && parentModule.isExternal)) {
+      throw new TypingsError(
+        `Attempted to compile "${name}" as an external module, ` +
+        `but it looks like an ambient module.`
+      )
+    }
   }
 
   let wasDeclared = false

@@ -503,7 +503,7 @@ test('compile', t => {
       })
   })
 
-  t.test('ambient compile error', t => {
+  t.test('ambient flag compile error', t => {
     const node: DependencyTree = {
       src: 'http://example.com/typings.json',
       raw: undefined,
@@ -526,6 +526,62 @@ test('compile', t => {
         t.equal(
           result.message,
           'Unable to compile "name", the typings are meant to be installed as ambient but attempted to be compiled as an external module'
+        )
+      })
+  })
+
+  t.test('ambient compile error', t => {
+    const node: DependencyTree = {
+      src: join(__dirname, '__test__/fixtures/compile-ambient/node.d.ts'),
+      raw: undefined,
+      postmessage: undefined,
+      ambient: false,
+      main: join(__dirname, '__test__/fixtures/compile-ambient/node.d.ts'),
+      dependencies: {},
+      devDependencies: {},
+      peerDependencies: {},
+      ambientDependencies: {},
+      ambientDevDependencies: {}
+    }
+
+    const emitter = new EventEmitter()
+
+    t.plan(1)
+
+    return compile(node, { name: 'test', cwd: __dirname, ambient: false, meta: false, emitter })
+      .catch(function (result) {
+        t.equal(
+          result.message,
+          'Attempted to compile "test" as an external module, ' +
+          'but it looks like an ambient module.'
+        )
+      })
+  })
+
+  t.test('external compile error', t => {
+    const node: DependencyTree = {
+      src: join(__dirname, '__test__/fixtures/compile/root.d.ts'),
+      raw: undefined,
+      postmessage: undefined,
+      ambient: true,
+      main: join(__dirname, '__test__/fixtures/compile/root.d.ts'),
+      dependencies: {},
+      devDependencies: {},
+      peerDependencies: {},
+      ambientDependencies: {},
+      ambientDevDependencies: {}
+    }
+
+    const emitter = new EventEmitter()
+
+    t.plan(1)
+
+    return compile(node, { name: 'test', cwd: __dirname, ambient: true, meta: false, emitter })
+      .catch(function (result) {
+        t.equal(
+          result.message,
+          'Attempted to compile "test" as an ambient module, ' +
+          'but it looks like an external module.'
         )
       })
   })

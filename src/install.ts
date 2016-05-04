@@ -212,36 +212,37 @@ function writeBundle (results: CompileResult[], options: { cwd: string, resoluti
 
   return mkdirp(bundle.typings)
     .then(() => {
-	    return Promise.all(
-		    locations.length === 0
-		      ? [
-			        touch(bundle.main),
-			        touch(bundle.browser)
-		        ]
-			    : [
-			        transformDtsFile(bundle.main, x => x.concat(locations.map(x => x.main))),
-			        transformDtsFile(bundle.browser, x => x.concat(locations.map(x => x.browser)))
-		        ]
-		    )
-		    .then(() => findConfigFile(options.cwd))
-		    .then(path => readConfig(path))
-	      .then(config => {
-		      const {resolution} = config
-		      let deresolution: string
+      return Promise.all(
+        locations.length === 0
+          ? [
+              touch(bundle.main),
+              touch(bundle.browser)
+            ]
+          : [
+              transformDtsFile(bundle.main, x => x.concat(locations.map(x => x.main))),
+              transformDtsFile(bundle.browser, x => x.concat(locations.map(x => x.browser)))
+            ]
+        )
+        .then(() => findConfigFile(options.cwd))
+        .then(path => readConfig(path))
+        .then(config => {
+          const {resolution} = config
+          let deresolution: string
 
-		      // resolution default is 'main' only,
-		      // but can specify 'main', 'browser', or 'both' (or more precisely anything other than 'main' or 'browser')
-		      if(!resolution || resolution === 'main')
-			      deresolution = 'browser'
-		      else if(resolution && resolution === 'browser')
-			      deresolution = 'main'
+          // Resolution default is 'main' only,
+          // But can specify 'main', 'browser', or 'both' (or more precisely anything other than 'main' or 'browser')
+          if (!resolution || resolution === 'main') {
+            deresolution = 'browser'
+          } else if (resolution && resolution === 'browser') {
+            deresolution = 'main'
+          }
 
-		      if(deresolution)
-			      return Promise.all([
-				      rimraf(join(dirname((<any>bundle)[deresolution]), deresolution)),
-				      unlink((<any>bundle)[deresolution])
-			      ])
-	      })
+          if(deresolution)
+            return Promise.all([
+              rimraf(join(dirname((<any>bundle)[deresolution]), deresolution)),
+              unlink((<any>bundle)[deresolution])
+            ])
+        })
     })
 }
 

@@ -22,7 +22,6 @@ export interface InstallDependencyOptions {
   ambient?: boolean
   cwd: string
   emitter?: Emitter
-	resolution?: string
 }
 
 /**
@@ -32,7 +31,6 @@ export interface InstallOptions {
   cwd: string
   production?: boolean
   emitter?: Emitter
-	resolution?: string
 }
 
 /**

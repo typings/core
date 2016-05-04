@@ -4,8 +4,8 @@ import { dirname, join } from 'path'
 import { EventEmitter } from 'events'
 import { resolveDependency, resolveTypeDependencies } from './lib/dependencies'
 import compile, { CompileResult } from './lib/compile'
-import { findProject, findUp } from './utils/find'
-import { transformConfig, mkdirp, touch, transformDtsFile, readJson, mkdirpAndWriteFile } from './utils/fs'
+import { findProject, findUp, findConfigFile } from './utils/find'
+import { transformConfig, mkdirp, touch, transformDtsFile, readJson, mkdirpAndWriteFile, rimraf, unlink, readConfig } from './utils/fs'
 import { getTypingsLocation, getDependencyLocation, resolveFrom } from './utils/path'
 import { parseDependency, parseDependencyExpression, buildDependencyExpression } from './utils/parse'
 import { DependencyTree, Dependency, DependencyBranch, Emitter } from './interfaces'
@@ -206,24 +206,44 @@ function writeToConfig (results: CompileResult[], options: InstallDependencyOpti
 /**
  * Write a dependency to the filesytem.
  */
-function writeBundle (results: CompileResult[], options: { cwd: string }): Promise<any> {
+function writeBundle (results: CompileResult[], options: { cwd: string, resolution?: string }): Promise<any> {
   const bundle = getTypingsLocation(options)
   const locations = results.map(x => getDependencyLocation(x))
 
   return mkdirp(bundle.typings)
     .then(() => {
-      // Touch typings when no locations are installed.
-      if (locations.length === 0) {
-        return Promise.all([
-          touch(bundle.main),
-          touch(bundle.browser)
-        ])
-      }
+      return Promise.all(
+        locations.length === 0
+          ? [
+              touch(bundle.main),
+              touch(bundle.browser)
+            ]
+          : [
+              transformDtsFile(bundle.main, x => x.concat(locations.map(x => x.main))),
+              transformDtsFile(bundle.browser, x => x.concat(locations.map(x => x.browser)))
+            ]
+        )
+        .then(() => findConfigFile(options.cwd))
+        .then(path => readConfig(path))
+        .then(config => {
+          const {resolution} = config
+          let deresolution: string
 
-      return Promise.all([
-        transformDtsFile(bundle.main, x => x.concat(locations.map(x => x.main))),
-        transformDtsFile(bundle.browser, x => x.concat(locations.map(x => x.browser)))
-      ])
+          // Resolution default is 'main' only,
+          // But can specify 'main', 'browser', or 'both' (or more precisely anything other than 'main' or 'browser')
+          if (!resolution || resolution === 'main') {
+            deresolution = 'browser'
+          } else if (resolution && resolution === 'browser') {
+            deresolution = 'main'
+          }
+
+          if (deresolution) {
+            return Promise.all([
+              rimraf(join(dirname((<any>bundle)[deresolution]), deresolution)),
+              unlink((<any>bundle)[deresolution])
+            ])
+          }
+        })
     })
 }
 

@@ -4,5 +4,6 @@
   },
   "ambientDevDependencies": {
     "test": "file:custom_typings/ambient.d.ts"
-  }
+  },
+	"resolution": "both"
 }

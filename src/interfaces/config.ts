@@ -52,6 +52,11 @@ export interface ConfigJson {
    * A map of global dependencies required by the project during development.
    */
   ambientDevDependencies?: Dependencies
+	/**
+	 * One of 'main', 'browser', or 'both'; if missing default is 'main'.
+	 * Specify what resolution algorithm(s) output should support
+	 */
+  resolution?: string
 }
 
 /**

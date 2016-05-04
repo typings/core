@@ -41,10 +41,17 @@ function transformBundles (config: ConfigJson, options: PruneOptions) {
   const dependencies = extend(config.dependencies, config.peerDependencies, production ? {} : config.devDependencies)
   const ambientDependencies = extend(config.ambientDependencies, production ? {} : config.ambientDevDependencies)
 
-  return Promise.all([
-    transformBundle(bundle.main, dependencies, ambientDependencies, options),
-    transformBundle(bundle.browser, dependencies, ambientDependencies, options)
-  ]).then(() => undefined)
+  const {resolution} = config
+  let transform: Promise<any>[] = []
+
+  if (!resolution || resolution === 'main' || resolution === 'both') {
+    transform.push(transformBundle(bundle.main, dependencies, ambientDependencies, options))
+  }
+  if (resolution && (resolution === 'browser' || resolution === 'both')) {
+    transform.push(transformBundle(bundle.browser, dependencies, ambientDependencies, options))
+  }
+
+  return Promise.all(transform).then(() => undefined)
 }
 
 /**

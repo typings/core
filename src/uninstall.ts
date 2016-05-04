@@ -1,8 +1,8 @@
 import extend = require('xtend')
 import Promise = require('any-promise')
 import { EventEmitter } from 'events'
-import { transformConfig, transformDtsFile, rmUntil } from './utils/fs'
-import { findProject } from './utils/find'
+import { transformConfig, transformDtsFile, rmUntil, readConfig } from './utils/fs'
+import { findProject, findConfigFile } from './utils/find'
 import { getDependencyLocation, getTypingsLocation } from './utils/path'
 import { Emitter } from './interfaces'
 
@@ -51,10 +51,21 @@ function uninstallFrom (name: string, options: UninstallDependencyOptions) {
   const { cwd, ambient, emitter } = options
   const location = getDependencyLocation({ name, cwd, ambient })
 
-  return Promise.all([
-    rmUntil(location.main, { cwd, emitter }),
-    rmUntil(location.browser, { cwd, emitter })
-  ])
+  findConfigFile(options.cwd)
+    .then(path => readConfig(path))
+    .then(config => {
+      const {resolution} = config
+      let rm: Promise<any>[] = []
+
+      if (!resolution || resolution === 'main' || resolution === 'both') {
+        rm.push(rmUntil(location.main, { cwd, emitter }))
+      }
+      if (resolution && (resolution === 'browser' || resolution === 'both')) {
+        rm.push(rmUntil(location.browser, { cwd, emitter }))
+      }
+
+      return Promise.all(rm)
+    })
 }
 
 /**

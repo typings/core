@@ -3,7 +3,8 @@ import { resolve, join } from 'path'
 import { EventEmitter } from 'events'
 import { resolveAllDependencies } from './lib/dependencies'
 import compile, { CompileResult } from './lib/compile'
-import { writeFile, mkdirp } from './utils/fs'
+import { writeFile, mkdirp, readConfig } from './utils/fs'
+import { findConfigFile } from './utils/find';
 import { Emitter } from './interfaces'
 import { InstallResult } from './install'
 
@@ -45,11 +46,20 @@ export function bundle (options: BundleOptions): Promise<InstallResult> {
       const path = resolve(cwd, out)
 
       return mkdirp(path)
-        .then(() => {
-          return Promise.all([
-            writeFile(join(path, 'main.d.ts'), output.main),
-            writeFile(join(path, 'browser.d.ts'), output.browser)
-          ])
+        .then(() => findConfigFile(options.cwd))
+        .then(path => readConfig(path))
+        .then(config => {
+          const {resolution} = config
+          let write: Promise<any>[] = []
+
+          if (!resolution || resolution === 'main' || resolution === 'both') {
+            write.push(writeFile(join(path, 'main.d.ts'), output.main))
+          }
+          if (resolution && (resolution === 'browser' || resolution === 'both')) {
+            write.push(writeFile(join(path, 'browser.d.ts'), output.browser))
+          }
+
+          return Promise.all(write)
         })
         .then(() => ({ tree: output.tree }))
     })

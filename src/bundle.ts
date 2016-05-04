@@ -4,7 +4,7 @@ import { EventEmitter } from 'events'
 import { resolveAllDependencies } from './lib/dependencies'
 import compile, { CompileResult } from './lib/compile'
 import { writeFile, mkdirp, readConfig } from './utils/fs'
-import { findConfigFile } from './utils/find';
+import { findConfigFile } from './utils/find'
 import { Emitter } from './interfaces'
 import { InstallResult } from './install'
 

@@ -54,9 +54,9 @@ export interface ConfigJson {
   ambientDevDependencies?: Dependencies
 	/**
 	 * One of 'main', 'browser', or 'both'; if missing default is 'main'.
-	 * Specify what resolution algorithm(s) output should support 
+	 * Specify what resolution algorithm(s) output should support
 	 */
-	resolution?: string
+  resolution?: string
 }
 
 /**

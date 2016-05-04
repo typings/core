@@ -1,4 +1,5 @@
 {
   "main": "index.d.ts",
-  "ambient": true
+  "ambient": true,
+	"resolution": "both"
 }

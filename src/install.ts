@@ -238,10 +238,10 @@ function writeBundle (results: CompileResult[], options: { cwd: string, resoluti
           }
 
           if (deresolution) {
-	          return Promise.all([
-		          rimraf(join(dirname((<any>bundle)[deresolution]), deresolution)),
-		          unlink((<any>bundle)[deresolution])
-	          ])
+            return Promise.all([
+              rimraf(join(dirname((<any>bundle)[deresolution]), deresolution)),
+              unlink((<any>bundle)[deresolution])
+            ])
           }
         })
     })

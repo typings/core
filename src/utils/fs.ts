@@ -169,44 +169,46 @@ export const readHttp = throat(5, function readHttp (url: string): Promise<strin
     },
     use: [
       popsicle.plugins.headers(),
-      popsicle.plugins.unzip(),
-      popsicle.plugins.concatStream('string')
+      popsicle.plugins.concatStream('string'),
+      popsicle.plugins.unzip()
     ]
   })
     // Enable HTTP(s) proxies and environment variable support.
     .use(popsicleProxy({ proxy, httpProxy, httpsProxy, noProxy }))
-    // Retry failed HTTP requests.
-    .use(popsicleRetry())
     // Check responses are "200 OK".
     .use(popsicleStatus(200))
-    // Request "middleware".
-    .use(function (self) {
-      const { hostname } = self.Url
+    // Enable tracking of repeat users on the registry.
+    .use(function (request, next) {
+      if (request.Url.host === registryURL.host) {
+        if (store.get('clientId')) {
+          request.set('Typings-Client-Id', store.get('clientId'))
+        }
 
-      // Enable tracking of repeat users on the registry.
-      if (self.Url.host === registryURL.host) {
-        self.before(function (req) {
-          if (store.get('clientId')) {
-            req.set('Typings-Client-Id', store.get('clientId'))
+        return next().then(function (response) {
+          if (response.get('Typings-Client-Id')) {
+            store.set('clientId', response.get('Typings-Client-Id'))
           }
-        })
 
-        self.after(function (res) {
-          if (res.get('Typings-Client-Id')) {
-            store.set('clientId', res.get('Typings-Client-Id'))
-          }
+          return response
         })
       }
 
-      // Enable access tokens with GitHub.
-      if (rc.githubToken && (hostname === 'raw.githubusercontent.com' || hostname === 'api.github.com')) {
-        self.before(function (req) {
-          req.set('Authorization', `token ${rc.githubToken}`)
-        })
-      }
+      return next()
     })
+    // Enable access tokens with GitHub.
+    .use(function (request, next) {
+      const { hostname } = request.Url
+
+      if (rc.githubToken && (hostname === 'raw.githubusercontent.com' || hostname === 'api.github.com')) {
+        request.set('Authorization', `token ${rc.githubToken}`)
+      }
+
+      return next()
+    })
+    // Retry failed HTTP requests.
+    .use(popsicleRetry())
     // Return only the response body.
-    .then(response => {
+    .then(function (response) {
       debug('http response', response.toJSON())
 
       return response.body

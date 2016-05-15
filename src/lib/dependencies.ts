@@ -288,7 +288,11 @@ function resolveBowerComponentPath (path: string): Promise<string> {
 /**
  * Recursively resolve dependencies from a list and component path.
  */
-function resolveBowerDependencyMap (componentPath: string, dependencies: Dependencies, options: Options): Promise<DependencyBranch> {
+function resolveBowerDependencyMap (
+  componentPath: string,
+  dependencies: Dependencies,
+  options: Options
+): Promise<DependencyBranch> {
   const keys = Object.keys(dependencies)
 
   return Promise.all(keys.map(function (name) {
@@ -450,9 +454,15 @@ function resolveTypeDependencyFrom (src: string, raw: string, options: Options) 
           resolveTypeDependencyMap(src, devDependencyMap, dependencyOptions),
           resolveTypeDependencyMap(src, peerDependencyMap, dependencyOptions),
           resolveTypeDependencyMap(src, ambientDependencyMap, dependencyOptions),
-          resolveTypeDependencyMap(src, ambientDevDependencyMap, dependencyOptions),
+          resolveTypeDependencyMap(src, ambientDevDependencyMap, dependencyOptions)
         ])
-          .then(function ([dependencies, devDependencies, peerDependencies, ambientDependencies, ambientDevDependencies]) {
+          .then(function ([
+            dependencies,
+            devDependencies,
+            peerDependencies,
+            ambientDependencies,
+            ambientDevDependencies
+          ]) {
             tree.dependencies = dependencies
             tree.devDependencies = devDependencies
             tree.peerDependencies = peerDependencies
@@ -497,9 +507,11 @@ function checkCircularDependency (tree: DependencyTree, filename: string) {
   if (tree) {
     const currentSrc = tree.src
 
-    do {
+    while (tree) {
       invariant(tree.src !== filename, `Circular dependency detected using "${currentSrc}"`)
-    } while (tree = tree.parent)
+
+      tree = tree.parent
+    }
   }
 }
 

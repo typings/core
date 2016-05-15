@@ -105,14 +105,20 @@ export function installDependenciesRaw (raw: string[], options: InstallDependenc
 /**
  * Single wrapper to install a single dependency.
  */
-export function installDependency (expression: InstallExpression, options: InstallDependencyOptions): Promise<InstallResult> {
+export function installDependency (
+  expression: InstallExpression,
+  options: InstallDependencyOptions
+): Promise<InstallResult> {
   return installDependencies([expression], options).then(x => x[0])
 }
 
 /**
  * Install a list of dependencies into the current project.
  */
-export function installDependencies (expressions: InstallExpression[], options: InstallDependencyOptions): Promise<InstallResult[]> {
+export function installDependencies (
+  expressions: InstallExpression[],
+  options: InstallDependencyOptions
+): Promise<InstallResult[]> {
   const emitter = options.emitter || new EventEmitter()
 
   return findProject(options.cwd)

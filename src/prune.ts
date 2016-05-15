@@ -50,7 +50,12 @@ function transformBundles (config: ConfigJson, options: PruneOptions) {
 /**
  * Transform a bundle file and remove extra dependencies.
  */
-function transformBundle (path: string, dependencies: Dependencies, ambientDependencies: Dependencies, options: PruneOptions) {
+function transformBundle (
+  path: string,
+  dependencies: Dependencies,
+  ambientDependencies: Dependencies,
+  options: PruneOptions
+) {
   const { emitter } = options
   const cwd = dirname(path)
   const rmQueue: Array<Promise<void>> = []

@@ -27,7 +27,7 @@ test('install', t => {
           readFile(join(FIXTURE_DIR, 'typings/browser.d.ts'), 'utf8'),
           readFile(join(FIXTURE_DIR, 'typings/main/definitions/test/index.d.ts'), 'utf8'),
           readFile(join(FIXTURE_DIR, 'typings/browser/definitions/test/index.d.ts'), 'utf8'),
-          readFile(join(FIXTURE_DIR, 'typings/main/ambient/test/index.d.ts'), 'utf8'),
+          readFile(join(FIXTURE_DIR, 'typings/main/ambient/test/index.d.ts'), 'utf8')
         ])
       })
       .then(function ([mainDts, browserDts, mainFile, browserFile, ambientMainFile]) {

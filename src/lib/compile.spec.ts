@@ -509,7 +509,10 @@ test('compile', t => {
 
     return compile(node, { name: 'test', cwd: __dirname, ambient: false, meta: false, emitter })
       .catch(function (result) {
-        t.equal(result.message, 'Unable to read typings for "test". You should check the entry paths in "typings.json" are up to date')
+        t.equal(
+          result.message,
+          'Unable to read typings for "test". You should check the entry paths in "typings.json" are up to date'
+        )
       })
   })
 
@@ -535,7 +538,8 @@ test('compile', t => {
       .catch(function (result) {
         t.equal(
           result.message,
-          'Unable to compile "name", the typings are meant to be installed as ambient but attempted to be compiled as an external module'
+          'Unable to compile "name", the typings are meant to be installed as ambient ' +
+          'but attempted to be compiled as an external module'
         )
       })
   })

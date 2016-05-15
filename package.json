@@ -82,6 +82,7 @@
     "shelljs": "^0.7.0",
     "tap-diff": "^0.1.1",
     "ts-node": "^0.7.0",
-    "tslint": "^3.6.0"
+    "tslint": "^3.10.2",
+    "tslint-config-standard": "^1.0.0"
   }
 }

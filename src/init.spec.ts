@@ -34,8 +34,10 @@ test('init', t => {
       .then(function (config) {
         t.deepEqual(config, {
           ambientDependencies: {
-            codemirror: 'github:DefinitelyTyped/DefinitelyTyped/codemirror/codemirror.d.ts#01ce3ccf7f071514ff5057ef32a4550bf0b81dfe',
-            jquery: 'github:DefinitelyTyped/DefinitelyTyped/jquery/jquery.d.ts#01ce3ccf7f071514ff5057ef32a4550bf0b81dfe',
+            codemirror: 'github:DefinitelyTyped/DefinitelyTyped/codemirror' +
+              '/codemirror.d.ts#01ce3ccf7f071514ff5057ef32a4550bf0b81dfe',
+            jquery: 'github:DefinitelyTyped/DefinitelyTyped/jquery' +
+              '/jquery.d.ts#01ce3ccf7f071514ff5057ef32a4550bf0b81dfe',
             node: 'github:DefinitelyTyped/DefinitelyTyped/node/node.d.ts#3b2ed809b9e8f7dc4fcc1d80199129a0b73fb277'
           }
         })

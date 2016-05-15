@@ -193,7 +193,11 @@ function compileDependencyTree (tree: DependencyTree, options: CompileOptions): 
 /**
  * Compile a dependency for a path, with pre-created stringify options.
  */
-function compileDependencyPath (path: string, options: StringifyOptions, parentModule?: ModuleOptions): Promise<string> {
+function compileDependencyPath (
+  path: string,
+  options: StringifyOptions,
+  parentModule?: ModuleOptions
+): Promise<string> {
   const { tree, entry } = options
 
   // Fallback to resolving the entry file.
@@ -292,7 +296,11 @@ interface ModuleOptions {
 /**
  * Stringify a dependency file.
  */
-function stringifyDependencyPath (rawPath: string, options: StringifyOptions, moduleOptions: ModuleOptions): Promise<string> {
+function stringifyDependencyPath (
+  rawPath: string,
+  options: StringifyOptions,
+  moduleOptions: ModuleOptions
+): Promise<string> {
   const path = getPath(rawPath, options)
   const { tree, ambient, cwd, browser, name, readFiles, imported, meta, entry, emitter } = options
   const importedPath = importPath(rawPath, pathFromDefinition(rawPath), options)
@@ -500,7 +508,7 @@ function stringifySourceFile (sourceFile: ts.SourceFile, options: StringifyOptio
         node.parent.kind === ts.SyntaxKind.ModuleDeclaration
       )
     ) {
-      return ` '${importPath(path, (<ts.StringLiteral> node).text, options)}'`
+      return ` '${importPath(path, (node as ts.StringLiteral).text, options)}'`
     }
 
     if (node.kind === ts.SyntaxKind.DeclareKeyword) {
@@ -578,7 +586,7 @@ function declareText (name: string, text: string) {
 /**
  * Rewrite TypeScript source files.
  *
- * Original Source: https://github.com/SitePen/dts-generator/blob/22402351ffd953bf32344a0e48f2ba073fc5b65a/index.ts#L70-L101
+ * Reference: https://github.com/SitePen/dts-generator/blob/22402351ffd953bf32344a0e48f2ba073fc5b65a/index.ts#L70-L101
  */
 function processTree (
   sourceFile: ts.SourceFile,

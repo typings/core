@@ -6,8 +6,7 @@ import { RcConfig } from '../interfaces'
 export const DEFAULTS = {
   userAgent: `${PROJECT_NAME}/{typingsVersion} node/{nodeVersion} {platform} {arch}`,
   registryURL: REGISTRY_URL,
-  defaultSource: 'npm',
-  defaultAmbientSource: 'dt'
+  defaultSource: 'npm'
 }
 
 export default extend(DEFAULTS, rc(PROJECT_NAME)) as RcConfig

@@ -271,7 +271,7 @@ export function expandRegistry (raw: string, options: { ambient?: boolean }) {
   }
 
   const indexOf = raw.indexOf('~')
-  let source = options.ambient ? rc.defaultAmbientSource : rc.defaultSource
+  let source = rc.defaultSource
   let name: string
 
   if (indexOf === -1) {

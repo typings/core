@@ -22,7 +22,13 @@ export function extractReferences (contents: string, cwd: string): Reference[] {
   const refs: Reference[] = []
   let m: RegExpExecArray
 
-  while ((m = REFERENCE_REGEXP.exec(contents)) != null) {
+  while (true) {
+    m = REFERENCE_REGEXP.exec(contents)
+
+    if (m == null) {
+      break
+    }
+
     refs.push({
       start: m.index,
       end: m.index + m[0].length,

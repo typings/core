@@ -325,7 +325,7 @@ test('parse', t => {
     })
 
     t.test('expand registry with provided source', t => {
-      const actual = expandRegistry('env!atom', {})
+      const actual = expandRegistry('env~atom', {})
       const expected = 'registry:env/atom'
 
       t.deepEqual(actual, expected)

@@ -227,7 +227,7 @@ export function resolveDependency (raw: string, filename: string) {
  * Parse and expand the CLI dependency expression.
  */
 export function parseDependencyExpression (raw: string, options: { ambient?: boolean }) {
-  const [, name, scheme, registry] = /^(?:([^=!:#]+)=)?(?:([\w]+\:.+)|((?:[\w]+\!)?.+))$/.exec(raw)
+  const [, name, scheme, registry] = /^(?:([^=!:#]+)=)?(?:([\w]+\:.+)|((?:[\w]+\~)?.+))$/.exec(raw)
 
   const location = scheme || expandRegistry(registry, options)
 
@@ -270,7 +270,7 @@ export function expandRegistry (raw: string, options: { ambient?: boolean }) {
     throw new TypeError(`Expected registry name to be a string, not ${typeof raw}`)
   }
 
-  const indexOf = raw.indexOf('!')
+  const indexOf = raw.indexOf('~')
   let source = options.ambient ? rc.defaultAmbientSource : rc.defaultSource
   let name: string
 

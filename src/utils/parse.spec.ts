@@ -332,14 +332,6 @@ test('parse', t => {
       t.end()
     })
 
-    t.test('expand registry with default ambient source', t => {
-      const actual = expandRegistry('node', { ambient: true })
-      const expected = 'registry:dt/node'
-
-      t.deepEqual(actual, expected)
-      t.end()
-    })
-
     t.test('unknown scheme', t => {
       t.throws(() => parseDependency('random:fake/dep'), /Unknown dependency: /)
       t.end()

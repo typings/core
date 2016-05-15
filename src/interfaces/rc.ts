@@ -50,8 +50,4 @@ export interface RcConfig {
    * Override the default installation source (E.g. when doing `typings install debug`) (default: `npm`).
    */
   defaultSource?: string
-  /**
-   * Override the default ambient installation source (E.g. when doing `typings install node -A`) (default: `dt`).
-   */
-  defaultAmbientSource?: string
 }

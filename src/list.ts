@@ -18,5 +18,5 @@ export function list (options: ListOptions): Promise<DependencyTree> {
   const emitter = options.emitter || new EventEmitter()
 
   // TODO: Make this list locally.
-  return resolveTypeDependencies({ cwd, ambient: true, dev, emitter })
+  return resolveTypeDependencies({ cwd, global: true, dev, emitter })
 }

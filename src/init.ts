@@ -64,16 +64,16 @@ function upgradeTsdJson (tsdJson: TsdJson, config?: ConfigJson): ConfigJson {
     repo = DEFINITELYTYPED_REPO
   }
 
-  // Copy all installed modules to ambient dependencies.
+  // Copy all installed modules to global dependencies.
   if (tsdJson.installed) {
-    typingsJson.ambientDependencies = {}
+    typingsJson.globalDependencies = {}
 
     Object.keys(tsdJson.installed).forEach(function (path) {
       const dependency = tsdJson.installed[path]
       const name = basename(path, '.d.ts')
       const location = `github:${repo}/${path}#${dependency.commit}`
 
-      typingsJson.ambientDependencies[name] = location
+      typingsJson.globalDependencies[name] = location
     })
   }
 

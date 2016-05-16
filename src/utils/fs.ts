@@ -289,12 +289,12 @@ export function transformConfig (cwd: string, transform: (config: ConfigJson) =>
             config.devDependencies = sortKeys(config.devDependencies)
           }
 
-          if (config.ambientDependencies) {
-            config.ambientDependencies = sortKeys(config.ambientDependencies)
+          if (config.globalDependencies) {
+            config.globalDependencies = sortKeys(config.globalDependencies)
           }
 
-          if (config.ambientDevDependencies) {
-            config.ambientDevDependencies = sortKeys(config.ambientDevDependencies)
+          if (config.globalDevDependencies) {
+            config.globalDevDependencies = sortKeys(config.globalDevDependencies)
           }
 
           return config
@@ -327,8 +327,8 @@ export function treeToJson (tree: DependencyTree) {
     dependencies: dependenciesToJson(tree.dependencies),
     devDependencies: dependenciesToJson(tree.devDependencies),
     peerDependencies: dependenciesToJson(tree.peerDependencies),
-    ambientDependencies: dependenciesToJson(tree.ambientDependencies),
-    ambientDevDependencies: dependenciesToJson(tree.ambientDevDependencies)
+    globalDependencies: dependenciesToJson(tree.globalDependencies),
+    globalDevDependencies: dependenciesToJson(tree.globalDevDependencies)
   })
 }
 

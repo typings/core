@@ -31,7 +31,7 @@ export interface InstallDependencyOptions {
   save?: boolean
   saveDev?: boolean
   savePeer?: boolean
-  ambient?: boolean
+  global?: boolean
   cwd: string
   emitter?: Emitter
 }
@@ -79,7 +79,7 @@ export function install (options: InstallOptions): Promise<InstallResult> {
             return resolveTypeDependencies({
               cwd,
               emitter,
-              ambient: true,
+              global: true,
               peer: true,
               dev: !production
             })
@@ -87,14 +87,14 @@ export function install (options: InstallOptions): Promise<InstallResult> {
                 const cwd = dirname(tree.src)
                 const queue: Array<Promise<CompileResult>> = []
 
-                function addToQueue (deps: DependencyBranch, ambient: boolean) {
+                function addToQueue (deps: DependencyBranch, global: boolean) {
                   for (const name of Object.keys(deps)) {
                     const tree = deps[name]
 
                     queue.push(compile(tree, Object.keys(resolutions), {
                       cwd,
                       name,
-                      ambient,
+                      global,
                       emitter,
                       meta: true
                     }))
@@ -104,8 +104,8 @@ export function install (options: InstallOptions): Promise<InstallResult> {
                 addToQueue(tree.dependencies, false)
                 addToQueue(tree.devDependencies, false)
                 addToQueue(tree.peerDependencies, false)
-                addToQueue(tree.ambientDependencies, true)
-                addToQueue(tree.ambientDevDependencies, true)
+                addToQueue(tree.globalDependencies, true)
+                addToQueue(tree.globalDevDependencies, true)
 
                 return Promise.all(queue)
                   .then(results => {
@@ -145,7 +145,7 @@ export function installDependencyRaw (raw: string, options: InstallDependencyOpt
  */
 export function installDependenciesRaw (raw: string[], options: InstallDependencyOptions): Promise<InstallResult[]> {
   return new Promise(resolve => {
-    const expressions = raw.map(x => parseDependencyExpression(x, options))
+    const expressions = raw.map(x => parseDependencyExpression(x))
 
     return resolve(installDependencies(expressions, options))
   })
@@ -207,13 +207,13 @@ function compileDependency (
   options: InstallDependencyNestedOptions
 ): Promise<CompileResult> {
   const dependency = parseDependency(expression.location)
-  const { cwd, ambient, resolutions } = options
+  const { cwd, global, resolutions } = options
   const emitter = options.emitter || new EventEmitter()
   const expName = expression.name || dependency.meta.name
 
   return checkTypings(dependency, options)
     .then(() => {
-      return resolveDependency(dependency, { cwd, emitter, name: expName, dev: false, peer: false, ambient: false })
+      return resolveDependency(dependency, { cwd, emitter, name: expName, dev: false, peer: false, global: false })
     })
     .then(tree => {
       const name = expName || tree.name
@@ -229,7 +229,7 @@ function compileDependency (
       return compile(tree, Object.keys(resolutions), {
         cwd,
         name,
-        ambient,
+        global,
         emitter,
         meta: true
       })
@@ -247,20 +247,20 @@ function writeToConfig (results: CompileResult[], options: InstallDependencyOpti
 
         // Extend different fields depending on the option passed in.
         if (options.save) {
-          if (options.ambient) {
-            config.ambientDependencies = extend(config.ambientDependencies, { [name]: raw })
+          if (options.global) {
+            config.globalDependencies = extend(config.globalDependencies, { [name]: raw })
           } else {
             config.dependencies = extend(config.dependencies, { [name]: raw })
           }
         } else if (options.saveDev) {
-          if (options.ambient) {
-            config.ambientDevDependencies = extend(config.ambientDevDependencies, { [name]: raw })
+          if (options.global) {
+            config.globalDevDependencies = extend(config.globalDevDependencies, { [name]: raw })
           } else {
             config.devDependencies = extend(config.devDependencies, { [name]: raw })
           }
         } else if (options.savePeer) {
-          if (options.ambient) {
-            throw new TypeError('Unable to use `savePeer` with the `ambient` flag')
+          if (options.global) {
+            throw new TypeError('Unable to use `savePeer` with the `global` flag')
           } else {
             config.peerDependencies = extend(config.peerDependencies, { [name]: raw })
           }
@@ -282,7 +282,7 @@ function writeBundle (results: CompileResult[], options: { resolutions: Resoluti
 
   return Promise.all(Object.keys(resolutions).map(resolution => {
     const path = resolutions[resolution]
-    const paths = results.map(({ name, ambient }) => getDependencyPath({ path, name, ambient }).definition)
+    const paths = results.map(({ name, global }) => getDependencyPath({ path, name, global }).definition)
 
     return mkdirp(path)
       .then(() => {
@@ -301,13 +301,13 @@ function writeBundle (results: CompileResult[], options: { resolutions: Resoluti
  * Write a compilation result.
  */
 function writeResult (result: CompileResult, options: { resolutions: ResolutionMap }): Promise<any> {
-  const { name, ambient, tree, results } = result
+  const { name, global, tree, results } = result
   const { resolutions } = options
 
   return Promise.all(Object.keys(resolutions).map(resolution => {
     const path = resolutions[resolution]
     const contents = results[resolution]
-    const { directory, config, definition } = getDependencyPath({ name, ambient, path })
+    const { directory, config, definition } = getDependencyPath({ name, global, path })
 
     return mkdirp(directory)
       .then(() => {

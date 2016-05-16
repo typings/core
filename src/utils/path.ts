@@ -146,7 +146,7 @@ export function getDefinitionPath (path: string): string {
 export interface LocationOptions {
   name: string
   path: string
-  ambient: boolean
+  global: boolean
 }
 
 export interface DependencyLocationResult {
@@ -159,7 +159,7 @@ export interface DependencyLocationResult {
  * Return the dependency output locations based on definition options.
  */
 export function getDependencyPath (options: LocationOptions): DependencyLocationResult {
-  const type = options.ambient ? 'globals' : 'modules'
+  const type = options.global ? 'globals' : 'modules'
 
   const directory = join(options.path, type, options.name)
   const definition = getDefinitionPath(directory)
@@ -176,7 +176,7 @@ export function getInfoFromDependencyLocation (location: string, bundle: string)
 
   return {
     location,
-    ambient: parts[0] === 'globals',
+    global: parts[0] === 'globals',
     name: parts.slice(1, -1).join('/')
   }
 }

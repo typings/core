@@ -14,7 +14,7 @@ export interface UninstallDependencyOptions {
   save?: boolean
   saveDev?: boolean
   savePeer?: boolean
-  ambient?: boolean
+  global?: boolean
   cwd: string
   emitter?: Emitter
 }
@@ -66,11 +66,11 @@ interface UninstallDependencyNestedOptions extends UninstallDependencyOptions {
  * Uninstall the dependency.
  */
 function uninstallFrom (name: string, options: UninstallDependencyNestedOptions) {
-  const { cwd, ambient, emitter, resolutions } = options
+  const { cwd, global, emitter, resolutions } = options
 
   return Promise.all(Object.keys(resolutions).map(type => {
     const path = resolutions[type]
-    const { directory, definition, config } = getDependencyPath({ path, name, ambient })
+    const { directory, definition, config } = getDependencyPath({ path, name, global })
 
     return isFile(definition)
       .then(exists => {
@@ -97,11 +97,11 @@ function writeToConfig (names: string[], options: UninstallDependencyOptions) {
     return transformConfig(options.cwd, config => {
       for (const name of names) {
         if (options.save) {
-          if (options.ambient) {
-            if (config.ambientDependencies && config.ambientDependencies[name]) {
-              delete config.ambientDependencies[name]
+          if (options.global) {
+            if (config.globalDependencies && config.globalDependencies[name]) {
+              delete config.globalDependencies[name]
             } else {
-              return Promise.reject(new TypeError(`Typings for "${name}" are not listed in ambient dependencies`))
+              return Promise.reject(new TypeError(`Typings for "${name}" are not listed in global dependencies`))
             }
           } else {
             if (config.dependencies && config.dependencies[name]) {
@@ -113,11 +113,11 @@ function writeToConfig (names: string[], options: UninstallDependencyOptions) {
         }
 
         if (options.saveDev) {
-          if (options.ambient) {
-            if (config.ambientDevDependencies && config.ambientDevDependencies[name]) {
-              delete config.ambientDevDependencies[name]
+          if (options.global) {
+            if (config.globalDevDependencies && config.globalDevDependencies[name]) {
+              delete config.globalDevDependencies[name]
             } else {
-              return Promise.reject(new TypeError(`Typings for "${name}" are not listed in ambient dev dependencies`))
+              return Promise.reject(new TypeError(`Typings for "${name}" are not listed in global dev dependencies`))
             }
           } else {
             if (config.devDependencies && config.devDependencies[name]) {
@@ -146,12 +146,12 @@ function writeToConfig (names: string[], options: UninstallDependencyOptions) {
  * Write the uninstall result to the bundle.
  */
 function writeBundle (names: string[], options: UninstallDependencyNestedOptions) {
-  const { ambient, resolutions } = options
+  const { global, resolutions } = options
 
   return Promise.all(Object.keys(resolutions).map(type => {
     const path = resolutions[type]
     const bundle = getDefinitionPath(path)
-    const paths = names.map(name => getDependencyPath({ path, name, ambient }).definition)
+    const paths = names.map(name => getDependencyPath({ path, name, global }).definition)
 
     return transformDtsFile(bundle, references => {
       return references.filter(x => paths.indexOf(x) === -1)

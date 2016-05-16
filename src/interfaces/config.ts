@@ -25,9 +25,9 @@ export interface ConfigJson {
    */
   files?: string[]
   /**
-   * Denote that this definition _must_ be installed as ambient.
+   * Denote that this definition _must_ be installed as global.
    */
-  ambient?: boolean
+  global?: boolean
   /**
    * A message to emit to users after typings installation.
    */
@@ -51,11 +51,11 @@ export interface ConfigJson {
   /**
    * A map of global dependencies required by the project.
    */
-  ambientDependencies?: Dependencies
+  globalDependencies?: Dependencies
   /**
    * A map of global dependencies required by the project during development.
    */
-  ambientDevDependencies?: Dependencies
+  globalDevDependencies?: Dependencies
 }
 
 /**

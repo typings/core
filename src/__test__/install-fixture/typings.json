@@ -1,8 +1,8 @@
 {
   "dependencies": {
-    "test": "file:custom_typings/definition.d.ts"
+    "test": "file:custom_typings/module.d.ts"
   },
-  "ambientDevDependencies": {
-    "test": "file:custom_typings/ambient.d.ts"
+  "globalDevDependencies": {
+    "test": "file:custom_typings/global.d.ts"
   }
 }

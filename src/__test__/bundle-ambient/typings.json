@@ -1,4 +1,4 @@
 {
   "main": "index.d.ts",
-  "ambient": true
+  "global": true
 }

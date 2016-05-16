@@ -16,7 +16,7 @@ test('bundle', t => {
           cwd: FIXTURE_DIR,
           name: 'example',
           out: join(FIXTURE_DIR, 'out', 'bundle.d.ts'),
-          ambient: false,
+          global: false,
           emitter
         })
       })

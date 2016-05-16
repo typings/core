@@ -43,12 +43,12 @@ export interface DependencyTree {
   postmessage?: string
   src: string
   raw: string
-  ambient: boolean
+  global: boolean
   dependencies: DependencyBranch
   devDependencies: DependencyBranch
   peerDependencies: DependencyBranch
-  ambientDependencies: DependencyBranch
-  ambientDevDependencies: DependencyBranch
+  globalDependencies: DependencyBranch
+  globalDevDependencies: DependencyBranch
 }
 
 /**

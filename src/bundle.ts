@@ -13,17 +13,17 @@ import { InstallResult } from './install'
 export interface BundleOptions {
   name?: string
   cwd: string
-  ambient?: boolean
+  global?: boolean
   resolution?: string
   out: string
   emitter?: Emitter
 }
 
 /**
- * Bundle the current typings project into a single ambient definition.
+ * Bundle the current typings project into a single global definition.
  */
 export function bundle (options: BundleOptions): Promise<InstallResult> {
-  const { cwd, ambient, out } = options
+  const { cwd, global, out } = options
   const emitter = options.emitter || new EventEmitter()
   const resolution = options.resolution || 'main'
 
@@ -31,7 +31,7 @@ export function bundle (options: BundleOptions): Promise<InstallResult> {
     return Promise.reject(new TypeError('Out directory is required for bundle'))
   }
 
-  return resolveAllDependencies({ cwd, dev: false, ambient: false, emitter })
+  return resolveAllDependencies({ cwd, dev: false, global: false, emitter })
     .then(tree => {
       const name = options.name || tree.name
 
@@ -41,7 +41,7 @@ export function bundle (options: BundleOptions): Promise<InstallResult> {
         ))
       }
 
-      return compile(tree, [resolution], { cwd, name, ambient, emitter, meta: true })
+      return compile(tree, [resolution], { cwd, name, global, emitter, meta: true })
     })
     .then((output: CompileResult) => {
       const path = resolve(cwd, out)

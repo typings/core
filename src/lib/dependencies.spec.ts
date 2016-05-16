@@ -12,7 +12,7 @@ test('dependencies', t => {
     t.test('resolve a dependency tree', t => {
       const expected: DependencyTree = {
         raw: undefined,
-        ambient: false,
+        global: false,
         postmessage: undefined,
         name: 'foobar',
         src: join(RESOLVE_FIXTURE_DIR, 'typings.json'),
@@ -25,13 +25,13 @@ test('dependencies', t => {
         dependencies: {},
         devDependencies: {},
         peerDependencies: {},
-        ambientDependencies: {},
-        ambientDevDependencies: {}
+        globalDependencies: {},
+        globalDevDependencies: {}
       }
 
       const bowerDep: DependencyTree = {
         raw: 'bower:bower-dep',
-        ambient: false,
+        global: false,
         postmessage: undefined,
         src: join(RESOLVE_FIXTURE_DIR, 'bower_components/bower-dep/bower.json'),
         typings: 'bower-dep.d.ts',
@@ -39,8 +39,8 @@ test('dependencies', t => {
         dependencies: {},
         devDependencies: {},
         peerDependencies: {},
-        ambientDependencies: {},
-        ambientDevDependencies: {},
+        globalDependencies: {},
+        globalDevDependencies: {},
         name: 'bower-dep',
         files: undefined,
         version: undefined,
@@ -50,7 +50,7 @@ test('dependencies', t => {
 
       const exampleDep: DependencyTree = {
         raw: 'bower:example',
-        ambient: false,
+        global: false,
         postmessage: undefined,
         src: join(RESOLVE_FIXTURE_DIR, 'bower_components/example/bower.json'),
         main: undefined,
@@ -63,13 +63,13 @@ test('dependencies', t => {
         dependencies: {},
         devDependencies: {},
         peerDependencies: {},
-        ambientDependencies: {},
-        ambientDevDependencies: {}
+        globalDependencies: {},
+        globalDevDependencies: {}
       }
 
       const typedDep: DependencyTree = {
         raw: 'file:typings/dep.d.ts',
-        ambient: undefined,
+        global: undefined,
         postmessage: undefined,
         src: join(RESOLVE_FIXTURE_DIR, 'typings/dep.d.ts'),
         typings: join(RESOLVE_FIXTURE_DIR, 'typings/dep.d.ts'),
@@ -81,13 +81,13 @@ test('dependencies', t => {
         dependencies: {},
         devDependencies: {},
         peerDependencies: {},
-        ambientDependencies: {},
-        ambientDevDependencies: {}
+        globalDependencies: {},
+        globalDevDependencies: {}
       }
 
       const npmDep: DependencyTree = {
         raw: 'npm:npm-dep',
-        ambient: false,
+        global: false,
         postmessage: undefined,
         src: join(RESOLVE_FIXTURE_DIR, 'node_modules/npm-dep/package.json'),
         main: './index.js',
@@ -100,13 +100,13 @@ test('dependencies', t => {
         dependencies: {},
         devDependencies: {},
         peerDependencies: {},
-        ambientDependencies: {},
-        ambientDevDependencies: {}
+        globalDependencies: {},
+        globalDevDependencies: {}
       }
 
       const typedDevDep: DependencyTree = {
-        ambientDependencies: {},
-        ambientDevDependencies: {},
+        globalDependencies: {},
+        globalDevDependencies: {},
         browser: undefined,
         browserTypings: undefined,
         dependencies: {},
@@ -115,7 +115,7 @@ test('dependencies', t => {
         main: undefined,
         name: 'dep',
         raw: 'bower:dep',
-        ambient: false,
+        global: false,
         postmessage: undefined,
         src: join(RESOLVE_FIXTURE_DIR, 'bower_components/dep/bower.json'),
         typings: undefined,
@@ -148,8 +148,8 @@ test('dependencies', t => {
             removeParentReferenceFromDependencies(tree.dependencies)
             removeParentReferenceFromDependencies(tree.devDependencies)
             removeParentReferenceFromDependencies(tree.peerDependencies)
-            removeParentReferenceFromDependencies(tree.ambientDependencies)
-            removeParentReferenceFromDependencies(tree.ambientDevDependencies)
+            removeParentReferenceFromDependencies(tree.globalDependencies)
+            removeParentReferenceFromDependencies(tree.globalDevDependencies)
 
             return tree
           }

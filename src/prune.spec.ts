@@ -4,9 +4,9 @@ import { join } from 'path'
 import { prune } from './prune'
 import { readFile, writeFile, mkdirp, isFile } from './utils/fs'
 
-const BROWSER_AMBIENT_TYPINGS = 'typings/browser/globals/test/index.d.ts'
+const BROWSER_GLOBAL_TYPINGS = 'typings/browser/globals/test/index.d.ts'
 const BROWSER_TYPINGS = 'typings/browser/modules/test/index.d.ts'
-const MAIN_AMBIENT_TYPINGS = 'typings/main/globals/test/index.d.ts'
+const MAIN_GLOBAL_TYPINGS = 'typings/main/globals/test/index.d.ts'
 const MAIN_TYPINGS = 'typings/main/modules/test/index.d.ts'
 const BROWSER_INDEX = 'typings/browser/index.d.ts'
 const MAIN_INDEX = 'typings/main/index.d.ts'
@@ -23,18 +23,18 @@ test('prune', t => {
         return Promise.all([
           readFile(join(FIXTURE_DIR, BROWSER_INDEX), 'utf8'),
           readFile(join(FIXTURE_DIR, MAIN_INDEX), 'utf8'),
-          isFile(join(FIXTURE_DIR, BROWSER_AMBIENT_TYPINGS)),
+          isFile(join(FIXTURE_DIR, BROWSER_GLOBAL_TYPINGS)),
           isFile(join(FIXTURE_DIR, BROWSER_TYPINGS)),
-          isFile(join(FIXTURE_DIR, MAIN_AMBIENT_TYPINGS)),
+          isFile(join(FIXTURE_DIR, MAIN_GLOBAL_TYPINGS)),
           isFile(join(FIXTURE_DIR, MAIN_TYPINGS))
         ])
       })
       .then(([
         browserDts,
         mainDts,
-        hasBrowserAmbientDefinition,
+        hasBrowserGlobalDefinition,
         hasBrowserDefinition,
-        hasMainAmbientDefinition,
+        hasMainGlobalDefinition,
         hasMainDefinition
       ]) => {
         t.equal(browserDts, [
@@ -49,9 +49,9 @@ test('prune', t => {
           ``
         ].join('\n'))
 
-        t.equal(hasBrowserAmbientDefinition, true)
+        t.equal(hasBrowserGlobalDefinition, true)
         t.equal(hasBrowserDefinition, true)
-        t.equal(hasMainAmbientDefinition, true)
+        t.equal(hasMainGlobalDefinition, true)
         t.equal(hasMainDefinition, true)
       })
   })
@@ -70,33 +70,33 @@ test('prune', t => {
         return Promise.all([
           readFile(join(FIXTURE_DIR, BROWSER_INDEX), 'utf8'),
           readFile(join(FIXTURE_DIR, MAIN_INDEX), 'utf8'),
-          isFile(join(FIXTURE_DIR, BROWSER_AMBIENT_TYPINGS)),
+          isFile(join(FIXTURE_DIR, BROWSER_GLOBAL_TYPINGS)),
           isFile(join(FIXTURE_DIR, BROWSER_TYPINGS)),
-          isFile(join(FIXTURE_DIR, MAIN_AMBIENT_TYPINGS)),
+          isFile(join(FIXTURE_DIR, MAIN_GLOBAL_TYPINGS)),
           isFile(join(FIXTURE_DIR, MAIN_TYPINGS))
         ])
       })
       .then(([
         browserDts,
         mainDts,
-        hasBrowserAmbientDefinition,
+        hasBrowserGlobalDefinition,
         hasBrowserDefinition,
-        hasMainAmbientDefinition,
+        hasMainGlobalDefinition,
         hasMainDefinition
       ]) => {
         t.equal(browserDts, `\n`)
         t.equal(mainDts, `\n`)
 
-        t.equal(hasBrowserAmbientDefinition, false)
+        t.equal(hasBrowserGlobalDefinition, false)
         t.equal(hasBrowserDefinition, false)
-        t.equal(hasMainAmbientDefinition, false)
+        t.equal(hasMainGlobalDefinition, false)
         t.equal(hasMainDefinition, false)
       })
   })
 })
 
 function generateTestDefinitions (directory: string) {
-  const FAKE_AMBIENT_MODULE = `declare module 'test' {}\n`
+  const FAKE_GLOBAL_MODULE = `declare module 'test' {}\n`
   const FAKE_MODULE = `export function test (): boolean;\n`
 
   const dirs = [
@@ -109,9 +109,9 @@ function generateTestDefinitions (directory: string) {
   return Promise.all(dirs.map(dir => mkdirp(dir)))
     .then(() => {
       return Promise.all([
-        writeFile(join(directory, BROWSER_AMBIENT_TYPINGS), FAKE_AMBIENT_MODULE),
+        writeFile(join(directory, BROWSER_GLOBAL_TYPINGS), FAKE_GLOBAL_MODULE),
         writeFile(join(directory, BROWSER_TYPINGS), FAKE_MODULE),
-        writeFile(join(directory, MAIN_AMBIENT_TYPINGS), FAKE_AMBIENT_MODULE),
+        writeFile(join(directory, MAIN_GLOBAL_TYPINGS), FAKE_GLOBAL_MODULE),
         writeFile(join(directory, MAIN_TYPINGS), FAKE_MODULE),
         writeFile(join(directory, BROWSER_INDEX), [
           `/// <reference path="globals/test/index.d.ts" />`,

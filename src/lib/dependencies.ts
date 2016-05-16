@@ -24,13 +24,13 @@ export const DEFAULT_DEPENDENCY: DependencyTree = {
   browserTypings: undefined,
   version: undefined,
   files: undefined,
-  ambient: undefined,
+  global: undefined,
   postmessage: undefined,
   dependencies: {},
   devDependencies: {},
   peerDependencies: {},
-  ambientDependencies: {},
-  ambientDevDependencies: {}
+  globalDependencies: {},
+  globalDevDependencies: {}
 }
 
 /**
@@ -42,7 +42,7 @@ export interface Options {
   name?: string
   dev?: boolean
   peer?: boolean
-  ambient?: boolean
+  global?: boolean
   parent?: DependencyTree
 }
 
@@ -240,7 +240,7 @@ function resolveBowerDependencyFrom (
           browser: bowerJson.browser,
           typings: bowerJson.typings,
           browserTypings: bowerJson.browserTypings,
-          ambient: false,
+          global: false,
           src,
           raw,
           parent
@@ -297,7 +297,7 @@ function resolveBowerDependencyMap (
 
   return Promise.all(keys.map(function (name) {
     const modulePath = resolve(componentPath, name, 'bower.json')
-    const resolveOptions: Options = extend(options, { name, dev: false, ambient: false, peer: false })
+    const resolveOptions: Options = extend(options, { name, dev: false, global: false, peer: false })
 
     return resolveBowerDependencyFrom(modulePath, `bower:${name}`, componentPath, resolveOptions)
   }))
@@ -339,7 +339,7 @@ function resolveNpmDependencyFrom (src: string, raw: string, options: Options): 
           browser: packageJson.browser,
           typings: packageJson.typings,
           browserTypings: packageJson.browserTypings,
-          ambient: false,
+          global: false,
           src,
           raw,
           parent
@@ -380,7 +380,7 @@ function resolveNpmDependencyMap (src: string, dependencies: any, options: Optio
   const keys = Object.keys(dependencies)
 
   return Promise.all(keys.map(function (name) {
-    const resolveOptions: Options = extend(options, { name, cwd, dev: false, peer: false, ambient: false })
+    const resolveOptions: Options = extend(options, { name, cwd, dev: false, peer: false, global: false })
 
     return resolveNpmDependency(join(name, 'package.json'), `npm:${name}`, resolveOptions)
   }))
@@ -422,30 +422,30 @@ function resolveTypeDependencyFrom (src: string, raw: string, options: Options) 
           browser: config.browser,
           files: Array.isArray(config.files) ? config.files : undefined,
           type: PROJECT_NAME,
-          ambient: !!config.ambient,
+          global: !!config.global,
           postmessagee: typeof config.postmessage === 'string' ? config.postmessage : undefined,
           src,
           raw,
           parent
         })
 
-        const { ambient, dev, peer } = options
+        const { global, dev, peer } = options
 
         const dependencyMap = extend(config.dependencies)
         const devDependencyMap = extend(dev ? config.devDependencies : {})
         const peerDependencyMap = extend(peer ? config.peerDependencies : {})
-        const ambientDependencyMap = extend(ambient ? config.ambientDependencies : {})
-        const ambientDevDependencyMap = extend(ambient && dev ? config.ambientDevDependencies : {})
+        const globalDependencyMap = extend(global ? config.globalDependencies : {})
+        const globalDevDependencyMap = extend(global && dev ? config.globalDevDependencies : {})
         const dependencyOptions = extend(options, { parent: tree })
 
         options.emitter.emit('resolved', { name, src, tree, raw, parent })
 
-        // Emit "expected" ambient modules when installing top-level.
-        if (parent == null && config.ambientDependencies) {
-          options.emitter.emit('ambientdependencies', {
+        // Emit "expected" global modules when installing top-level.
+        if (parent == null && config.globalDependencies) {
+          options.emitter.emit('globaldependencies', {
             name,
             raw,
-            dependencies: config.ambientDependencies
+            dependencies: config.globalDependencies
           })
         }
 
@@ -453,21 +453,21 @@ function resolveTypeDependencyFrom (src: string, raw: string, options: Options) 
           resolveTypeDependencyMap(src, dependencyMap, dependencyOptions),
           resolveTypeDependencyMap(src, devDependencyMap, dependencyOptions),
           resolveTypeDependencyMap(src, peerDependencyMap, dependencyOptions),
-          resolveTypeDependencyMap(src, ambientDependencyMap, dependencyOptions),
-          resolveTypeDependencyMap(src, ambientDevDependencyMap, dependencyOptions)
+          resolveTypeDependencyMap(src, globalDependencyMap, dependencyOptions),
+          resolveTypeDependencyMap(src, globalDevDependencyMap, dependencyOptions)
         ])
           .then(function ([
             dependencies,
             devDependencies,
             peerDependencies,
-            ambientDependencies,
-            ambientDevDependencies
+            globalDependencies,
+            globalDevDependencies
           ]) {
             tree.dependencies = dependencies
             tree.devDependencies = devDependencies
             tree.peerDependencies = peerDependencies
-            tree.ambientDependencies = ambientDependencies
-            tree.ambientDevDependencies = ambientDevDependencies
+            tree.globalDependencies = globalDependencies
+            tree.globalDevDependencies = globalDevDependencies
 
             return tree
           })
@@ -493,7 +493,7 @@ function resolveTypeDependencyMap (src: string, dependencies: any, options: Opti
   const keys = Object.keys(dependencies)
 
   return Promise.all(keys.map(function (name) {
-    const resolveOptions: Options = extend(options, { name, cwd, dev: false, ambient: false, peer: false })
+    const resolveOptions: Options = extend(options, { name, cwd, dev: false, global: false, peer: false })
 
     return resolveDependency(parseDependency(dependencies[name]), resolveOptions)
   }))
@@ -541,16 +541,16 @@ function mergeDependencies (root: DependencyTree, ...trees: DependencyTree[]): D
       continue
     }
 
-    const { name, raw, src, main, browser, typings, browserTypings, parent, files, ambient } = tree
+    const { name, raw, src, main, browser, typings, browserTypings, parent, files, global } = tree
 
     // The parent needs to always be set.
     if (parent != null) {
       dependency.parent = parent
     }
 
-    // Merge known ambient properties.
-    if (ambient != null) {
-      dependency.ambient = ambient
+    // Merge known global properties.
+    if (global != null) {
+      dependency.global = global
     }
 
     if (typeof name === 'string') {
@@ -574,8 +574,8 @@ function mergeDependencies (root: DependencyTree, ...trees: DependencyTree[]): D
     dependency.dependencies = extend(dependency.dependencies, tree.dependencies)
     dependency.devDependencies = extend(dependency.devDependencies, tree.devDependencies)
     dependency.peerDependencies = extend(dependency.peerDependencies, tree.peerDependencies)
-    dependency.ambientDependencies = extend(dependency.ambientDependencies, tree.ambientDependencies)
-    dependency.ambientDevDependencies = extend(dependency.ambientDevDependencies, tree.ambientDevDependencies)
+    dependency.globalDependencies = extend(dependency.globalDependencies, tree.globalDependencies)
+    dependency.globalDevDependencies = extend(dependency.globalDevDependencies, tree.globalDevDependencies)
   }
 
   return dependency

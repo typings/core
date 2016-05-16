@@ -226,10 +226,10 @@ export function resolveDependency (raw: string, filename: string) {
 /**
  * Parse and expand the CLI dependency expression.
  */
-export function parseDependencyExpression (raw: string, options: { ambient?: boolean }) {
+export function parseDependencyExpression (raw: string) {
   const [, name, scheme, registry] = /^(?:([^=!:#]+)=)?(?:([\w]+\:.+)|((?:[\w]+\~)?.+))$/.exec(raw)
 
-  const location = scheme || expandRegistry(registry, options)
+  const location = scheme || expandRegistry(registry)
 
   return {
     name,
@@ -265,7 +265,7 @@ export function buildDependencyExpression (type: string, meta: DependencyMeta): 
 /**
  * Parse the registry dependency string.
  */
-export function expandRegistry (raw: string, options: { ambient?: boolean }) {
+export function expandRegistry (raw: string) {
   if (typeof raw !== 'string') {
     throw new TypeError(`Expected registry name to be a string, not ${typeof raw}`)
   }

@@ -411,7 +411,7 @@ test('compile', t => {
         })
     })
 
-    t.test('compile an global definition', t => {
+    t.test('compile a global definition', t => {
       const FIXTURE_DIR = join(FIXTURES_DIR, 'compile-global')
 
       const node: DependencyTree = {
@@ -577,7 +577,7 @@ test('compile', t => {
         t.equal(
           result.message,
           'Attempted to compile "test" as an external module, ' +
-          'but it looks like an global module.'
+          'but it looks like a global module.'
         )
       })
   })
@@ -604,7 +604,7 @@ test('compile', t => {
       .catch(function (result) {
         t.equal(
           result.message,
-          'Attempted to compile "test" as an global module, ' +
+          'Attempted to compile "test" as a global module, ' +
           'but it looks like an external module.'
         )
       })

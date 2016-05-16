@@ -32,24 +32,37 @@ export interface Options {
 }
 
 /**
+ * Result of compiling multiple resolutions.
+ */
+export interface ResolutionResult {
+  main?: string
+  browser?: string
+  [name: string]: string
+}
+
+/**
  * The compiled output data.
  */
 export interface CompileResult {
   cwd: string
   name: string
   tree: DependencyTree
-  main: string
-  browser: string
+  results: ResolutionResult
   ambient: boolean
 }
 
 /**
  * Compile a dependency tree using a root name.
  */
-export default function compile (tree: DependencyTree, options: Options): Promise<CompileResult> {
+export function compile (
+  tree: DependencyTree,
+  resolutions: string[],
+  options: Options
+): Promise<CompileResult> {
   const { name, cwd, ambient } = options
   const readFiles: ts.Map<Promise<string>> = {}
 
+  // Ensure the ambient installation is valid.
   if (tree.ambient && !ambient) {
     return Promise.reject(new TypingsError(
       `Unable to compile "${name}", the typings are meant to be installed as ` +
@@ -57,27 +70,37 @@ export default function compile (tree: DependencyTree, options: Options): Promis
     ))
   }
 
-  // Re-use "reads" over all compilations, created separate "imported" instances.
-  return Promise.all([
-    compileDependencyTree(tree, extend(options, {
-      browser: false,
+  // Ensure the resolution is a valid target.
+  for (const resolution of resolutions) {
+    if (resolution !== 'main' && resolution !== 'browser') {
+      return Promise.reject(new TypingsError(
+        `Unable to resolve using "${resolution}" setting`
+      ))
+    }
+  }
+
+  return Promise.all(resolutions.map(resolution => {
+    const imported: ts.Map<boolean> = {}
+
+    return compileDependencyTree(tree, extend(options, {
+      resolution,
       readFiles,
-      imported: {} as ts.Map<boolean>
-    })),
-    compileDependencyTree(tree, extend(options, {
-      browser: true,
-      readFiles,
-      imported: {} as ts.Map<boolean>
+      imported
     }))
-  ])
-    .then(([main, browser]) => {
+  }))
+    .then((output) => {
+      const results: ResolutionResult = {}
+
+      for (let i = 0; i < output.length; i++) {
+        results[resolutions[i]] = output[i]
+      }
+
       return {
+        cwd,
         name,
         tree,
-        main,
-        browser,
-        cwd,
-        ambient
+        ambient,
+        results
       }
     })
 }
@@ -86,7 +109,7 @@ export default function compile (tree: DependencyTree, options: Options): Promis
  * Extends the default options with different compilation settings.
  */
 interface CompileOptions extends Options {
-  browser: boolean
+  resolution: string
   readFiles: ts.Map<Promise<string>>
   imported: ts.Map<boolean>
   name: string
@@ -136,7 +159,7 @@ function getStringifyOptions (
   const main = isTypings ? tree.typings : tree.main
   const browser = isTypings ? tree.browserTypings : tree.browser
 
-  if (options.browser && browser) {
+  if (options.resolution === 'browser' && browser) {
     if (typeof browser === 'string') {
       const mainDefinition = resolveFrom(tree.src, normalizeToDefinition(main))
       const browserDefinition = resolveFrom(tree.src, normalizeToDefinition(browser))
@@ -302,7 +325,7 @@ function stringifyDependencyPath (
   moduleOptions: ModuleOptions
 ): Promise<string> {
   const path = getPath(rawPath, options)
-  const { tree, ambient, cwd, browser, name, readFiles, imported, meta, entry, emitter } = options
+  const { tree, ambient, cwd, resolution, name, readFiles, imported, meta, entry, emitter } = options
   const importedPath = importPath(rawPath, pathFromDefinition(rawPath), options)
 
   // Return `null` to skip the dependency writing, could have the same import twice.
@@ -314,12 +337,12 @@ function stringifyDependencyPath (
   imported[importedPath] = true
 
   // Emit compile events for progression.
-  emitter.emit('compile', { name, rawPath, tree, browser })
+  emitter.emit('compile', { name, rawPath, tree, resolution })
 
   // Load a dependency path.
   function loadByModuleName (path: string) {
     const [moduleName, modulePath] = getModuleNameParts(path, tree)
-    const compileOptions = { cwd, browser, readFiles, imported, emitter, name: moduleName, ambient: false, meta }
+    const compileOptions = { cwd, resolution, readFiles, imported, emitter, name: moduleName, ambient: false, meta }
     const stringifyOptions = cachedStringifyOptions(moduleName, compileOptions, options)
 
     // When no options are returned, the dependency is missing.
@@ -377,14 +400,14 @@ function stringifyDependencyPath (
             const stringified = stringifySourceFile(sourceFile, options, childModuleOptions)
 
             for (const reference of referencedFiles) {
-              emitter.emit('reference', { name, rawPath, reference, tree, browser })
+              emitter.emit('reference', { name, rawPath, reference, tree, resolution })
             }
 
             const out = imports.filter(x => x != null)
             out.push(stringified)
             const contents = out.join(EOL)
 
-            emitter.emit('compiled', { name, rawPath, tree, browser, contents })
+            emitter.emit('compiled', { name, rawPath, tree, resolution, contents })
 
             return contents
           })

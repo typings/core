@@ -13,7 +13,7 @@
   },
   "files": [
     "src/typings.ts",
-    "typings/main.d.ts",
+    "typings/index.d.ts",
     "custom_typings/node.d.ts",
     "node_modules/typescript/lib/lib.core.d.ts"
   ]

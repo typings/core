@@ -1,1 +1,6 @@
-{}
+{
+  "resolution": {
+    "main": "typings/main",
+    "browser": "typings/browser"
+  }
+}

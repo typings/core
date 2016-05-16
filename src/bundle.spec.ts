@@ -15,13 +15,13 @@ test('bundle', t => {
         return bundle({
           cwd: FIXTURE_DIR,
           name: 'example',
-          out: join(FIXTURE_DIR, 'out'),
+          out: join(FIXTURE_DIR, 'out', 'bundle.d.ts'),
           ambient: false,
           emitter
         })
       })
       .then(function () {
-        return readFile(join(FIXTURE_DIR, 'out', 'main.d.ts'), 'utf8')
+        return readFile(join(FIXTURE_DIR, 'out', 'bundle.d.ts'), 'utf8')
       })
       .then(function (contents) {
         t.equal(contents, [

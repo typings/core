@@ -4,8 +4,8 @@ echo('mkdir typings')
 mkdir('-p', 'typings')
 echo('')
 
-echo('touch typings/main.d.ts')
-touch('typings/main.d.ts')
+echo('touch typings/index.d.ts')
+touch('typings/index.d.ts')
 echo('')
 
 echo('SKIP_PREPUBLISH=true')

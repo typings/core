@@ -1,4 +1,8 @@
 {
+  "resolution": {
+    "main": "typings/main",
+    "browser": "typings/browser"
+  },
   "dependencies": {
     "test": "file:custom_typings/definition.d.ts"
   },

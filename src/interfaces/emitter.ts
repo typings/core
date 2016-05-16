@@ -41,7 +41,7 @@ export interface ReferenceEvent {
   name: string
   path: string
   tree: DependencyTree
-  browser: boolean
+  resolution: string
   reference: string
 }
 
@@ -76,7 +76,7 @@ export interface CompileEvent {
   name: string
   path: string
   tree: DependencyTree
-  browser: boolean
+  resolution: boolean
 }
 
 /**
@@ -128,5 +128,5 @@ export interface BadLocationEvent {
 export interface PruneEvent {
   name: string
   ambient: boolean
-  browser: boolean
+  resolution: string
 }

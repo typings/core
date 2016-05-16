@@ -4,12 +4,12 @@ import { join } from 'path'
 import { prune } from './prune'
 import { readFile, writeFile, mkdirp, isFile } from './utils/fs'
 
-const BROWSER_AMBIENT_TYPINGS = 'typings/browser/ambient/test/index.d.ts'
-const BROWSER_TYPINGS = 'typings/browser/definitions/test/index.d.ts'
-const MAIN_AMBIENT_TYPINGS = 'typings/main/ambient/test/index.d.ts'
-const MAIN_TYPINGS = 'typings/main/definitions/test/index.d.ts'
-const BROWSER_INDEX = 'typings/browser.d.ts'
-const MAIN_INDEX = 'typings/main.d.ts'
+const BROWSER_AMBIENT_TYPINGS = 'typings/browser/globals/test/index.d.ts'
+const BROWSER_TYPINGS = 'typings/browser/modules/test/index.d.ts'
+const MAIN_AMBIENT_TYPINGS = 'typings/main/globals/test/index.d.ts'
+const MAIN_TYPINGS = 'typings/main/modules/test/index.d.ts'
+const BROWSER_INDEX = 'typings/browser/index.d.ts'
+const MAIN_INDEX = 'typings/main/index.d.ts'
 
 test('prune', t => {
   t.test('remove extraneous typings', t => {
@@ -38,14 +38,14 @@ test('prune', t => {
         hasMainDefinition
       ]) => {
         t.equal(browserDts, [
-          `/// <reference path="browser/ambient/test/index.d.ts" />`,
-          `/// <reference path="browser/definitions/test/index.d.ts" />`,
+          `/// <reference path="globals/test/index.d.ts" />`,
+          `/// <reference path="modules/test/index.d.ts" />`,
           ``
         ].join('\n'))
 
         t.equal(mainDts, [
-          `/// <reference path="main/ambient/test/index.d.ts" />`,
-          `/// <reference path="main/definitions/test/index.d.ts" />`,
+          `/// <reference path="globals/test/index.d.ts" />`,
+          `/// <reference path="modules/test/index.d.ts" />`,
           ``
         ].join('\n'))
 
@@ -100,10 +100,10 @@ function generateTestDefinitions (directory: string) {
   const FAKE_MODULE = `export function test (): boolean;\n`
 
   const dirs = [
-    join(directory, 'typings/main/ambient/test'),
-    join(directory, 'typings/browser/ambient/test'),
-    join(directory, 'typings/main/definitions/test'),
-    join(directory, 'typings/browser/definitions/test')
+    join(directory, 'typings/main/globals/test'),
+    join(directory, 'typings/browser/globals/test'),
+    join(directory, 'typings/main/modules/test'),
+    join(directory, 'typings/browser/modules/test')
   ]
 
   return Promise.all(dirs.map(dir => mkdirp(dir)))
@@ -114,15 +114,15 @@ function generateTestDefinitions (directory: string) {
         writeFile(join(directory, MAIN_AMBIENT_TYPINGS), FAKE_AMBIENT_MODULE),
         writeFile(join(directory, MAIN_TYPINGS), FAKE_MODULE),
         writeFile(join(directory, BROWSER_INDEX), [
-          `/// <reference path="browser/ambient/test/index.d.ts" />`,
-          `/// <reference path="browser/definitions/test/index.d.ts" />`,
-          `/// <reference path="browser/definitions/extraneous/index.d.ts" />`,
+          `/// <reference path="globals/test/index.d.ts" />`,
+          `/// <reference path="modules/test/index.d.ts" />`,
+          `/// <reference path="modules/extraneous/index.d.ts" />`,
           ``
         ].join('\n')),
         writeFile(join(directory, MAIN_INDEX), [
-          `/// <reference path="main/ambient/test/index.d.ts" />`,
-          `/// <reference path="main/definitions/test/index.d.ts" />`,
-          `/// <reference path="main/definitions/extraneous/index.d.ts" />`,
+          `/// <reference path="globals/test/index.d.ts" />`,
+          `/// <reference path="modules/test/index.d.ts" />`,
+          `/// <reference path="modules/extraneous/index.d.ts" />`,
           ``
         ].join('\n'))
       ])

@@ -1,4 +1,5 @@
 import * as fs from 'graceful-fs'
+import extend = require('xtend')
 import Promise = require('any-promise')
 import thenify = require('thenify')
 import stripBom = require('strip-bom')
@@ -22,7 +23,7 @@ import template = require('string-template')
 import { CONFIG_FILE } from './config'
 import { isHttp, EOL, detectEOL, normalizeEOL } from './path'
 import { parseReferences, stringifyReferences } from './references'
-import { ConfigJson, Emitter } from '../interfaces'
+import { ConfigJson, DependencyTree, DependencyBranch } from '../interfaces'
 import rc from './rc'
 import store from './store'
 import debug from './debug'
@@ -52,32 +53,10 @@ export const readdir: PathOp<string[]> = throat(10, thenify(fs.readdir))
 export const rmdir: PathOp<void> = throat(10, thenify<string, void>(fs.rmdir))
 
 /**
- * Recursively mkdir and write the file contents.
- */
-export function mkdirpAndWriteFile (path: string, contents: string | Buffer) {
-  return mkdirp(dirname(path)).then(() => writeFile(path, contents))
-}
-
-/**
- * Remove a file, and directories, recursively until we hit cwd.
- */
-export function rmUntil (path: string, options: { cwd: string, emitter: Emitter }) {
-  return isFile(path)
-    .then(exists => {
-      if (exists) {
-        return unlink(path)
-      }
-
-      options.emitter.emit('enoent', { path })
-    })
-    .then(() => rmdirUntil(dirname(path), options))
-}
-
-/**
  * Remove directories until a root directory, while empty.
  */
-export function rmdirUntil (path: string, options: { cwd: string }): Promise<void> {
-  if (path === options.cwd) {
+export function rmdirUntil (path: string, until: string): Promise<void> {
+  if (path === until) {
     return Promise.resolve()
   }
 
@@ -89,7 +68,7 @@ export function rmdirUntil (path: string, options: { cwd: string }): Promise<voi
       }
 
       return rmdir(path)
-        .then(() => rmdirUntil(dirname(path), options))
+        .then(() => rmdirUntil(dirname(path), until))
     })
     .catch(err => {
       if (err.code === 'ENOENT') {
@@ -325,6 +304,9 @@ export function transformConfig (cwd: string, transform: (config: ConfigJson) =>
   )
 }
 
+/**
+ * Transform a `.d.ts` file with references in-place.
+ */
 export function transformDtsFile (path: string, transform: (typings: string[]) => string[] | Promise<string[]>) {
   const cwd = dirname(path)
 
@@ -334,4 +316,37 @@ export function transformDtsFile (path: string, transform: (typings: string[]) =
     return Promise.resolve(transform(typings))
       .then(typings => stringifyReferences(uniq(typings).sort(), cwd))
   })
+}
+
+/**
+ * Convert the dependency tree into a JSON-safe structure.
+ */
+export function treeToJson (tree: DependencyTree) {
+  return extend(tree, {
+    parent: undefined,
+    dependencies: dependenciesToJson(tree.dependencies),
+    devDependencies: dependenciesToJson(tree.devDependencies),
+    peerDependencies: dependenciesToJson(tree.peerDependencies),
+    ambientDependencies: dependenciesToJson(tree.ambientDependencies),
+    ambientDevDependencies: dependenciesToJson(tree.ambientDevDependencies)
+  })
+}
+
+/**
+ * Convert a map of dependencies to JSON-safe structures.
+ */
+export function dependenciesToJson (dependencies: DependencyBranch) {
+  const json: DependencyBranch = {}
+  const keys = Object.keys(dependencies)
+
+  // Omit empty dependency objects.
+  if (keys.length === 0) {
+    return
+  }
+
+  for (const key of keys) {
+    json[key] = treeToJson(dependencies[key])
+  }
+
+  return json
 }

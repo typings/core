@@ -1,8 +1,8 @@
 import Promise = require('any-promise')
-import { resolve, join } from 'path'
+import { resolve, dirname } from 'path'
 import { EventEmitter } from 'events'
 import { resolveAllDependencies } from './lib/dependencies'
-import compile, { CompileResult } from './lib/compile'
+import { CompileResult, compile } from './lib/compile'
 import { writeFile, mkdirp } from './utils/fs'
 import { Emitter } from './interfaces'
 import { InstallResult } from './install'
@@ -14,6 +14,7 @@ export interface BundleOptions {
   name?: string
   cwd: string
   ambient?: boolean
+  resolution?: string
   out: string
   emitter?: Emitter
 }
@@ -24,6 +25,7 @@ export interface BundleOptions {
 export function bundle (options: BundleOptions): Promise<InstallResult> {
   const { cwd, ambient, out } = options
   const emitter = options.emitter || new EventEmitter()
+  const resolution = options.resolution || 'main'
 
   if (out == null) {
     return Promise.reject(new TypeError('Out directory is required for bundle'))
@@ -39,17 +41,14 @@ export function bundle (options: BundleOptions): Promise<InstallResult> {
         ))
       }
 
-      return compile(tree, { cwd, name, ambient, emitter, meta: true })
+      return compile(tree, [resolution], { cwd, name, ambient, emitter, meta: true })
     })
     .then((output: CompileResult) => {
       const path = resolve(cwd, out)
 
-      return mkdirp(path)
+      return mkdirp(dirname(path))
         .then(() => {
-          return Promise.all([
-            writeFile(join(path, 'main.d.ts'), output.main),
-            writeFile(join(path, 'browser.d.ts'), output.browser)
-          ])
+          return writeFile(path, output.results[resolution])
         })
         .then(() => ({ tree: output.tree }))
     })

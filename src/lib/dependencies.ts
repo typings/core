@@ -15,7 +15,7 @@ import TypingsError from './error'
 /**
  * Default dependency config options.
  */
-const DEFAULT_DEPENDENCY: DependencyTree = {
+export const DEFAULT_DEPENDENCY: DependencyTree = {
   src: undefined,
   raw: undefined,
   main: undefined,

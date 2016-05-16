@@ -1,10 +1,11 @@
 import extend = require('xtend')
 import Promise = require('any-promise')
 import { EventEmitter } from 'events'
-import { transformConfig, transformDtsFile, rmUntil } from './utils/fs'
-import { findProject } from './utils/find'
-import { getDependencyLocation, getTypingsLocation } from './utils/path'
-import { Emitter } from './interfaces'
+import { dirname } from 'path'
+import { transformConfig, transformDtsFile, rmdirUntil, unlink, isFile, readConfig } from './utils/fs'
+import { findConfigFile } from './utils/find'
+import { getDependencyPath, normalizeResolutions, getDefinitionPath } from './utils/path'
+import { Emitter, ResolutionMap } from './interfaces'
 
 /**
  * Uninstall options.
@@ -31,10 +32,23 @@ export function uninstallDependency (name: string, options: UninstallDependencyO
 export function uninstallDependencies (names: string[], options: UninstallDependencyOptions) {
   const emitter = options.emitter || new EventEmitter()
 
-  return findProject(options.cwd)
+  return findConfigFile(options.cwd)
     .then(
-      (cwd) => extend(options, { cwd, emitter }),
-      () => extend(options, { emitter })
+      (configFile) => {
+        const cwd = dirname(configFile)
+
+        return readConfig(configFile)
+          .then(config => {
+            const resolutions = normalizeResolutions(config.resolution, options)
+
+            return extend(options, { resolutions, cwd, emitter })
+          })
+      },
+      () => {
+        const resolutions = normalizeResolutions(undefined, options)
+
+        return extend(options, { emitter, resolutions })
+      }
     )
     .then(options => {
       return Promise.all(names.map(x => uninstallFrom(x, options)))
@@ -44,17 +58,35 @@ export function uninstallDependencies (names: string[], options: UninstallDepend
     })
 }
 
+interface UninstallDependencyNestedOptions extends UninstallDependencyOptions {
+  resolutions: ResolutionMap
+}
+
 /**
  * Uninstall the dependency.
  */
-function uninstallFrom (name: string, options: UninstallDependencyOptions) {
-  const { cwd, ambient, emitter } = options
-  const location = getDependencyLocation({ name, cwd, ambient })
+function uninstallFrom (name: string, options: UninstallDependencyNestedOptions) {
+  const { cwd, ambient, emitter, resolutions } = options
 
-  return Promise.all([
-    rmUntil(location.main, { cwd, emitter }),
-    rmUntil(location.browser, { cwd, emitter })
-  ])
+  return Promise.all(Object.keys(resolutions).map(type => {
+    const path = resolutions[type]
+    const { directory, definition, config } = getDependencyPath({ path, name, ambient })
+
+    return isFile(definition)
+      .then(exists => {
+        if (!exists) {
+          emitter.emit('enoent', { path: definition })
+
+          return
+        }
+
+        return Promise.all([
+          unlink(definition),
+          unlink(config)
+        ])
+          .then(() => rmdirUntil(directory, cwd))
+      })
+  }))
 }
 
 /**
@@ -113,15 +145,16 @@ function writeToConfig (names: string[], options: UninstallDependencyOptions) {
 /**
  * Write the uninstall result to the bundle.
  */
-function writeBundle (names: string[], options: UninstallDependencyOptions) {
-  const { cwd, ambient } = options
-  const bundle = getTypingsLocation(options)
-  const locations = names.map(name => getDependencyLocation({ name, cwd, ambient }))
-  const mainLocations = locations.map(x => x.main)
-  const browserLocations = locations.map(x => x.browser)
+function writeBundle (names: string[], options: UninstallDependencyNestedOptions) {
+  const { ambient, resolutions } = options
 
-  return Promise.all([
-    transformDtsFile(bundle.main, x => x.filter(x => mainLocations.indexOf(x) === -1)),
-    transformDtsFile(bundle.browser, x => x.filter(x => browserLocations.indexOf(x) === -1))
-  ])
+  return Promise.all(Object.keys(resolutions).map(type => {
+    const path = resolutions[type]
+    const bundle = getDefinitionPath(path)
+    const paths = names.map(name => getDependencyPath({ path, name, ambient }).definition)
+
+    return transformDtsFile(bundle, references => {
+      return references.filter(x => paths.indexOf(x) === -1)
+    })
+  }))
 }

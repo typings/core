@@ -4,8 +4,8 @@ import extend = require('xtend')
 import { EventEmitter } from 'events'
 import { Emitter } from './interfaces'
 import { findConfigFile } from './utils/find'
-import { readConfig, transformDtsFile, rmUntil } from './utils/fs'
-import { getTypingsLocation, getInfoFromDependencyLocation } from './utils/path'
+import { readConfig, transformDtsFile, rmdirUntil, unlink, isFile } from './utils/fs'
+import { normalizeResolutions, getInfoFromDependencyLocation, getDefinitionPath, getDependencyPath } from './utils/path'
 import { ConfigJson, Dependencies } from './interfaces'
 
 export interface PruneOptions {
@@ -37,14 +37,13 @@ export function prune (options: PruneOptions): Promise<void> {
  */
 function transformBundles (config: ConfigJson, options: PruneOptions) {
   const { production } = options
-  const bundle = getTypingsLocation(options)
+  const resolutions = normalizeResolutions(config.resolution, options)
   const dependencies = extend(config.dependencies, config.peerDependencies, production ? {} : config.devDependencies)
   const ambientDependencies = extend(config.ambientDependencies, production ? {} : config.ambientDevDependencies)
 
-  return Promise.all([
-    transformBundle(bundle.main, dependencies, ambientDependencies, options),
-    transformBundle(bundle.browser, dependencies, ambientDependencies, options)
-  ]).then(() => undefined)
+  return Promise.all(Object.keys(resolutions).map(type => {
+    return transformBundle(resolutions[type], type, dependencies, ambientDependencies, options)
+  })).then(() => undefined)
 }
 
 /**
@@ -52,38 +51,75 @@ function transformBundles (config: ConfigJson, options: PruneOptions) {
  */
 function transformBundle (
   path: string,
+  resolution: string,
   dependencies: Dependencies,
   ambientDependencies: Dependencies,
   options: PruneOptions
 ) {
   const { emitter } = options
-  const cwd = dirname(path)
   const rmQueue: Array<Promise<void>> = []
+  const bundle = getDefinitionPath(path)
 
-  return transformDtsFile(path, typings => {
-    const infos = typings.map(x => getInfoFromDependencyLocation(x, { cwd }))
-    const validPaths: string[] = []
-
-    for (const { name, ambient, path, browser } of infos) {
-      if (ambient) {
-        if (!ambientDependencies.hasOwnProperty(name)) {
-          emitter.emit('prune', { name, ambient, browser })
-          rmQueue.push(rmUntil(path, { cwd, emitter }))
-        } else {
-          validPaths.push(path)
-        }
-      } else {
-        if (!dependencies.hasOwnProperty(name)) {
-          emitter.emit('prune', { name, ambient, browser })
-          rmQueue.push(rmUntil(path, { cwd, emitter }))
-        } else {
-          validPaths.push(path)
-        }
+  return isFile(bundle)
+    .then(exists => {
+      // Avoid pruning an un-installed tree.
+      if (!exists) {
+        return
       }
-    }
 
-    return validPaths
-  })
+      return transformDtsFile(bundle, typings => {
+        const infos = typings.map(x => getInfoFromDependencyLocation(x, bundle))
+        const validPaths: string[] = []
+
+        for (const { name, ambient, location } of infos) {
+          if (ambient) {
+            if (!ambientDependencies.hasOwnProperty(name)) {
+              emitter.emit('prune', { name, ambient, resolution })
+              rmQueue.push(rmDependency({ name, ambient, path, emitter }))
+            } else {
+              validPaths.push(location)
+            }
+          } else {
+            if (!dependencies.hasOwnProperty(name)) {
+              emitter.emit('prune', { name, ambient, resolution })
+              rmQueue.push(rmDependency({ name, ambient, path, emitter }))
+            } else {
+              validPaths.push(location)
+            }
+          }
+        }
+
+        return validPaths
+      })
+    })
     .then(() => Promise.all(rmQueue))
     .then(() => undefined)
+}
+
+/**
+ * Remove a dependency.
+ */
+export function rmDependency (options: { name: string, ambient: boolean, path: string, emitter: Emitter }) {
+  const { path, emitter } = options
+  const { directory, definition, config } = getDependencyPath(options)
+
+  // Remove files and emit warning on ENOENT.
+  function remove (path: string) {
+    return isFile(path)
+      .then(exists => {
+        if (!exists) {
+          emitter.emit('enoent', { path })
+
+          return
+        }
+
+        return unlink(path)
+      })
+  }
+
+  return Promise.all([
+    remove(config),
+    remove(definition)
+  ])
+    .then(() => rmdirUntil(directory, path))
 }

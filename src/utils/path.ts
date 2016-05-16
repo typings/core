@@ -1,12 +1,8 @@
 import { resolve, dirname, relative, extname, join, sep } from 'path'
 import { resolve as resolveUrl, parse as parseUrl, format as formatUrl } from 'url'
-import { TYPINGS_DIR, DTS_MAIN_FILE, DTS_BROWSER_FILE } from './config'
 import isAbsolute = require('is-absolute')
-
-const mainTypingsDir = join(TYPINGS_DIR, 'main/definitions')
-const browserTypingsDir = join(TYPINGS_DIR, 'browser/definitions')
-const ambientMainTypingsDir = join(TYPINGS_DIR, 'main/ambient')
-const ambientBrowserTypingsDir = join(TYPINGS_DIR, 'browser/ambient')
+import { DEFAULT_TYPINGS_DIR } from './config'
+import { ResolutionMap } from '../interfaces'
 
 /**
  * Consistent EOL behaviour.
@@ -140,61 +136,48 @@ export function normalizeToDefinition (path: string) {
   return toDefinition(ext ? path.slice(0, -ext.length) : path)
 }
 
-export interface TypingsLocationResult extends LocationResult {
-  typings: string
-}
-
 /**
  * Get definition installation paths.
  */
-export function getTypingsLocation (options: { cwd: string }): TypingsLocationResult {
-  const typings = join(options.cwd, TYPINGS_DIR)
-  const main = join(typings, DTS_MAIN_FILE)
-  const browser = join(typings, DTS_BROWSER_FILE)
-
-  return { main, browser, typings }
+export function getDefinitionPath (path: string): string {
+  return join(path, 'index.d.ts')
 }
 
 export interface LocationOptions {
-  cwd: string
   name: string
+  path: string
   ambient: boolean
 }
 
-export interface LocationResult {
-  main: string
-  browser: string
-}
-
-export interface DependencyLocationResult extends LocationResult {
-  mainDir: string
-  browserDir: string
+export interface DependencyLocationResult {
+  definition: string
+  directory: string
+  config: string
 }
 
 /**
  * Return the dependency output locations based on definition options.
  */
-export function getDependencyLocation (options: LocationOptions): DependencyLocationResult {
-  const mainDir = options.ambient ? ambientMainTypingsDir : mainTypingsDir
-  const browserDir = options.ambient ? ambientBrowserTypingsDir : browserTypingsDir
+export function getDependencyPath (options: LocationOptions): DependencyLocationResult {
+  const type = options.ambient ? 'globals' : 'modules'
 
-  const main = join(options.cwd, mainDir, options.name, 'index.d.ts')
-  const browser = join(options.cwd, browserDir, options.name, 'index.d.ts')
+  const directory = join(options.path, type, options.name)
+  const definition = getDefinitionPath(directory)
+  const config = join(directory, 'typings.json')
 
-  return { mainDir, browserDir, main, browser }
+  return { directory, definition, config }
 }
 
 /**
  * Return information about the typings path.
  */
-export function getInfoFromDependencyLocation (path: string, options: { cwd: string }) {
-  const parts = relative(options.cwd, path).split(sep)
+export function getInfoFromDependencyLocation (location: string, bundle: string) {
+  const parts = relativeTo(bundle, location).split(sep)
 
   return {
-    path: path,
-    browser: parts[0] === 'browser',
-    ambient: parts[1] === 'ambient',
-    name: parts.slice(2, -1).join('/')
+    location,
+    ambient: parts[0] === 'globals',
+    name: parts.slice(1, -1).join('/')
   }
 }
 
@@ -211,4 +194,23 @@ export function detectEOL (contents: string) {
  */
 export function normalizeEOL (contents: string, eol: string) {
   return contents.replace(/\r\n|\r|\n/g, eol)
+}
+
+/**
+ * Generate a resolved locations map.
+ */
+export function normalizeResolutions (resolutions: string | ResolutionMap, options: { cwd: string }): ResolutionMap {
+  const resolutionMap: ResolutionMap = {}
+
+  if (typeof resolutions === 'object') {
+    for (const type of Object.keys(resolutions)) {
+      resolutionMap[type] = join(options.cwd, resolutions[type])
+    }
+  } else if (typeof resolutions === 'string') {
+    resolutionMap.main = join(options.cwd, resolutions)
+  } else {
+    resolutionMap.main = join(options.cwd, DEFAULT_TYPINGS_DIR)
+  }
+
+  return resolutionMap
 }

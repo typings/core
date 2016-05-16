@@ -16,6 +16,10 @@ export interface ConfigJson {
    */
   version?: string
   /**
+   * Map of resolutions to install.
+   */
+  resolution?: string | ResolutionMap
+  /**
    * Used as an alternative or to complement `main`, specify an array of files that are
    * exported but aren't already part of the resolution from `main`.
    */
@@ -77,4 +81,13 @@ export interface Overrides {
  */
 export interface Dependencies {
   [name: string]: DependencyString
+}
+
+/**
+ * A map of installation resolutions.
+ */
+export interface ResolutionMap {
+  main?: string
+  browser?: string
+  [resolution: string]: string
 }

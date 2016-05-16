@@ -2,14 +2,26 @@ import extend = require('xtend')
 import Promise = require('any-promise')
 import { dirname, join } from 'path'
 import { EventEmitter } from 'events'
-import { resolveDependency, resolveTypeDependencies } from './lib/dependencies'
-import compile, { CompileResult } from './lib/compile'
-import { findProject, findUp } from './utils/find'
-import { transformConfig, mkdirp, touch, transformDtsFile, readJson, mkdirpAndWriteFile } from './utils/fs'
-import { getTypingsLocation, getDependencyLocation, resolveFrom } from './utils/path'
+import { resolveDependency, resolveTypeDependencies, DEFAULT_DEPENDENCY } from './lib/dependencies'
+import { compile, CompileResult } from './lib/compile'
+import { findConfigFile, findUp } from './utils/find'
+import {
+  transformConfig,
+  mkdirp,
+  touch,
+  transformDtsFile,
+  writeJson,
+  writeFile,
+  readJson,
+  readConfig,
+  treeToJson
+} from './utils/fs'
+import { resolveFrom, normalizeResolutions, getDependencyPath, getDefinitionPath } from './utils/path'
 import { parseDependency, parseDependencyExpression, buildDependencyExpression } from './utils/parse'
-import { DependencyTree, Dependency, DependencyBranch, Emitter } from './interfaces'
+import { DependencyTree, Dependency, DependencyBranch, Emitter, ResolutionMap } from './interfaces'
+import { CONFIG_FILE } from './utils/config'
 
+// Re-export useful expression building functions.
 export { parseDependencyExpression, buildDependencyExpression }
 
 /**
@@ -42,38 +54,75 @@ export interface InstallResult {
 }
 
 /**
+ * Options for compiling.
+ */
+export interface InstallDependencyNestedOptions extends InstallDependencyOptions {
+  resolutions: ResolutionMap
+}
+
+/**
  * Install all dependencies on the current project.
  */
 export function install (options: InstallOptions): Promise<InstallResult> {
   const { cwd, production } = options
   const emitter = options.emitter || new EventEmitter()
 
-  return resolveTypeDependencies({ cwd, emitter, ambient: true, peer: true, dev: !production })
-    .then(tree => {
-      const cwd = dirname(tree.src)
-      const queue: Array<Promise<CompileResult>> = []
+  return findConfigFile(cwd)
+    .then(
+      (configFile) => {
+        const cwd = dirname(configFile)
 
-      function addToQueue (deps: DependencyBranch, ambient: boolean) {
-        for (const name of Object.keys(deps)) {
-          const tree = deps[name]
+        return readConfig(configFile)
+          .then(config => {
+            const resolutions = normalizeResolutions(config.resolution, options)
 
-          queue.push(compile(tree, { cwd, name, ambient, emitter, meta: true }))
-        }
+            return resolveTypeDependencies({
+              cwd,
+              emitter,
+              ambient: true,
+              peer: true,
+              dev: !production
+            })
+              .then(tree => {
+                const cwd = dirname(tree.src)
+                const queue: Array<Promise<CompileResult>> = []
+
+                function addToQueue (deps: DependencyBranch, ambient: boolean) {
+                  for (const name of Object.keys(deps)) {
+                    const tree = deps[name]
+
+                    queue.push(compile(tree, Object.keys(resolutions), {
+                      cwd,
+                      name,
+                      ambient,
+                      emitter,
+                      meta: true
+                    }))
+                  }
+                }
+
+                addToQueue(tree.dependencies, false)
+                addToQueue(tree.devDependencies, false)
+                addToQueue(tree.peerDependencies, false)
+                addToQueue(tree.ambientDependencies, true)
+                addToQueue(tree.ambientDevDependencies, true)
+
+                return Promise.all(queue)
+                  .then(results => {
+                    return Promise.all(results.map(x => writeResult(x, { resolutions })))
+                      .then(() => writeBundle(results, { resolutions }))
+                      .then(() => ({ tree }))
+                  })
+              })
+          })
+      },
+      () => {
+        emitter.emit('enoent', { path: join(cwd, CONFIG_FILE) })
+
+        return { tree: extend(DEFAULT_DEPENDENCY) }
       }
+    )
 
-      addToQueue(tree.dependencies, false)
-      addToQueue(tree.devDependencies, false)
-      addToQueue(tree.peerDependencies, false)
-      addToQueue(tree.ambientDependencies, true)
-      addToQueue(tree.ambientDevDependencies, true)
-
-      return Promise.all(queue)
-        .then(results => {
-          return Promise.all(results.map(x => writeResult(x)))
-            .then(() => writeBundle(results, options))
-            .then(() => ({ tree }))
-        })
-    })
 }
 
 /**
@@ -121,15 +170,28 @@ export function installDependencies (
 ): Promise<InstallResult[]> {
   const emitter = options.emitter || new EventEmitter()
 
-  return findProject(options.cwd)
+  return findConfigFile(options.cwd)
     .then(
-      (cwd) => extend(options, { cwd, emitter }),
-      () => extend(options, { emitter })
+      (configFile) => {
+        const cwd = dirname(configFile)
+
+        return readConfig(configFile)
+          .then(config => {
+            const resolutions = normalizeResolutions(config.resolution, options)
+
+            return extend(options, { resolutions, cwd, emitter })
+          })
+      },
+      () => {
+        const resolutions = normalizeResolutions(undefined, options)
+
+        return extend(options, { emitter, resolutions })
+      }
     )
     .then(options => {
       return Promise.all(expressions.map(x => compileDependency(x, options)))
         .then(results => {
-          return Promise.all(results.map(x => writeResult(x)))
+          return Promise.all(results.map(x => writeResult(x, options)))
             .then(() => writeBundle(results, options))
             .then(() => writeToConfig(results, options))
             .then(() => results.map(({ name, tree }) => ({ name, tree })))
@@ -140,9 +202,12 @@ export function installDependencies (
 /**
  * Install from a dependency string.
  */
-function compileDependency (expression: InstallExpression, options: InstallDependencyOptions): Promise<CompileResult> {
+function compileDependency (
+  expression: InstallExpression,
+  options: InstallDependencyNestedOptions
+): Promise<CompileResult> {
   const dependency = parseDependency(expression.location)
-  const { cwd, ambient } = options
+  const { cwd, ambient, resolutions } = options
   const emitter = options.emitter || new EventEmitter()
   const expName = expression.name || dependency.meta.name
 
@@ -161,7 +226,7 @@ function compileDependency (expression: InstallExpression, options: InstallDepen
         emitter.emit('postmessage', { name, message: tree.postmessage })
       }
 
-      return compile(tree, {
+      return compile(tree, Object.keys(resolutions), {
         cwd,
         name,
         ambient,
@@ -212,37 +277,46 @@ function writeToConfig (results: CompileResult[], options: InstallDependencyOpti
 /**
  * Write a dependency to the filesytem.
  */
-function writeBundle (results: CompileResult[], options: { cwd: string }): Promise<any> {
-  const bundle = getTypingsLocation(options)
-  const locations = results.map(x => getDependencyLocation(x))
+function writeBundle (results: CompileResult[], options: { resolutions: ResolutionMap }): Promise<any> {
+  const { resolutions } = options
 
-  return mkdirp(bundle.typings)
-    .then(() => {
-      // Touch typings when no locations are installed.
-      if (locations.length === 0) {
-        return Promise.all([
-          touch(bundle.main),
-          touch(bundle.browser)
-        ])
-      }
+  return Promise.all(Object.keys(resolutions).map(resolution => {
+    const path = resolutions[resolution]
+    const paths = results.map(({ name, ambient }) => getDependencyPath({ path, name, ambient }).definition)
 
-      return Promise.all([
-        transformDtsFile(bundle.main, x => x.concat(locations.map(x => x.main))),
-        transformDtsFile(bundle.browser, x => x.concat(locations.map(x => x.browser)))
-      ])
-    })
+    return mkdirp(path)
+      .then(() => {
+        const bundle = getDefinitionPath(path)
+
+        if (paths.length === 0) {
+          return touch(bundle)
+        }
+
+        return transformDtsFile(bundle, x => x.concat(paths))
+      })
+  }))
 }
 
 /**
  * Write a compilation result.
  */
-function writeResult (result: CompileResult): Promise<any> {
-  const location = getDependencyLocation(result)
+function writeResult (result: CompileResult, options: { resolutions: ResolutionMap }): Promise<any> {
+  const { name, ambient, tree, results } = result
+  const { resolutions } = options
 
-  return Promise.all([
-    mkdirpAndWriteFile(location.main, result.main),
-    mkdirpAndWriteFile(location.browser, result.browser)
-  ])
+  return Promise.all(Object.keys(resolutions).map(resolution => {
+    const path = resolutions[resolution]
+    const contents = results[resolution]
+    const { directory, config, definition } = getDependencyPath({ name, ambient, path })
+
+    return mkdirp(directory)
+      .then(() => {
+        return Promise.all([
+          writeJson(config, { resolution, tree: treeToJson(tree) }),
+          writeFile(definition, contents)
+        ])
+      })
+  }))
 }
 
 /**

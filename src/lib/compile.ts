@@ -441,7 +441,9 @@ function getModuleNameParts (name: string, tree: DependencyTree): [string, strin
   const parts = name.split(/[\\\/]/g)
   let len = parts.length
 
-  while (len--) {
+  while (len) {
+    len--
+
     const name = parts.slice(0, len).join('/')
     const path = parts.slice(len).join('/')
 

@@ -109,7 +109,7 @@ test('parse', t => {
         type: 'bower',
         meta: {
           name: 'foobar',
-          path: 'typings.json'
+          path: CONFIG_FILE
         },
         location: normalize('foobar/' + CONFIG_FILE)
       }
@@ -126,7 +126,7 @@ test('parse', t => {
         meta: {
           name: undefined,
           org: 'foo',
-          path: 'typings.json',
+          path: CONFIG_FILE,
           repo: 'bar',
           sha: 'master'
         },
@@ -145,7 +145,7 @@ test('parse', t => {
         meta: {
           name: undefined,
           org: 'foo',
-          path: 'typings.json',
+          path: CONFIG_FILE,
           repo: 'bar',
           sha: 'test'
         },
@@ -183,7 +183,7 @@ test('parse', t => {
         meta: {
           name: undefined,
           org: 'foo',
-          path: 'src/typings.json',
+          path: `src/${CONFIG_FILE}`,
           repo: 'bar',
           sha: 'master'
         },
@@ -202,7 +202,7 @@ test('parse', t => {
         meta: {
           name: undefined,
           org: 'foo',
-          path: 'typings.json',
+          path: CONFIG_FILE,
           repo: 'bar',
           sha: 'master'
         },
@@ -221,7 +221,7 @@ test('parse', t => {
         meta: {
           name: undefined,
           org: 'foo',
-          path: 'dir/typings.json',
+          path: `dir/${CONFIG_FILE}`,
           repo: 'bar',
           sha: 'master'
         },
@@ -240,7 +240,7 @@ test('parse', t => {
         meta: {
           name: undefined,
           org: 'foo',
-          path: 'typings.json',
+          path: CONFIG_FILE,
           repo: 'bar',
           sha: 'abc'
         },

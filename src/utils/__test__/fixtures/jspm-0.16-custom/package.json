@@ -1,0 +1,11 @@
+{
+  "jspm": true,
+  "directories": {
+    "packages": "cust_packages"
+  },
+  "configFile": "myjspm.js",
+  "dependencies": {
+    "domready": "npm:domready@^1.0.8",
+    "lodash": "npm:lodash@^4.13.1"
+  }
+}

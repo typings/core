@@ -1,0 +1,3 @@
+SystemJS.config({
+  baseURL: "/"
+});

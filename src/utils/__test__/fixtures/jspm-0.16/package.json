@@ -1,0 +1,7 @@
+{
+  "jspm": {
+    "dependencies": {
+      "domready": "npm:domready@^1.0.8"
+    }
+  }
+}

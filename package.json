@@ -81,7 +81,7 @@
     "nock": "^8.0.0",
     "shelljs": "^0.7.0",
     "tap-diff": "^0.1.1",
-    "ts-node": "^0.8.0",
+    "ts-node": "^0.9.0",
     "tslint": "^3.10.2",
     "tslint-config-standard": "^1.0.0"
   }

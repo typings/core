@@ -25,7 +25,7 @@ if (!which('tsc')) {
   exit(1)
 }
 
-if (exec('tsc').code !== 0) {
+if (exec('tsc -p tsconfig.build.json').code !== 0) {
   console.log('tsc completed build as expected')
   console.log('')
 }

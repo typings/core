@@ -70,13 +70,17 @@ export function readConfig(pjsonPath: string): Promise<Metadata> {
 
       const basePath = dirname(pjsonPath)
 
-      const configFiles = picked.configFiles ? {
-        jspm: picked.configFiles.jspm,
-        node: picked.configFiles['jspm:node']
-      } : picked.configFile ? {
-        jspm: picked.configFile,
-        node: undefined
-      } : {
+      const configFiles = picked.configFiles ?
+        {
+          jspm: picked.configFiles.jspm,
+          node: picked.configFiles['jspm:node']
+        } :
+        picked.configFile ?
+          {
+            jspm: picked.configFile,
+            node: undefined
+          } :
+          {
             jspm: isFile(join(basePath, 'jspm.config.js')) ?
               'jspm.config.js' : 'config.js',
             node: undefined

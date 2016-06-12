@@ -10,7 +10,7 @@
   ],
   "scripts": {
     "lint": "tslint \"src/**/*.ts\" -e \"**/__test__/**\"",
-    "build": "rimraf dist && tsc",
+    "build": "rimraf dist && tsc -p tsconfig.build.json",
     "dependency-check": "dependency-check . --unused --no-dev && dependency-check . --missing --no-dev",
     "test-spec": "ts-node node_modules/blue-tape/bin/blue-tape.js \"src/**/*.spec.ts\" | tap-diff",
     "test-cov": "ts-node node_modules/istanbul/lib/cli.js cover -e .ts --print none -x \"*.d.ts\" -x \"*.spec.ts\" node_modules/blue-tape/bin/blue-tape.js -- \"src/**/*.spec.ts\" | tap-diff",

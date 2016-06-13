@@ -15,7 +15,7 @@ export function fixture(path: string): FixtureTest {
       cb: (t: test.Test, path: string) => any
     ) => {
       const fixturePath = join(path, fixtureName)
-      return testfn(`${title} ${fixtureName}`, t => {
+      return testfn(`${title} (fixture: ${fixtureName})`, t => {
         return cb(t, fixturePath)
       })
     }

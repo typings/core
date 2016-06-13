@@ -32,8 +32,10 @@ function readJspmConfig(jspm: string, node?: string): any {
   }
   g.SystemJS = g.System
   require(jspm)
+  delete require.cache[require.resolve(jspm)]
   if (node) {
     require(node)
+    delete require.cache[require.resolve(node)]
   }
 
   g.System = sys

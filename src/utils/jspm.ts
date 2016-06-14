@@ -46,7 +46,7 @@ function readJspmConfig(jspm: string, node?: string): any {
 /**
  * Read jspm Metadata from the specified path to package.json.
  * @param pjsonPath Path to package.json of the current project/module.
- * @return Promise with Metadata. Promise will null if it is not a jspm package.
+ * @return Promise with Metadata. Promise will resolve to null if the project does not use jspm.
  */
 export function readConfig(pjsonPath: string): Promise<Metadata> {
   return readJson(pjsonPath)

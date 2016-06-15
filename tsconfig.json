@@ -11,7 +11,6 @@
     "dist",
     "node_modules",
     "scripts",
-    "spec-out",
     "src/__test__",
     "src/lib/__test__",
     "src/utils/__test__"

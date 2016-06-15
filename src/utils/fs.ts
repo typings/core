@@ -258,7 +258,7 @@ export function transformFile (path: string, transform: (contents: string) => st
 export function transformJson <T> (path: string, transform: (json: T) => T, allowEmpty?: boolean) {
   return transformFile(path, (contents) => {
     const indent = contents ? detectIndent(contents).indent : undefined
-    const json = contents ? parseJson(contents, path, allowEmpty) : undefined
+    const json = contents ? parseJson(stripBom(contents), path, allowEmpty) : undefined
     const eol = contents ? detectEOL(contents) : undefined
 
     return Promise.resolve(transform(json))

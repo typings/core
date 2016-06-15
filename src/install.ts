@@ -33,6 +33,8 @@ export interface InstallDependencyOptions {
   savePeer?: boolean
   global?: boolean
   cwd: string
+  name?: string
+  source?: string
   emitter?: Emitter
 }
 
@@ -145,7 +147,7 @@ export function installDependencyRaw (raw: string, options: InstallDependencyOpt
  */
 export function installDependenciesRaw (raw: string[], options: InstallDependencyOptions): Promise<InstallResult[]> {
   return new Promise(resolve => {
-    const expressions = raw.map(x => parseDependencyExpression(x))
+    const expressions = raw.map(x => parseDependencyExpression(x, options))
 
     return resolve(installDependencies(expressions, options))
   })

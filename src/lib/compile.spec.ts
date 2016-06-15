@@ -577,7 +577,8 @@ test('compile', t => {
         t.equal(
           result.message,
           'Attempted to compile "test" as an external module, ' +
-          'but it looks like a global module.'
+          'but it looks like a global module. ' +
+          'Did you want to remove the global flag?'
         )
       })
   })
@@ -605,7 +606,8 @@ test('compile', t => {
         t.equal(
           result.message,
           'Attempted to compile "test" as a global module, ' +
-          'but it looks like an external module.'
+          'but it looks like an external module. ' +
+          'Did you want to enable the global flag?'
         )
       })
   })

@@ -494,7 +494,8 @@ function stringifySourceFile (sourceFile: ts.SourceFile, options: StringifyOptio
     if (isExternal) {
       throw new TypingsError(
         `Attempted to compile "${name}" as a global ` +
-        `module, but it looks like an external module.`
+        `module, but it looks like an external module. ` +
+        `Did you want to enable the global flag?`
       )
     }
 
@@ -503,7 +504,8 @@ function stringifySourceFile (sourceFile: ts.SourceFile, options: StringifyOptio
     if (!isExternal && !(parentModule && parentModule.isExternal)) {
       throw new TypingsError(
         `Attempted to compile "${name}" as an external module, ` +
-        `but it looks like a global module.`
+        `but it looks like a global module. ` +
+        `Did you want to remove the global flag?`
       )
     }
   }

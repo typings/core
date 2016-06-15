@@ -59,7 +59,7 @@
     "parse-json": "^2.2.0",
     "popsicle": "^6.0.0",
     "popsicle-proxy-agent": "^2.0.0",
-    "popsicle-retry": "^3.0.1",
+    "popsicle-retry": "^3.2.0",
     "popsicle-status": "^2.0.0",
     "promise-finally": "^2.0.1",
     "rc": "^1.1.5",

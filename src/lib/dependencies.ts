@@ -1,4 +1,5 @@
 import extend = require('xtend')
+import listify = require('listify')
 import invariant = require('invariant')
 import zipObject = require('zip-object')
 import Promise = require('any-promise')
@@ -9,6 +10,7 @@ import { parseDependency } from '../utils/parse'
 import { findUp, findConfigFile } from '../utils/find'
 import { isDefinition, isHttp } from '../utils/path'
 import { CONFIG_FILE, PROJECT_NAME } from '../utils/config'
+import { search } from '../search'
 import { Dependency, DependencyBranch, Dependencies, DependencyTree, Emitter } from '../interfaces'
 import TypingsError from './error'
 
@@ -110,12 +112,23 @@ function resolveDependencyRegistry (dependency: Dependency, options: Options) {
       function (error) {
         // Wrap 404 responses in user prompt.
         if (error.code === 'EINVALIDSTATUS' && error.status === 404) {
-          const message = `Unable to find "${meta.name}" ("${meta.source}") in the registry. ` +
-            `Did you want to try searching another source? ` +
-            `Also, if you want contribute these typings, please help us: ` +
-            `https://github.com/typings/registry`
+          return search({ name: meta.name })
+            .then(res => {
+              let message = `Unable to find "${meta.name}" ("${meta.source}") in the registry.`
 
-          return Promise.reject(new TypingsError(message, error))
+              if (res.total > 0) {
+                const plur = res.total === 1 ? 'source' : 'sources'
+
+                message += `\nHowever, we found "${meta.name}" for ${res.total} other ${plur}: `
+                message += `${listify(res.results.map(x => JSON.stringify(x.source)))}`
+                message += `\nYou can install these using the "source" option.`
+              }
+
+              message += '\nWe could use your help adding these typings to the registry: '
+              message += 'https://github.com/typings/registry'
+
+              return Promise.reject(new TypingsError(message, error))
+            })
         }
 
         return Promise.reject(error)

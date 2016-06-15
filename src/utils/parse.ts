@@ -224,16 +224,22 @@ export function resolveDependency (raw: string, filename: string) {
 }
 
 /**
+ * Options to use when parsing a dependency string.
+ */
+export interface ParseDependencyOptions {
+  name?: string
+  source?: string
+}
+
+/**
  * Parse and expand the CLI dependency expression.
  */
-export function parseDependencyExpression (raw: string) {
+export function parseDependencyExpression (raw: string, options?: ParseDependencyOptions) {
   const [, name, scheme, registry] = /^(?:([^=!:#]+)=)?(?:([\w]+\:.+)|((?:[\w]+\~)?.+))$/.exec(raw)
 
-  const location = scheme || expandRegistry(registry)
-
   return {
-    name,
-    location
+    name: name || options.name,
+    location: scheme || expandRegistry(registry)
   }
 }
 
@@ -265,13 +271,13 @@ export function buildDependencyExpression (type: string, meta: DependencyMeta): 
 /**
  * Parse the registry dependency string.
  */
-export function expandRegistry (raw: string) {
+export function expandRegistry (raw: string, options: ParseDependencyOptions = {}) {
   if (typeof raw !== 'string') {
     throw new TypeError(`Expected registry name to be a string, not ${typeof raw}`)
   }
 
   const indexOf = raw.indexOf('~')
-  let source = rc.defaultSource
+  let source = options.source || rc.defaultSource
   let name: string
 
   if (indexOf === -1) {

@@ -1,14 +1,20 @@
 import { join } from 'path'
-import { fixture } from './fixture'
-import { readConfig } from './jspm'
+import { fixture } from '../utils/fixture'
+import { readMetadata } from './jspm'
 
 const FIXTURES_DIR = join(__dirname, '__test__/fixtures')
 const ftest = fixture(FIXTURES_DIR)
 
-ftest('jspm readConfig', 'jspm-0.17-custom', (t, fixturePath) => {
-  return readConfig(join(fixturePath, 'package.json'))
-    .then((config) => {
-      t.deepEqual(config, {
+ftest('jspm readMetadata', 'jspm-0.17-custom', (t, fixturePath) => {
+  return readMetadata(join(fixturePath, 'package.json'))
+    .then((metadata) => {
+      t.deepEqual(metadata, {
+        name: undefined,
+        version: undefined,
+        main: undefined,
+        browser: undefined,
+        typings: undefined,
+        browserTypings: undefined,
         configFiles: {
           jspm: 'x/jspm.config.js',
           node: undefined
@@ -30,10 +36,16 @@ ftest('jspm readConfig', 'jspm-0.17-custom', (t, fixturePath) => {
     })
 })
 
-ftest('jspm readConfig', 'jspm-0.17', (t, fixturePath) => {
-  return readConfig(join(fixturePath, 'package.json'))
-    .then((config) => {
-      t.deepEqual(config, {
+ftest('jspm readMetadata', 'jspm-0.17', (t, fixturePath) => {
+  return readMetadata(join(fixturePath, 'package.json'))
+    .then((metadata) => {
+      t.deepEqual(metadata, {
+        name: undefined,
+        version: undefined,
+        main: undefined,
+        browser: undefined,
+        typings: undefined,
+        browserTypings: undefined,
         configFiles: {
           jspm: 'jspm.config.js',
           node: undefined

@@ -1,11 +1,32 @@
 import test = require('blue-tape')
 import { join } from 'path'
 import { EventEmitter } from 'events'
-import { resolveAllDependencies } from './dependencies'
-import { DependencyTree, DependencyBranch } from '../interfaces'
+import { resolveAllDependencies, resolveDependency } from './dependencies'
+import { Dependency, DependencyTree, DependencyBranch } from '../interfaces'
+import { fixture } from '../utils/fixture'
 
 const RESOLVE_FIXTURE_DIR = join(__dirname, '__test__/fixtures/resolve')
 const emitter = new EventEmitter()
+
+const ftest = fixture('__test__/fixtures')
+
+ftest.skip('dependencies resolve', 'jspm-0.17', (t, cwd) => {
+  const jspmDep: Dependency = {
+    raw: 'jspm:domready',
+    type: 'jspm',
+    meta: {
+      name: 'domready'
+    }
+  }
+
+  return resolveDependency(jspmDep, {
+    cwd,
+    emitter
+  })
+  .then((value) => {
+    console.log(value)
+  })
+})
 
 test('dependencies', t => {
   t.test('resolve fixture', t => {
@@ -160,6 +181,7 @@ test('dependencies', t => {
 
           removeParentReference(result)
 
+          console.log(result)
           t.deepEqual(result, expected)
         })
     })

@@ -1,10 +1,16 @@
 import Promise = require('any-promise')
 import pick = require('object.pick')
 import { join, dirname } from 'path'
-import { readJson, isFile } from './fs'
+import { readJson, isFile } from '../utils/fs'
 import extend = require('xtend')
 
 export interface Metadata {
+  name: any
+  version: any
+  main: any
+  browser: any
+  typings: any
+  browserTypings: any
   configFiles: {
     jspm: string
     node?: string
@@ -43,15 +49,29 @@ function readJspmConfig(jspm: string, node?: string): any {
   return config
 }
 
+export function resolvePath(name: string, meta: Metadata) {
+  const moduleReference = meta.map[name]
+  const parts = moduleReference.split(':', 2)
+  const basePath = meta.paths[parts[0] + ':']
+  return join(basePath, parts[1])
+}
+
+
 /**
  * Read jspm Metadata from the specified path to package.json.
  * @param pjsonPath Path to package.json of the current project/module.
  * @return Promise with Metadata. Promise will resolve to null if the project does not use jspm.
  */
-export function readConfig(pjsonPath: string): Promise<Metadata> {
+export function readMetadata(pjsonPath: string): Promise<Metadata> {
   return readJson(pjsonPath)
     .then((pjson) => {
       let picked = pick(pjson, [
+        'name',
+        'version',
+        'main',
+        'browser',
+        'typings',
+        'browserTypings',
         'jspm',
         'directories',
         'configFile',
@@ -64,6 +84,8 @@ export function readConfig(pjsonPath: string): Promise<Metadata> {
         return null
       } else if (typeof picked.jspm === 'object') {
         picked = pick(picked.jspm, [
+          'name',
+          'main',
           'directories',
           'configFile',
           'configFiles'
@@ -97,6 +119,12 @@ export function readConfig(pjsonPath: string): Promise<Metadata> {
       return readJson(join(basePath, packagePath, '.dependencies.json'))
         .then((dependencies) => {
           let metadata: Metadata = {
+            name: picked.name,
+            version: picked.version,
+            main: picked.main,
+            browser: picked.browser,
+            typings: picked.typings,
+            browserTypings: picked.browserTypings,
             configFiles,
             packagePath,
             paths: jspmConfig.paths,

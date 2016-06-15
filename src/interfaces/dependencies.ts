@@ -6,7 +6,7 @@ import { Browser } from './config'
 export interface Dependency {
   type: string
   raw: string
-  location: string
+  location?: string
   meta: DependencyMeta
 }
 

@@ -139,6 +139,17 @@ export function parseDependency (raw: string): Dependency {
     }
   }
 
+  // `jspm:dependency`
+  if (type === 'jspm') {
+    return {
+      raw,
+      type: 'jspm',
+      meta: {
+        name: src
+      }
+    }
+  }
+
   // `http://example.com/foo.d.ts`
   if (type === 'http' || type === 'https') {
     return {

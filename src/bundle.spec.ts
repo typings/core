@@ -37,12 +37,10 @@ test('bundle', t => {
           `export { test } from \'~example~test\'`,
           `}`,
           'declare module \'example/index\' {',
-          'import alias = require(\'~example/index\');',
-          'export = alias;',
+          'export * from \'~example/index\';',
           '}',
           'declare module \'example\' {',
-          'import alias = require(\'~example/index\');',
-          'export = alias;',
+          'export * from \'~example/index\';',
           '}',
           ''
         ].join('\n'))

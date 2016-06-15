@@ -239,7 +239,7 @@ export function parseDependencyExpression (raw: string, options?: ParseDependenc
 
   return {
     name: name || options.name,
-    location: scheme || expandRegistry(registry)
+    location: scheme || expandRegistry(registry, options)
   }
 }
 

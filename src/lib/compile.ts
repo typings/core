@@ -511,6 +511,7 @@ function stringifySourceFile (sourceFile: ts.SourceFile, options: StringifyOptio
   }
 
   let hasExports = false
+  let hasLocalImports = false
   let wasDeclared = false
 
   // Custom replacer function to rewrite the file.
@@ -535,6 +536,8 @@ function stringifySourceFile (sourceFile: ts.SourceFile, options: StringifyOptio
         node.parent.kind === ts.SyntaxKind.ModuleDeclaration
       )
     ) {
+      hasLocalImports = hasLocalImports || !isModuleName((node as ts.StringLiteral).text)
+
       return ` '${importPath(path, (node as ts.StringLiteral).text, options)}'`
     }
 
@@ -588,7 +591,7 @@ function stringifySourceFile (sourceFile: ts.SourceFile, options: StringifyOptio
   const moduleName = parent && parent.global ? name : prefix
 
   // Direct usage of definition/typings. This is *not* a psuedo-module.
-  if (isEntry && isTypings) {
+  if (isEntry && isTypings && !hasLocalImports) {
     return meta + declareText(parent ? moduleName : name, moduleText)
   }
 

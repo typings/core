@@ -28,7 +28,7 @@ export function bundle (options: BundleOptions): Promise<InstallResult> {
   const resolution = options.resolution || 'main'
 
   if (out == null) {
-    return Promise.reject(new TypeError('Out directory is required for bundle'))
+    return Promise.reject(new TypeError('Out file path is required for bundle'))
   }
 
   return resolveAllDependencies({ cwd, dev: false, global: false, emitter })

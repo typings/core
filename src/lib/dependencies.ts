@@ -444,7 +444,7 @@ function resolveTypeDependencyFrom (src: string, raw: string, options: Options) 
           files: Array.isArray(config.files) ? config.files : undefined,
           type: PROJECT_NAME,
           global: !!config.global,
-          postmessagee: typeof config.postmessage === 'string' ? config.postmessage : undefined,
+          postmessage: typeof config.postmessage === 'string' ? config.postmessage : undefined,
           src,
           raw,
           parent
@@ -592,6 +592,7 @@ function mergeDependencies (root: DependencyTree, ...trees: DependencyTree[]): D
       dependency.browserTypings = browserTypings
     }
 
+    dependency.postmessage = tree.postmessage || dependency.postmessage
     dependency.dependencies = extend(dependency.dependencies, tree.dependencies)
     dependency.devDependencies = extend(dependency.devDependencies, tree.devDependencies)
     dependency.peerDependencies = extend(dependency.peerDependencies, tree.peerDependencies)

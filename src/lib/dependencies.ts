@@ -107,6 +107,14 @@ function resolveDependencyRegistry (dependency: Dependency, options: Options) {
         const { type, location } = parseDependency(entry.location)
         const raw = `registry:${meta.source}/${meta.name}#${entry.tag}`
 
+        if (entry.deprecated) {
+          options.emitter.emit('deprecated', {
+            parent: options.parent,
+            raw: dependency.raw,
+            date: new Date(entry.deprecated)
+          })
+        }
+
         return resolveDependencyInternally(type, location, raw, options)
       },
       function (error) {

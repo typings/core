@@ -568,7 +568,7 @@ test('compile', t => {
           result.message,
           'Attempted to compile "test" as an external module, ' +
           'but it looks like a global module. ' +
-          'Did you want to remove the global flag?'
+          'You\'ll need to enable the global option to continue.'
         )
       })
   })
@@ -597,7 +597,7 @@ test('compile', t => {
           result.message,
           'Attempted to compile "test" as a global module, ' +
           'but it looks like an external module. ' +
-          'Did you want to enable the global flag?'
+          'You\'ll need to remove the global option to continue.'
         )
       })
   })

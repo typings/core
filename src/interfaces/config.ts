@@ -16,6 +16,10 @@ export interface ConfigJson {
    */
   version?: string
   /**
+   * Homepage url of the source package.
+   */
+  homepage?: string
+  /**
    * Map of resolutions to install.
    */
   resolution?: string | ResolutionMap

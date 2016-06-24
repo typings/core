@@ -42,6 +42,13 @@ export function normalizeSlashes (path: string) {
 }
 
 /**
+ * Join URL parts together.
+ */
+export function joinUrl (from: string, to: string) {
+  return `${from.replace(/\/$/, '')}/${to.replace(/^\//, '')}`
+}
+
+/**
  * Resolve a path directly from another.
  */
 export function resolveFrom (from: string, to: string) {

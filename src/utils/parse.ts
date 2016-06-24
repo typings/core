@@ -163,7 +163,7 @@ export function parseDependency (raw: string): Dependency {
       throw new TypeError(`Unable to use tag and version together: ${raw}`)
     }
 
-    let path = `/entries/${encodeURIComponent(source)}/${encodeURIComponent(name)}`
+    let path = `entries/${encodeURIComponent(source)}/${encodeURIComponent(name)}`
 
     // Select the best API to get the registry version.
     if (tag) {

@@ -524,10 +524,12 @@ function stringifySourceFile (sourceFile: ts.SourceFile, options: StringifyOptio
       hasExportEquals = !hasDefaultExport
     } else if (node.kind === ts.SyntaxKind.ExportDeclaration) {
       hasExports = true
-    } else {
-      hasExports = hasExports || !!(node.flags & ts.NodeFlags.Export)
-      hasDefaultExport = hasDefaultExport || !!(node.flags & ts.NodeFlags.Default)
+    } else if (node.kind === ts.SyntaxKind.ExportSpecifier) {
+      hasDefaultExport = hasDefaultExport || (node as ts.ExportSpecifier).name.getText() === 'default'
     }
+
+    hasExports = hasExports || !!(node.flags & ts.NodeFlags.Export)
+    hasDefaultExport = hasDefaultExport || !!(node.flags & ts.NodeFlags.Default)
 
     if (
       node.kind === ts.SyntaxKind.StringLiteral &&

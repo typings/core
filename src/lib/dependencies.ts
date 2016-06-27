@@ -437,7 +437,7 @@ function resolveTypeDependencyFrom (src: string, raw: string, options: Options) 
     .then<DependencyTree>(
       function (config) {
         const tree = extend(DEFAULT_DEPENDENCY, {
-          name: config.name,
+          name: config.name || name,
           main: config.main,
           version: config.version,
           browser: config.browser,

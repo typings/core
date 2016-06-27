@@ -443,7 +443,8 @@ test('compile', t => {
             'export function readFileSync (path: string): Buffer',
             '}',
             '',
-            'declare var __dirname: string'
+            'declare var __dirname: string',
+            ''
           ].join('\n'))
         })
     })
@@ -480,7 +481,8 @@ test('compile', t => {
             '',
             'declare module "fs" {',
             '\timport * as events from "events";',
-            '}'
+            '}',
+            ''
           ].join('\n')
 
           t.equal(out.results.main, contents)

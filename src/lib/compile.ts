@@ -493,7 +493,7 @@ function stringifySourceFile (sourceFile: ts.SourceFile, options: StringifyOptio
       )
     }
 
-    return `${meta}${normalizeEOL(sourceFile.getText().trim(), EOL)}`
+    return `${meta}${normalizeEOL(sourceFile.getText().trim(), EOL)}${EOL}`
   } else {
     if (!isExternal && !(parentModule && parentModule.isExternal)) {
       throw new TypingsError(

@@ -362,12 +362,6 @@ function stringifyDependencyPath (
     .then(
       function (rawContents) {
         const info = ts.preProcessFile(rawContents)
-
-        // Skip output of lib files.
-        if (info.isLibFile) {
-          return
-        }
-
         const contents = rawContents.replace(REFERENCE_REGEXP, '')
         const sourceFile = ts.createSourceFile(rawPath, contents, ts.ScriptTarget.Latest, true)
         const importedFiles = info.importedFiles.map(x => resolveFromWithModuleName(path, x.fileName, tree))

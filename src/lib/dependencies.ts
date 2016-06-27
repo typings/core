@@ -464,7 +464,7 @@ function resolveTypeDependencyFrom (src: string, raw: string, options: Options) 
         // Emit "expected" global modules when installing top-level.
         if (parent == null && config.globalDependencies) {
           options.emitter.emit('globaldependencies', {
-            tree.name,
+            name: tree.name,
             raw,
             dependencies: config.globalDependencies
           })

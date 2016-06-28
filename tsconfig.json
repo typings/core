@@ -3,6 +3,7 @@
     "target": "es5",
     "outDir": "dist/",
     "module": "commonjs",
+    "rootDir": "src",
     "moduleResolution": "node",
     "noLib": true,
     "declaration": true,
@@ -12,10 +13,9 @@
     "inlineSources": true,
     "newLine": "LF"
   },
-  "files": [
-    "src/typings.ts",
-    "typings/index.d.ts",
-    "custom_typings/node.d.ts",
-    "node_modules/typescript/lib/lib.core.d.ts"
+  "exclude": [
+    "src/__test__",
+    "src/lib/__test__",
+    "node_modules"
   ]
 }

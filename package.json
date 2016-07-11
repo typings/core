@@ -57,7 +57,7 @@
     "mkdirp": "^0.5.1",
     "object.pick": "^1.1.1",
     "parse-json": "^2.2.0",
-    "popsicle": "^6.0.0",
+    "popsicle": "^7.0.1",
     "popsicle-proxy-agent": "^2.0.0",
     "popsicle-retry": "^3.2.0",
     "popsicle-status": "^2.0.0",

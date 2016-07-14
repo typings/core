@@ -13,7 +13,7 @@ import Mkdirp = require('mkdirp')
 import uniq = require('array-uniq')
 import lockfile = require('lockfile')
 import Rimraf = require('rimraf')
-import popsicleProxy = require('popsicle-proxy-agent')
+import createProxy = require('popsicle-proxy-agent')
 import Throat = require('throat')
 import promiseFinally from 'promise-finally'
 import Touch = require('touch')
@@ -125,10 +125,20 @@ export function parseConfig (config: ConfigJson, path: string): ConfigJson {
 }
 
 /**
+ * Create a proxy agent function.
+ */
+export const proxy = createProxy({
+  proxy: rc.proxy,
+  httpProxy: rc.httpProxy,
+  httpsProxy: rc.httpsProxy,
+  noProxy: rc.noProxy
+})
+
+/**
  * Read a file over HTTP, using a file cache and status check.
  */
 export const readHttp = throat(5, function readHttp (url: string): Promise<string> {
-  const { proxy, httpProxy, httpsProxy, noProxy, rejectUnauthorized, ca, key, cert, userAgent } = rc
+  const { rejectUnauthorized, ca, key, cert, userAgent } = rc
 
   return popsicle.get({
     url,
@@ -140,20 +150,14 @@ export const readHttp = throat(5, function readHttp (url: string): Promise<strin
         typingsVersion: pkg.version
       })
     },
-    options: {
+    transport: popsicle.createTransport({
       ca,
       key,
       cert,
+      agent: proxy(url),
       rejectUnauthorized
-    },
-    use: [
-      popsicle.plugins.headers(),
-      popsicle.plugins.concatStream('string'),
-      popsicle.plugins.unzip()
-    ]
+    })
   })
-    // Enable HTTP(s) proxies and environment variable support.
-    .use(popsicleProxy({ proxy, httpProxy, httpsProxy, noProxy }))
     // Check responses are "200 OK".
     .use(popsicleStatus(200))
     // Enable tracking of repeat users on the registry.

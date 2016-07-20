@@ -12,7 +12,6 @@
     "listify": "registry:npm/listify#1.0.0+20160211003958",
     "lockfile": "registry:npm/lockfile#1.0.0+20160211003958",
     "log-update": "registry:npm/log-update#1.0.0+20160211003958",
-    "make-error-cause": "npm:make-error-cause",
     "mkdirp": "registry:npm/mkdirp#0.5.0+20160222053049",
     "object.pick": "registry:npm/object.pick#1.0.0+20160211003958",
     "parse-json": "registry:npm/parse-json#2.0.0+20160211003958",

@@ -1,6 +1,6 @@
 {
   "name": "typings-core",
-  "version": "1.3.2",
+  "version": "1.4.0",
   "description": "The logic of Typings",
   "main": "dist/typings.js",
   "files": [

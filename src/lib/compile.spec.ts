@@ -217,7 +217,7 @@ test('compile', t => {
       )
         .then(out => {
           t.equal(out.results.main, [
-            'declare module \'~foobar/file\' {',
+            'declare module \'foobar\' {',
             'function foo (value: string): foo.Bar;',
             '',
             'module foo {',
@@ -229,14 +229,6 @@ test('compile', t => {
             '}',
             '',
             'export = foo;',
-            '}',
-            'declare module \'foobar/file\' {',
-            'import main = require(\'~foobar/file\');',
-            'export = main;',
-            '}',
-            'declare module \'foobar\' {',
-            'import main = require(\'~foobar/file\');',
-            'export = main;',
             '}',
             ''
           ].join('\n'))
@@ -270,16 +262,10 @@ test('compile', t => {
       )
         .then(out => {
           t.equal(out.results.main, [
-            'declare module \'~test/index\' {',
+            'declare module \'test\' {',
             'const foo: string;',
             '',
             'export default foo;',
-            '}',
-            'declare module \'test/index\' {',
-            'export { default } from \'~test/index\';',
-            '}',
-            'declare module \'test\' {',
-            'export { default } from \'~test/index\';',
             '}',
             ''
           ].join('\n'))
@@ -334,15 +320,9 @@ test('compile', t => {
             'export * from \'~test~foo/index\';',
             '}',
             '',
-            'declare module \'~test/index\' {',
+            'declare module \'test\' {',
             'import * as x from \'~test~foo/x\'',
             'export * from \'~test~foo\'',
-            '}',
-            'declare module \'test/index\' {',
-            'export * from \'~test/index\';',
-            '}',
-            'declare module \'test\' {',
-            'export * from \'~test/index\';',
             '}',
             ''
           ].join('\n'))
@@ -625,7 +605,7 @@ test('compile', t => {
 
     return compile(main, ['main'], { name: 'main', cwd: __dirname, global: false, meta: false, emitter })
       .catch(function (error) {
-        t.ok(/^Unable to resolve entry "\.d\.ts" file for "main"/.test(error.message))
+        t.ok(/^Unable to read typings for "main"/.test(error.message))
       })
   })
 
@@ -690,18 +670,10 @@ test('compile', t => {
           'export = main;',
           '}',
           '',
-          'declare module \'~main/index\' {',
+          'declare module \'main\' {',
           'import * as foo from \'~main/override\'',
           '',
           'export = foo',
-          '}',
-          'declare module \'main/index\' {',
-          'import main = require(\'~main/index\');',
-          'export = main;',
-          '}',
-          'declare module \'main\' {',
-          'import main = require(\'~main/index\');',
-          'export = main;',
           '}',
           ''
         ].join('\n'))
@@ -742,11 +714,8 @@ test('compile', t => {
         ].join('\n'))
 
         t.equal(out.results.browser, [
-          'declare module \'~main~dep/index\' {',
-          'export function isDep (): boolean;',
-          '}',
           'declare module \'~main~dep\' {',
-          'export * from \'~main~dep/index\';',
+          'export function isDep (): boolean;',
           '}',
           '',
           'declare module \'~main/index\' {',

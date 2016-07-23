@@ -3,6 +3,25 @@ import { normalize, join } from 'path'
 import { parseDependency, resolveDependency, expandRegistry } from './parse'
 import { CONFIG_FILE } from './config'
 import { Dependency } from '../interfaces'
+import { fixture } from './fixture'
+
+const FIXTURES_DIR = join(__dirname, '__test__/fixtures')
+const ftest = fixture(FIXTURES_DIR)
+
+ftest.skip('parse', 'jspm-0.17', (t, path) => {
+  const actual = parseDependency('jspm:domready')
+  const expected: Dependency = {
+    raw: 'jspm:domready',
+    type: 'jspm',
+    location: normalize('npm/domready@01.0.8/package.json'),
+    meta: {
+      name: 'domready',
+      path: 'jspm_packages/npm/domready@1.0.8'
+    }
+  }
+  t.deepEqual(actual, expected)
+  t.end()
+})
 
 test('parse jspm:domready', (t) => {
   const actual = parseDependency('jspm:domready')

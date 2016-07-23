@@ -1,21 +1,21 @@
 {
   "compilerOptions": {
     "target": "es5",
-    "outDir": "spec-out/",
+    "outDir": "dist/",
     "module": "commonjs",
+    "rootDir": "src",
     "moduleResolution": "node",
+    "noLib": true,
+    "declaration": true,
     "noImplicitAny": true,
+    "removeComments": true,
+    "sourceMap": true,
+    "inlineSources": true,
     "newLine": "LF"
   },
   "exclude": [
-    "coverage",
-    "custom_typings",
-    "dist",
-    "node_modules",
-    "scripts",
-    "spec-out",
     "src/__test__",
     "src/lib/__test__",
-    "src/utils/__test__"
+    "node_modules"
   ]
 }

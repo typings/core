@@ -177,14 +177,13 @@ function getStringifyOptions (
 
   const referenced: ts.Map<boolean> = {}
   const dependencies: ts.Map<StringifyOptions> = {}
-  const entry = main == null ? main : resolveFrom(tree.src, normalizeToDefinition(main))
+  const entry = main == null ? undefined : normalizeToDefinition(main)
   const prefix = `${parent ? parent.prefix : ''}${DEPENDENCY_SEPARATOR}${options.name}`
 
   return extend(options, {
     tree,
     entry,
     prefix,
-    isTypings,
     overrides,
     referenced,
     dependencies,
@@ -222,20 +221,9 @@ function compileDependencyPath (
   parentModule?: ModuleOptions
 ): Promise<string> {
   const { tree, entry } = options
+  const dependencyPath = resolveFrom(tree.src, path || entry || 'index.d.ts')
 
-  // Fallback to resolving the entry file.
-  if (path == null) {
-    if (entry == null) {
-      return Promise.reject(new TypingsError(
-        `Unable to resolve entry ".d.ts" file for "${options.name}", ` +
-        'please make sure the module has a main or typings field'
-      ))
-    }
-
-    return stringifyDependencyPath(resolveFrom(tree.src, entry), options, parentModule)
-  }
-
-  return stringifyDependencyPath(resolveFrom(tree.src, path), options, parentModule)
+  return stringifyDependencyPath(dependencyPath, path, options, parentModule)
 }
 
 /**
@@ -244,7 +232,6 @@ function compileDependencyPath (
 interface StringifyOptions extends CompileOptions {
   entry: string
   prefix: string
-  isTypings: boolean
   overrides: Overrides
   referenced: ts.Map<boolean>
   dependencies: ts.Map<StringifyOptions>
@@ -321,11 +308,12 @@ interface ModuleOptions {
  */
 function stringifyDependencyPath (
   rawPath: string,
+  originalPath: string,
   options: StringifyOptions,
   moduleOptions: ModuleOptions
 ): Promise<string> {
   const path = getPath(rawPath, options)
-  const { tree, global, cwd, resolution, name, readFiles, imported, meta, entry, emitter } = options
+  const { tree, global, cwd, resolution, name, readFiles, imported, meta, emitter } = options
   const importedPath = importPath(rawPath, pathFromDefinition(rawPath), options)
 
   // Return `null` to skip the dependency writing, could have the same import twice.
@@ -362,12 +350,6 @@ function stringifyDependencyPath (
     .then(
       function (rawContents) {
         const info = ts.preProcessFile(rawContents)
-
-        // Skip output of lib files.
-        if (info.isLibFile) {
-          return
-        }
-
         const contents = rawContents.replace(REFERENCE_REGEXP, '')
         const sourceFile = ts.createSourceFile(rawPath, contents, ts.ScriptTarget.Latest, true)
         const importedFiles = info.importedFiles.map(x => resolveFromWithModuleName(path, x.fileName, tree))
@@ -392,12 +374,12 @@ function stringifyDependencyPath (
             return loadByModuleName(path)
           }
 
-          return stringifyDependencyPath(path, options, childModuleOptions)
+          return stringifyDependencyPath(path, importedFile, options, childModuleOptions)
         })
 
         return Promise.all(imports)
           .then<string>(imports => {
-            const stringified = stringifySourceFile(sourceFile, options, childModuleOptions)
+            const stringified = stringifySourceFile(sourceFile, originalPath, options, childModuleOptions)
 
             for (const reference of referencedFiles) {
               emitter.emit('reference', { name, rawPath, reference, tree, resolution })
@@ -417,7 +399,7 @@ function stringifyDependencyPath (
         const relativePath = relativeTo(tree.src, path)
 
         // Provide better errors for the entry path.
-        if (rawPath === entry) {
+        if (originalPath == null) {
           return Promise.reject(new TypingsError(
             `Unable to read typings for "${options.name}". ` +
             `${authorPhrase} check the entry paths in "${basename(tree.src)}" are up to date`,
@@ -481,9 +463,14 @@ function importPath (path: string, name: string, options: StringifyOptions) {
 /**
  * Stringify a dependency file contents.
  */
-function stringifySourceFile (sourceFile: ts.SourceFile, options: StringifyOptions, moduleOptions: ModuleOptions) {
-  const { isExternal, path, rawPath } = moduleOptions
-  const { tree, name, prefix, parent, isTypings, cwd, global, entry } = options
+function stringifySourceFile (
+  sourceFile: ts.SourceFile,
+  originalPath: string,
+  options: StringifyOptions,
+  moduleOptions: ModuleOptions
+) {
+  const { isExternal, path } = moduleOptions
+  const { tree, name, prefix, parent, cwd, global } = options
   const parentModule = moduleOptions.parent
 
   // Output information for the original type source.
@@ -495,17 +482,17 @@ function stringifySourceFile (sourceFile: ts.SourceFile, options: StringifyOptio
       throw new TypingsError(
         `Attempted to compile "${name}" as a global ` +
         `module, but it looks like an external module. ` +
-        `Did you want to enable the global flag?`
+        `You'll need to remove the global option to continue.`
       )
     }
 
-    return `${meta}${normalizeEOL(sourceFile.getText().trim(), EOL)}`
+    return `${meta}${normalizeEOL(sourceFile.getText().trim(), EOL)}${EOL}`
   } else {
     if (!isExternal && !(parentModule && parentModule.isExternal)) {
       throw new TypingsError(
         `Attempted to compile "${name}" as an external module, ` +
         `but it looks like a global module. ` +
-        `Did you want to remove the global flag?`
+        `You'll need to enable the global option to continue.`
       )
     }
   }
@@ -524,10 +511,12 @@ function stringifySourceFile (sourceFile: ts.SourceFile, options: StringifyOptio
       hasExportEquals = !hasDefaultExport
     } else if (node.kind === ts.SyntaxKind.ExportDeclaration) {
       hasExports = true
-    } else {
-      hasExports = hasExports || !!(node.flags & ts.NodeFlags.Export)
-      hasDefaultExport = hasDefaultExport || !!(node.flags & ts.NodeFlags.Default)
+    } else if (node.kind === ts.SyntaxKind.ExportSpecifier) {
+      hasDefaultExport = hasDefaultExport || (node as ts.ExportSpecifier).name.getText() === 'default'
     }
+
+    hasExports = hasExports || !!(node.flags & ts.NodeFlags.Export)
+    hasDefaultExport = hasDefaultExport || !!(node.flags & ts.NodeFlags.Default)
 
     if (
       node.kind === ts.SyntaxKind.StringLiteral &&
@@ -605,12 +594,12 @@ function stringifySourceFile (sourceFile: ts.SourceFile, options: StringifyOptio
     return declareText(name, imports.join(EOL))
   }
 
-  const isEntry = rawPath === entry
+  const isEntry = originalPath == null
   const moduleText = normalizeEOL(processTree(sourceFile, replacer, read), EOL)
   const moduleName = parent && parent.global ? name : prefix
 
   // Direct usage of definition/typings. This is *not* a psuedo-module.
-  if (isEntry && isTypings && !hasLocalImports) {
+  if (isEntry && !hasLocalImports) {
     return meta + declareText(parent ? moduleName : name, moduleText)
   }
 

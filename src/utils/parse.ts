@@ -3,7 +3,7 @@ import { resolve as resolveUrl } from 'url'
 import { normalize, join, basename, dirname } from 'path'
 import { Dependency, DependencyMeta } from '../interfaces'
 import { CONFIG_FILE } from './config'
-import { isDefinition, normalizeSlashes, pathFromDefinition } from './path'
+import { isDefinition, normalizeSlashes, pathFromDefinition, joinUrl } from './path'
 import rc from './rc'
 
 /**
@@ -174,7 +174,7 @@ export function parseDependency (raw: string): Dependency {
       throw new TypeError(`Unable to use tag and version together: ${raw}`)
     }
 
-    let path = `/entries/${encodeURIComponent(source)}/${encodeURIComponent(name)}`
+    let path = `entries/${encodeURIComponent(source)}/${encodeURIComponent(name)}`
 
     // Select the best API to get the registry version.
     if (tag) {
@@ -194,7 +194,7 @@ export function parseDependency (raw: string): Dependency {
         version,
         tag
       },
-      location: resolveUrl(rc.registryURL, path)
+      location: joinUrl(rc.registryURL, path)
     }
   }
 

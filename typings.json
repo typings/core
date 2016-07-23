@@ -12,7 +12,6 @@
     "listify": "registry:npm/listify#1.0.0+20160211003958",
     "lockfile": "registry:npm/lockfile#1.0.0+20160211003958",
     "log-update": "registry:npm/log-update#1.0.0+20160211003958",
-    "make-error-cause": "npm:make-error-cause",
     "mkdirp": "registry:npm/mkdirp#0.5.0+20160222053049",
     "object.pick": "registry:npm/object.pick#1.0.0+20160211003958",
     "parse-json": "registry:npm/parse-json#2.0.0+20160211003958",
@@ -34,10 +33,11 @@
     "zip-object": "registry:npm/zip-object#0.1.0+20160211003958"
   },
   "devDependencies": {
-    "blue-tape": "registry:npm/blue-tape#0.2.0+20160418015423",
+    "blue-tape": "registry:npm/blue-tape#0.2.0+20160623043621",
     "nock": "registry:npm/nock#0.7.0+20160211003958"
   },
   "globalDependencies": {
-    "node": "registry:env/node#6.0.0+20160610031852"
+    "core": "npm:typescript/lib/lib.core.d.ts",
+    "node": "registry:env/node#6.0.0+20160622202520"
   }
 }

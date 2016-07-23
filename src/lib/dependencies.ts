@@ -118,6 +118,14 @@ function resolveDependencyRegistry (dependency: Dependency, options: Options) {
         const { type, location } = parseDependency(entry.location)
         const raw = `registry:${meta.source}/${meta.name}#${entry.tag}`
 
+        if (entry.deprecated) {
+          options.emitter.emit('deprecated', {
+            parent: options.parent,
+            raw: dependency.raw,
+            date: new Date(entry.deprecated)
+          })
+        }
+
         return resolveDependencyInternally(type, location, raw, options)
       },
       function (error) {
@@ -398,7 +406,7 @@ function resolveBowerDependencyFrom (
         const devDependencyMap = extend(options.dev ? bowerJson.devDependencies : {})
         const dependencyOptions = extend(options, { parent: tree })
 
-        options.emitter.emit('resolved', { name, src, tree, raw, parent })
+        options.emitter.emit('resolved', { name: name || tree.name, src, tree, raw, parent })
 
         return Promise.all([
           resolveBowerDependencyMap(componentPath, dependencyMap, dependencyOptions),
@@ -498,7 +506,7 @@ function resolveNpmDependencyFrom (src: string, raw: string, options: Options): 
         const peerDependencyMap = extend(options.peer ? packageJson.peerDependencies : {})
         const dependencyOptions = extend(options, { parent: tree })
 
-        options.emitter.emit('resolved', { name, src, tree, raw, parent })
+        options.emitter.emit('resolved', { name: name || tree.name, src, tree, raw, parent })
 
         return Promise.all([
           resolveNpmDependencyMap(src, dependencyMap, dependencyOptions),
@@ -571,7 +579,7 @@ function resolveTypeDependencyFrom (src: string, raw: string, options: Options) 
           files: Array.isArray(config.files) ? config.files : undefined,
           type: PROJECT_NAME,
           global: !!config.global,
-          postmessagee: typeof config.postmessage === 'string' ? config.postmessage : undefined,
+          postmessage: typeof config.postmessage === 'string' ? config.postmessage : undefined,
           src,
           raw,
           parent
@@ -586,12 +594,12 @@ function resolveTypeDependencyFrom (src: string, raw: string, options: Options) 
         const globalDevDependencyMap = extend(global && dev ? config.globalDevDependencies : {})
         const dependencyOptions = extend(options, { parent: tree })
 
-        options.emitter.emit('resolved', { name, src, tree, raw, parent })
+        options.emitter.emit('resolved', { name: name || tree.name, src, tree, raw, parent })
 
         // Emit "expected" global modules when installing top-level.
         if (parent == null && config.globalDependencies) {
           options.emitter.emit('globaldependencies', {
-            name,
+            name: name || tree.name,
             raw,
             dependencies: config.globalDependencies
           })
@@ -719,6 +727,7 @@ function mergeDependencies (root: DependencyTree, ...trees: DependencyTree[]): D
       dependency.browserTypings = browserTypings
     }
 
+    dependency.postmessage = tree.postmessage || dependency.postmessage
     dependency.dependencies = extend(dependency.dependencies, tree.dependencies)
     dependency.devDependencies = extend(dependency.devDependencies, tree.devDependencies)
     dependency.peerDependencies = extend(dependency.peerDependencies, tree.peerDependencies)

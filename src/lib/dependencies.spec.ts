@@ -8,24 +8,26 @@ import { fixture } from '../utils/fixture'
 const RESOLVE_FIXTURE_DIR = join(__dirname, '__test__/fixtures/resolve')
 const emitter = new EventEmitter()
 
-const ftest = fixture('__test__/fixtures')
+const ftest = fixture(join(__dirname, '__test__/fixtures'))
 
-ftest.skip('dependencies resolve', 'jspm-0.17', (t, cwd) => {
+ftest.only('dependencies resolve', 'jspm-0.17', (t, cwd) => {
   const jspmDep: Dependency = {
-    raw: 'jspm:domready',
+    raw: 'jspm:lodash',
     type: 'jspm',
     meta: {
-      name: 'domready'
+      name: 'sinon'
     }
   }
 
-  return resolveDependency(jspmDep, {
-    cwd,
-    emitter
-  })
-  .then((value) => {
-    console.log(value)
-  })
+  return resolveDependency(
+    jspmDep,
+    {
+      cwd,
+      emitter
+    })
+    .then((value) => {
+      console.log(value)
+    })
 })
 
 test('dependencies', t => {
@@ -144,12 +146,12 @@ test('dependencies', t => {
         version: undefined
       }
 
-      ;(expected as any).dependencies['bower-dep'] = bowerDep
-      ;(expected as any).dependencies.dep = typedDep
-      ;(expected as any).dependencies['npm-dep'] = npmDep
-      ;(expected as any).devDependencies['dev-dep'] = typedDevDep
+        ; (expected as any).dependencies['bower-dep'] = bowerDep
+        ; (expected as any).dependencies.dep = typedDep
+        ; (expected as any).dependencies['npm-dep'] = npmDep
+        ; (expected as any).devDependencies['dev-dep'] = typedDevDep
 
-      ;(bowerDep as any).dependencies.example = exampleDep
+        ; (bowerDep as any).dependencies.example = exampleDep
 
       return resolveAllDependencies({
         cwd: RESOLVE_FIXTURE_DIR,
@@ -157,13 +159,13 @@ test('dependencies', t => {
         emitter
       })
         .then((result) => {
-          function removeParentReferenceFromDependencies (dependencies: DependencyBranch) {
+          function removeParentReferenceFromDependencies(dependencies: DependencyBranch) {
             Object.keys(dependencies).forEach(function (key) {
               removeParentReference(dependencies[key])
             })
           }
 
-          function removeParentReference (tree: DependencyTree) {
+          function removeParentReference(tree: DependencyTree) {
             delete tree.parent
 
             removeParentReferenceFromDependencies(tree.dependencies)
@@ -187,3 +189,86 @@ test('dependencies', t => {
     })
   })
 })
+// { src: '/Users/hwong/github/typings/core/src/lib/__test__/fixtures/resolve/typings.json',
+//           raw: undefined,
+//           main: 'foo.d.ts',
+//           browser: undefined,
+//           typings: undefined,
+//           browserTypings: undefined,
+//           version: undefined,
+//           files: undefined,
+//           global: false,
+//           postmessage: undefined,
+//           dependencies:
+//            { 'bower-dep':
+//               { src: '/Users/hwong/github/typings/core/src/lib/__test__/fixtures/resolve/bower_components/bower-dep/bower.json',
+//                 raw: 'bower:bower-dep',
+//                 main: 'index.js',
+//                 browser: undefined,
+//                 typings: 'bower-dep.d.ts',
+//                 browserTypings: undefined,
+//                 version: undefined,
+//                 files: undefined,
+//                 global: false,
+//                 postmessage: undefined,
+//                 dependencies: [Object],
+//                 devDependencies: {},
+//                 peerDependencies: {},
+//                 globalDependencies: {},
+//                 globalDevDependencies: {},
+//                 name: 'bower-dep' },
+//              dep:
+//               { src: '/Users/hwong/github/typings/core/src/lib/__test__/fixtures/resolve/typings/dep.d.ts',
+//                 raw: 'file:typings/dep.d.ts',
+//                 main: undefined,
+//                 browser: undefined,
+//                 typings: '/Users/hwong/github/typings/core/src/lib/__test__/fixtures/resolve/typings/dep.d.ts',
+//                 browserTypings: undefined,
+//                 version: undefined,
+//                 files: undefined,
+//                 global: undefined,
+//                 postmessage: undefined,
+//                 dependencies: {},
+//                 devDependencies: {},
+//                 peerDependencies: {},
+//                 globalDependencies: {},
+//                 globalDevDependencies: {} },
+//              'npm-dep':
+//               { src: '/Users/hwong/github/typings/core/src/lib/__test__/fixtures/resolve/node_modules/npm-dep/package.json',
+//                 raw: 'npm:npm-dep',
+//                 main: './index.js',
+//                 browser: undefined,
+//                 typings: undefined,
+//                 browserTypings: undefined,
+//                 version: undefined,
+//                 files: undefined,
+//                 global: false,
+//                 postmessage: undefined,
+//                 dependencies: {},
+//                 devDependencies: {},
+//                 peerDependencies: {},
+//                 globalDependencies: {},
+//                 globalDevDependencies: {},
+//                 name: 'npm-dep' } },
+//           devDependencies:
+//            { 'dev-dep':
+//               { src: '/Users/hwong/github/typings/core/src/lib/__test__/fixtures/resolve/bower_components/dep/bower.json',
+//                 raw: 'bower:dep',
+//                 main: undefined,
+//                 browser: undefined,
+//                 typings: undefined,
+//                 browserTypings: undefined,
+//                 version: undefined,
+//                 files: undefined,
+//                 global: false,
+//                 postmessage: undefined,
+//                 dependencies: {},
+//                 devDependencies: {},
+//                 peerDependencies: {},
+//                 globalDependencies: {},
+//                 globalDevDependencies: {},
+//                 name: 'dep' } },
+//           peerDependencies: {},
+//           globalDependencies: {},
+//           globalDevDependencies: {},
+//           name: 'foobar' }

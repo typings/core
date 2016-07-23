@@ -3,6 +3,7 @@ import pick = require('object.pick')
 import { join, dirname } from 'path'
 import { readJson, isFile } from '../utils/fs'
 import extend = require('xtend')
+export interface Map { [index: string]: string }
 
 export interface Metadata {
   name: any
@@ -17,45 +18,48 @@ export interface Metadata {
   },
   packagePath: string
   paths: { [index: string]: string }
-  map: { [index: string]: string }
+  map: Map,
+  packages: {
+    [index: string]: {
+      map: Map
+    }
+  }
   dependencies: {
     [index: string]: {
-      deps: { [index: string]: string }
-      peerDeps: { [index: string]: string }
+      deps: Map
+      peerDeps: Map
     }
   }
 }
 
-function readJspmConfig(jspm: string, node?: string): any {
-  let g: any = global
-  let sys = g.System
-  let sysjs = g.SystemJS
-  let config = {}
-  g.System = {
-    config(conf: Object) {
-      config = extend(config, conf)
-    }
-  }
-  g.SystemJS = g.System
-  require(jspm)
-  delete require.cache[require.resolve(jspm)]
-  if (node) {
-    require(node)
-    delete require.cache[require.resolve(node)]
-  }
-
-  g.System = sys
-  g.SystemJS = sysjs
-  return config
-}
-
-export function resolvePath(name: string, meta: Metadata) {
-  const moduleReference = meta.map[name]
-  const parts = moduleReference.split(':', 2)
+export function resolvePath(value: string, meta: Metadata) {
+  const parts = value.split(':', 2)
   const basePath = meta.paths[parts[0] + ':']
   return join(basePath, parts[1])
 }
 
+export function readJspmPackage(pjsonPath: string) {
+  return readJson(pjsonPath)
+    .then((pjson) => {
+      let picked = pick(pjson, [
+        'name',
+        'version',
+        'main',
+        'browser',
+        'typings',
+        'browserTypings',
+        'jspm'
+      ])
+
+      if (typeof picked.jspm === 'object') {
+        picked = extend(picked, pick(picked.jspm, [
+          'name',
+          'main'
+        ]))
+      }
+      return picked
+    })
+}
 
 /**
  * Read jspm Metadata from the specified path to package.json.
@@ -83,13 +87,13 @@ export function readMetadata(pjsonPath: string): Promise<Metadata> {
         // Should it throws instead?
         return null
       } else if (typeof picked.jspm === 'object') {
-        picked = pick(picked.jspm, [
+        picked = extend(picked, pick(picked.jspm, [
           'name',
           'main',
           'directories',
           'configFile',
           'configFiles'
-        ])
+        ]))
       }
 
       const basePath = dirname(pjsonPath)
@@ -127,6 +131,7 @@ export function readMetadata(pjsonPath: string): Promise<Metadata> {
             browserTypings: picked.browserTypings,
             configFiles,
             packagePath,
+            packages: jspmConfig.packages,
             paths: jspmConfig.paths,
             map: jspmConfig.map,
             dependencies

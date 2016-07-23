@@ -188,7 +188,7 @@ function resolveBowerDependency (name: string, raw: string, options: Options) {
 }
 
 /**
- * Follow and resolve bower dependencies.
+ * Follow and resolve Jspm dependencies.
  */
 export function resolveJspmDependencies (options: Options): Promise<DependencyTree> {
   return findUp(options.cwd, 'package.json')
@@ -214,6 +214,7 @@ function resolveJspmDependency (dependency: Dependency, options: Options) {
     })
     .then(
       (metadata) => {
+        console.log(metadata)
         return resolveJspmDependencyInternal(dependency.meta.name, dependency.raw, metadata, options)
       },
       (error) => {
@@ -222,132 +223,90 @@ function resolveJspmDependency (dependency: Dependency, options: Options) {
 }
 
 function resolveJspmDependencyInternal(name: string, raw: string, metadata: JspmMetadata, options: Options) {
-      const modulePath = resolveJspmPath(name, metadata)
-      const { parent } = options
-      options.emitter.emit('resolve', { name, modulePath, raw, parent })
-        const tree = extend(DEFAULT_DEPENDENCY, {
-          name: metadata.name,
-          version: metadata.version,
-          main: metadata.main,
-          browser: metadata.browser,
-          typings: metadata.typings,
-          browserTypings: metadata.browserTypings,
-          global: false,
-          modulePath,
-          raw,
-          parent
-        })
+    const value = metadata.map[name]
+    const modulePath = resolveJspmPath(value, metadata)
+    const { parent } = options
+    options.emitter.emit('resolve', { name, modulePath, raw, parent })
+    const tree = extend(DEFAULT_DEPENDENCY, {
+      name: metadata.name,
+      version: metadata.version,
+      main: metadata.main,
+      browser: metadata.browser,
+      typings: metadata.typings,
+      browserTypings: metadata.browserTypings,
+      global: false,
+      modulePath,
+      raw,
+      parent
+    })
 
-        const moduleDeps = metadata.dependencies[metadata.map[name]]
-        const dependencyMap = extend(moduleDeps.deps)
-        // const devDependencyMap = extend(options.dev ? bowerJson.devDependencies : {})
-        const dependencyOptions = extend(options, { parent: tree })
+    const moduleDeps = metadata.dependencies[value]
+    const dependencyMap = extend(moduleDeps.deps)
+    const dependencyOptions = extend(options, { parent: tree })
+    options.emitter.emit('resolved', { name, modulePath, tree, raw, parent })
 
-        options.emitter.emit('resolved', { name, modulePath, tree, raw, parent })
-
-        return Promise.all([
-          resolveJspmDependencyMap(modulePath, dependencyMap, metadata, dependencyOptions),
-          // resolveBowerDependencyMap(modulePath, devDependencyMap, dependencyOptions),
-          maybeResolveTypeDependencyFrom(join(modulePath, '..', CONFIG_FILE), raw, options)
-        ])
-          .then(function ([dependencies, typedPackage]) {
-            tree.dependencies = dependencies
-            // tree.devDependencies = devDependencies
-
-            return mergeDependencies(tree, typedPackage)
-          })
+    return Promise.all([
+      resolveJspmDependencyMap(dependencyMap, metadata, dependencyOptions),
+      maybeResolveTypeDependencyFrom(join(modulePath, CONFIG_FILE), raw, options)
+    ])
+      .then(([dependencies, typedPackage]) => {
+        tree.dependencies = dependencies
+        return mergeDependencies(tree, typedPackage)
+      })
     .then(
       null,
       (error) => {
         return Promise.reject(resolveError(raw, error, options))
       }
-      // function (componentPath: string) {
-      //   const modulePath = resolve(componentPath, name)
-
-      //   if (isDefinition(modulePath)) {
-      //     return resolveFileDependency(modulePath, raw, options)
-      //   }
-
-      //   return resolveBowerDependencyFrom(modulePath, raw, componentPath, options)
-      // },
-      // function (error) {
-      //   return Promise.reject(resolveError(raw, error, options))
-      // }
     )
 }
-
-/**
- * Resolve bower dependencies from a path.
- */
-function resolveJspmDependencyFrom (
-  src: string,
-  raw: string,
-  componentPath: string,
-  options: Options
-): Promise<DependencyTree> {
-  const { name, parent } = options
-
-  checkCircularDependency(parent, src)
-
-  options.emitter.emit('resolve', { name, src, raw, parent })
-
-  return readJson(src)
-    .then(
-      function (bowerJson: any = {}) {
-        const tree = extend(DEFAULT_DEPENDENCY, {
-          name: bowerJson.name,
-          version: bowerJson.version,
-          main: bowerJson.main,
-          browser: bowerJson.browser,
-          typings: bowerJson.typings,
-          browserTypings: bowerJson.browserTypings,
-          global: false,
-          src,
-          raw,
-          parent
-        })
-
-        const dependencyMap = extend(bowerJson.dependencies)
-        const devDependencyMap = extend(options.dev ? bowerJson.devDependencies : {})
-        const dependencyOptions = extend(options, { parent: tree })
-
-        options.emitter.emit('resolved', { name, src, tree, raw, parent })
-
-        return Promise.all([
-          resolveBowerDependencyMap(componentPath, dependencyMap, dependencyOptions),
-          resolveBowerDependencyMap(componentPath, devDependencyMap, dependencyOptions),
-          maybeResolveTypeDependencyFrom(join(src, '..', CONFIG_FILE), raw, options)
-        ])
-          .then(function ([dependencies, devDependencies, typedPackage]) {
-            tree.dependencies = dependencies
-            tree.devDependencies = devDependencies
-
-            return mergeDependencies(tree, typedPackage)
-          })
-      },
-      function (error) {
-        return Promise.reject(resolveError(raw, error, options))
-      }
-    )
-}
-
 
 /**
  * Recursively resolve dependencies from a list and component path.
  */
 function resolveJspmDependencyMap (
-  componentPath: string,
   dependencies: Dependencies,
   meta: JspmMetadata,
   options: Options
 ): Promise<DependencyBranch> {
   const keys = Object.keys(dependencies)
+  const { parent } = options
 
   return Promise.all(keys.map(function (name) {
-    const modulePath = resolveJspmPath(name, meta)
-    const resolveOptions: Options = extend(options, { name, dev: false, global: false, peer: false })
+    const value = dependencies[name]
+    const modulePath = resolveJspmPath(value, meta)
 
-    return resolveJspmDependencyFrom(modulePath, `bower:${name}`, componentPath, resolveOptions)
+    const tree = extend(DEFAULT_DEPENDENCY, {
+      name: meta.name,
+      version: meta.version,
+      main: meta.main,
+      browser: meta.browser,
+      typings: meta.typings,
+      browserTypings: meta.browserTypings,
+      global: false,
+      modulePath,
+      parent
+    })
+
+    const moduleDeps = meta.dependencies[value]
+    console.log(name, value, moduleDeps)
+    const dependencyMap = extend(moduleDeps.deps)
+    const dependencyOptions = extend(options, { parent: tree })
+    options.emitter.emit('resolved', { name, modulePath, tree, value, parent })
+    return Promise.all([
+      resolveJspmDependencyMap(dependencyMap, meta, dependencyOptions),
+      maybeResolveTypeDependencyFrom(join(modulePath, CONFIG_FILE), value, options)
+    ])
+      .then(([dependencies, typedPackage]) => {
+        tree.dependencies = dependencies
+        return mergeDependencies(tree, typedPackage)
+      })
+    .then(
+      null,
+      (error) => {
+        return Promise.reject(resolveError(value, error, options))
+      }
+    )
   }))
     .then(results => zipObject(keys, results))
 }

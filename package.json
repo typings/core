@@ -15,6 +15,7 @@
     "test-spec": "ts-node -P tsconfig.build.json node_modules/blue-tape/bin/blue-tape.js \"src/**/*.spec.ts\" | tap-diff",
     "test-cov": "ts-node -P tsconfig.build.json node_modules/istanbul/lib/cli.js cover -e .ts --print none -x \"*.d.ts\" -x \"*.spec.ts\" node_modules/blue-tape/bin/blue-tape.js -- \"src/**/*.spec.ts\" | tap-diff",
     "test": "npm run lint && npm run build && npm run dependency-check && npm run test-cov",
+    "watch": "onchange -w -i \"src/**/*.ts\" -- npm run test-spec",
     "bootstrap": "npm install shelljs && node scripts/bootstrap.js",
     "prepublish": "node scripts/prepublish.js"
   },
@@ -80,6 +81,7 @@
     "dependency-check": "^2.5.1",
     "istanbul": "1.0.0-alpha.2",
     "nock": "^8.0.0",
+    "onchange": "^2.5.0",
     "shelljs": "^0.7.0",
     "tap-diff": "^0.1.1",
     "ts-node": "^0.9.0",

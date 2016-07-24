@@ -9,6 +9,7 @@
     "has": "registry:npm/has#1.0.0+20160211003958",
     "invariant": "registry:npm/invariant#2.0.0+20160211003958",
     "is-absolute": "registry:npm/is-absolute#0.2.0+20160211003958",
+    "jspm-config": "npm:jspm-config",
     "listify": "registry:npm/listify#1.0.0+20160211003958",
     "lockfile": "registry:npm/lockfile#1.0.0+20160211003958",
     "log-update": "registry:npm/log-update#1.0.0+20160211003958",

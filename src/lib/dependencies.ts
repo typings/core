@@ -191,7 +191,6 @@ function resolveBowerDependency (name: string, raw: string, options: Options) {
     )
 }
 
-
 /**
  * Resolve a local file dependency.
  */

@@ -41,6 +41,7 @@ export interface DependencyTree {
   parent?: DependencyTree
   files?: string[]
   postmessage?: string
+  type?: string
   src: string
   raw: string
   global: boolean

@@ -10,10 +10,10 @@
   ],
   "scripts": {
     "lint": "tslint \"src/**/*.ts\" -e \"**/__test__/**\"",
-    "build": "rimraf dist && tsc -p tsconfig.build.json",
+    "build": "rimraf dist && tsc",
     "dependency-check": "dependency-check . --unused --no-dev && dependency-check . --missing --no-dev",
-    "test-spec": "ts-node -P tsconfig.build.json node_modules/blue-tape/bin/blue-tape.js \"src/**/*.spec.ts\" | tap-diff",
-    "test-cov": "ts-node -P tsconfig.build.json node_modules/istanbul/lib/cli.js cover -e .ts --print none -x \"*.d.ts\" -x \"*.spec.ts\" node_modules/blue-tape/bin/blue-tape.js -- \"src/**/*.spec.ts\" | tap-diff",
+    "test-spec": "ts-node node_modules/blue-tape/bin/blue-tape.js \"src/**/*.spec.ts\" | tap-diff",
+    "test-cov": "ts-node node_modules/istanbul/lib/cli.js cover -e .ts --print none -x \"*.d.ts\" -x \"*.spec.ts\" node_modules/blue-tape/bin/blue-tape.js -- \"src/**/*.spec.ts\" | tap-diff",
     "test": "npm run lint && npm run build && npm run dependency-check && npm run test-cov",
     "watch": "onchange -w -i \"src/**/*.ts\" -- npm run test-spec",
     "bootstrap": "npm install shelljs && node scripts/bootstrap.js",

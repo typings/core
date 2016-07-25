@@ -136,6 +136,7 @@ test('dependencies', t => {
         emitter
       })
         .then((result) => {
+          console.log(result)
           function removeParentReferenceFromDependencies (dependencies: DependencyBranch) {
             Object.keys(dependencies).forEach(function (key) {
               removeParentReference(dependencies[key])

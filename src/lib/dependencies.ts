@@ -254,6 +254,7 @@ function resolveBowerDependencyFrom (
 ): Promise<DependencyTree> {
   const { name, parent } = options
 
+  console.log('bower: ', src)
   checkCircularDependency(parent, src)
 
   options.emitter.emit('resolve', { name, src, raw, parent })
@@ -531,7 +532,7 @@ function resolveTypeDependencyMap (src: string, dependencies: any, options: Opti
 /**
  * Check whether the filename is a circular dependency.
  */
-function checkCircularDependency (tree: DependencyTree, filename: string) {
+export function checkCircularDependency (tree: DependencyTree, filename: string) {
   if (tree) {
     const currentSrc = tree.src
 

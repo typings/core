@@ -23,7 +23,9 @@ ftest.only('dependencies resolve', 'jspm-typings-github', (t, cwd) => {
       emitter
     })
     .then(value => {
-      console.log(value)
+      // console.log(value)
+      console.log(value.dependencies['util-arity'].parent)
+      console.log(value.dependencies['es6-promise'].parent)
     })
 })
 

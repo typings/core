@@ -18,12 +18,17 @@ import {
   Options,
   resolveError,
   mergeDependencies,
-  maybeResolveTypeDependencyFrom
+  maybeResolveTypeDependencyFrom,
+  checkCircularDependency
 } from './dependencies'
 import { findUp } from '../utils/find'
 
 interface JspmOptions extends Options {
-  raw: string
+  /**
+   * Jspm relies on this tree to figure out the location of the files.
+   * Need to pass this tree down the line.
+   */
+  tree: JspmDependencyTree
 }
 
 interface Metadata {
@@ -58,6 +63,7 @@ interface Metadata {
  */
 export function resolveDependency(dependency: Dependency, options: Options): Promise<DependencyTree> {
   const name = dependency.meta.name
+  const { raw } = dependency
   return findUp(options.cwd, 'package.json')
     .then((packageJsonPath: string) => {
       const cwd = dirname(packageJsonPath)
@@ -65,50 +71,55 @@ export function resolveDependency(dependency: Dependency, options: Options): Pro
     })
     .then(
     tree => {
-      const { raw } = dependency
-      const jspmOptions = extend(options, { raw })
-      return resolveDependencyInternal(name, tree, jspmOptions)
+      const jspmOptions = extend(options, { tree })
+      return resolveJspmDependency(name, raw, jspmOptions)
     },
     error => {
-      return Promise.reject(resolveError(dependency.raw, error, options))
+      return Promise.reject(resolveError(raw, error, options))
     })
 }
 
-function resolveDependencyInternal(
+function resolveJspmDependency(
   name: string,
-  dependencyTree: JspmDependencyTree,
+  raw: string,
   options: JspmOptions): Promise<DependencyTree> {
-  const modulePath = dependencyTree.path
-  const { parent, raw } = options
+  const { parent, tree } = options
+  const modulePath = tree.path
+  const src = resolvePath(options.cwd, modulePath, 'package.json')
+
+  console.log('jspm: ', src)
+  checkCircularDependency(parent, src)
+
   options.emitter.emit('resolve', { name, modulePath, raw, parent })
-  return readModuleMetaData(modulePath, options)
+
+  return readModuleMetaData(src)
     .then(meta => {
-      const tree = extend(
+      const resultTree = extend(
         DEFAULT_DEPENDENCY, {
           name: name,
           global: false,
-          modulePath,
+          src,
           raw,
           parent
         },
         meta)
 
-      const dependencyOptions = extend(options, { parent: tree })
-      options.emitter.emit('resolved', { name, modulePath, tree, raw, parent })
+      const dependencyOptions = extend(options, { parent: resultTree })
+      options.emitter.emit('resolved', { name, modulePath, resultTree, raw, parent })
       const configPath = resolvePath(options.cwd, modulePath, CONFIG_FILE)
       return Promise.all([
-        resolveDependencyMap(dependencyTree.map, dependencyOptions),
+        resolveDependencyMap(tree.map, dependencyOptions),
         maybeResolveTypeDependencyFrom(configPath, raw, options)
       ])
         .then(([dependencies, typedPackage]) => {
-          tree.dependencies = dependencies
-          return mergeDependencies(tree, typedPackage)
+          resultTree.dependencies = dependencies
+          return mergeDependencies(resultTree, typedPackage)
         })
     })
 }
 
-function readModuleMetaData(modulePath: string, options: Options): Promise<Metadata> {
-  return readJson(join(options.cwd, modulePath, 'package.json'))
+function readModuleMetaData(modulePackageJsonPath: string): Promise<Metadata> {
+  return readJson(modulePackageJsonPath)
     .then(pjson => {
       return pick(pjson, [
         'name',
@@ -131,8 +142,8 @@ function resolveDependencyMap(
   const keys = Object.keys(dependencies)
   return Promise
     .all(keys.map(function (name) {
-      const dependencyTree = dependencies[name]
-      return resolveDependencyInternal(name, dependencyTree, options)
+      const depOptions = extend(options, { tree: dependencies[name] })
+      return resolveJspmDependency(name, null, depOptions)
     }))
     .then(results => zipObject(keys, results))
 }

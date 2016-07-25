@@ -1,0 +1,7 @@
+{
+  "jspm": {
+    "dependencies": {
+      "unthenify": "npm:unthenify@^1.0.2"
+    }
+  }
+}

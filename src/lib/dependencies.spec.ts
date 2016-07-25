@@ -1,34 +1,12 @@
 import test = require('blue-tape')
 import { join } from 'path'
 import { EventEmitter } from 'events'
-import { resolveAllDependencies, resolveDependency } from './dependencies'
-import { Dependency, DependencyTree, DependencyBranch } from '../interfaces'
-import { fixture } from '../utils/fixture'
+
+import { resolveAllDependencies } from './dependencies'
+import { DependencyTree, DependencyBranch } from '../interfaces'
 
 const RESOLVE_FIXTURE_DIR = join(__dirname, '__test__/fixtures/resolve')
 const emitter = new EventEmitter()
-
-const ftest = fixture(join(__dirname, '__test__/fixtures'))
-
-ftest.only('dependencies resolve', 'jspm-0.17', (t, cwd) => {
-  const jspmDep: Dependency = {
-    raw: 'jspm:lodash',
-    type: 'jspm',
-    meta: {
-      name: 'sinon'
-    }
-  }
-
-  return resolveDependency(
-    jspmDep,
-    {
-      cwd,
-      emitter
-    })
-    .then((value) => {
-      console.log(value)
-    })
-})
 
 test('dependencies', t => {
   t.test('resolve fixture', t => {

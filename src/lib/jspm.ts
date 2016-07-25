@@ -1,71 +1,181 @@
-// import Promise = require('any-promise')
-// import pick = require('object.pick')
-// import { join, dirname } from 'path'
-// import { readJson, isFile } from '../utils/fs'
-// import extend = require('xtend')
-// import {
-//   resolveAll as jspmResolveAll,
-//   resolve as jspmResolve,
-//   DependencyTree as JspmDependencyTree,
-//  } from 'jspm-config'
+import { join, dirname, resolve as resolvePath } from 'path'
+import Promise = require('any-promise')
+import pick = require('object.pick')
+import zipObject = require('zip-object')
+import extend = require('xtend')
+import {
+  // resolveAll,
+  resolve,
+  DependencyTree as JspmDependencyTree,
+  DependencyBranch as JspmDependencyBranch
+} from 'jspm-config'
+
+import { readJson } from '../utils/fs'
+import { CONFIG_FILE } from '../utils/config'
+import { Dependency, DependencyTree, DependencyBranch } from '../interfaces'
+import {
+  DEFAULT_DEPENDENCY,
+  Options,
+  resolveError,
+  mergeDependencies,
+  maybeResolveTypeDependencyFrom
+} from './dependencies'
+import { findUp } from '../utils/find'
+
+interface JspmOptions extends Options {
+  raw: string
+}
+
+interface Metadata {
+  name: any
+  version: any
+  main: any
+  browser: any
+  typings: any
+  browserTypings: any
+  // configFiles: {
+  //   jspm: string
+  //   node?: string
+  // },
+  // packagePath: string
+  // paths: { [index: string]: string }
+  // map: Map,
+  // packages: {
+  //   [index: string]: {
+  //     map: Map
+  //   }
+  // }
+  // dependencies: {
+  //   [index: string]: {
+  //     deps: Map
+  //     peerDeps: Map
+  //   }
+  // }
+}
+
+/**
+ * Resolve a dependency in Jspm.
+ */
+export function resolveDependency(dependency: Dependency, options: Options): Promise<DependencyTree> {
+  const name = dependency.meta.name
+  return findUp(options.cwd, 'package.json')
+    .then((packageJsonPath: string) => {
+      const cwd = dirname(packageJsonPath)
+      return resolve(name, { cwd })
+    })
+    .then(
+    tree => {
+      const { raw } = dependency
+      const jspmOptions = extend(options, { raw })
+      return resolveDependencyInternal(name, tree, jspmOptions)
+    },
+    error => {
+      return Promise.reject(resolveError(dependency.raw, error, options))
+    })
+}
+
+function resolveDependencyInternal(
+  name: string,
+  dependencyTree: JspmDependencyTree,
+  options: JspmOptions): Promise<DependencyTree> {
+  const modulePath = dependencyTree.path
+  const { parent, raw } = options
+  options.emitter.emit('resolve', { name, modulePath, raw, parent })
+  return readModuleMetaData(modulePath, options)
+    .then(meta => {
+      const tree = extend(
+        DEFAULT_DEPENDENCY, {
+          name: name,
+          global: false,
+          modulePath,
+          raw,
+          parent
+        },
+        meta)
+
+      const dependencyOptions = extend(options, { parent: tree })
+      options.emitter.emit('resolved', { name, modulePath, tree, raw, parent })
+      const configPath = resolvePath(options.cwd, modulePath, CONFIG_FILE)
+      return Promise.all([
+        resolveDependencyMap(dependencyTree.map, dependencyOptions),
+        maybeResolveTypeDependencyFrom(configPath, raw, options)
+      ])
+        .then(([dependencies, typedPackage]) => {
+          tree.dependencies = dependencies
+          return mergeDependencies(tree, typedPackage)
+        })
+    })
+}
+
+function readModuleMetaData(modulePath: string, options: Options): Promise<Metadata> {
+  return readJson(join(options.cwd, modulePath, 'package.json'))
+    .then(pjson => {
+      return pick(pjson, [
+        'name',
+        'version',
+        'main',
+        'browser',
+        'typings',
+        'browserTypings'
+      ])
+    })
+}
+
+/**
+ * Recursively resolve dependencies from a list and component path.
+ */
+function resolveDependencyMap(
+  dependencies: JspmDependencyBranch = {},
+  options: JspmOptions
+): Promise<DependencyBranch> {
+  const keys = Object.keys(dependencies)
+  return Promise
+    .all(keys.map(function (name) {
+      const dependencyTree = dependencies[name]
+      return resolveDependencyInternal(name, dependencyTree, options)
+    }))
+    .then(results => zipObject(keys, results))
+}
+
+// function resolveJspmDependencyInternal(name: string, raw: string, node: DependencyNode, options: Options) {
+//   const modulePath = node.path
+//   const { parent } = options
+//   options.emitter.emit('resolve', { name, modulePath, raw, parent })
+//   const tree = extend(DEFAULT_DEPENDENCY, {
+//     name,
+//     version: metadata.version,
+//     main: metadata.main,
+//     browser: metadata.browser,
+//     typings: metadata.typings,
+//     browserTypings: metadata.browserTypings,
+//     global: false,
+//     modulePath,
+//     raw,
+//     parent
+//   })
+
+//   const moduleDeps = metadata.dependencies[value]
+//   const dependencyMap = extend(moduleDeps.deps)
+//   const dependencyOptions = extend(options, { parent: tree })
+//   options.emitter.emit('resolved', { name, modulePath, tree, raw, parent })
+
+//   return Promise.all([
+//     resolveJspmDependencyMap(dependencyMap, metadata, dependencyOptions),
+//     maybeResolveTypeDependencyFrom(join(modulePath, CONFIG_FILE), raw, options)
+//   ])
+//     .then(([dependencies, typedPackage]) => {
+//       tree.dependencies = dependencies
+//       return mergeDependencies(tree, typedPackage)
+//     })
+//     .then(
+//     null,
+//     (error) => {
+//       return Promise.reject(resolveError(raw, error, options))
+//     }
+//     )
+// }
 
 // export interface Map { [index: string]: string }
-
-// export interface Metadata {
-//   name: any
-//   version: any
-//   main: any
-//   browser: any
-//   typings: any
-//   browserTypings: any
-//   configFiles: {
-//     jspm: string
-//     node?: string
-//   },
-//   packagePath: string
-//   paths: { [index: string]: string }
-//   map: Map,
-//   packages: {
-//     [index: string]: {
-//       map: Map
-//     }
-//   }
-//   dependencies: {
-//     [index: string]: {
-//       deps: Map
-//       peerDeps: Map
-//     }
-//   }
-// }
-
-// export function resolvePath(value: string, meta: Metadata) {
-//   const parts = value.split(':', 2)
-//   const basePath = meta.paths[parts[0] + ':']
-//   return join(basePath, parts[1])
-// }
-
-// export function readJspmPackage(pjsonPath: string) {
-//   return readJson(pjsonPath)
-//     .then((pjson) => {
-//       let picked = pick(pjson, [
-//         'name',
-//         'version',
-//         'main',
-//         'browser',
-//         'typings',
-//         'browserTypings',
-//         'jspm'
-//       ])
-
-//       if (typeof picked.jspm === 'object') {
-//         picked = extend(picked, pick(picked.jspm, [
-//           'name',
-//           'main'
-//         ]))
-//       }
-//       return picked
-//     })
-// }
 
 // /**
 //  * Read jspm Metadata from the specified path to package.json.
@@ -146,127 +256,24 @@
 //         })
 //     })
 // }
+
+// Coming Soon
 // /**
 //  * Follow and resolve Jspm dependencies.
 //  */
-// export function resolveJspmDependencies (options: Options): Promise<DependencyTree> {
+// export function resolveJspmDependencies(options: Options): Promise<DependencyTree> {
 //   return findUp(options.cwd, 'package.json')
 //     .then((packageJsonPath: string) => {
 //       const cwd = dirname(packageJsonPath)
-//       return jspmResolveAll({ cwd })
+//       return resolveAll({ cwd })
 //     })
 //     .then(
-//       dependencyTree => {
-//         return resolveJspmDependencyInternal(undefined, undefined, metadata, options)
-//       },
-//       cause => {
-//         return Promise.reject(new TypingsError(`Unable to resolve JSPM dependencies`, cause))
-//       })
-// }
-
-// /**
-//  * Resolve a dependency in Jspm.
-//  */
-// function resolveJspmDependency (dependency: Dependency, options: Options) {
-//   return findUp(options.cwd, 'package.json')
-//     .then((packageJsonPath: string) => {
-//       const cwd = dirname(packageJsonPath)
-//       return jspmResolve(dependency.meta.name, { cwd })
+//     dependencyTree => {
+//       return resolveJspmDependencyInternal(undefined, undefined, metadata, options)
+//     },
+//     cause => {
+//       return Promise.reject(new TypingsError(`Unable to resolve JSPM dependencies`, cause))
 //     })
-//     .then(
-//       dependencyTree => {
-//         return resolveJspmDependencyInternal(dependency.meta.name, dependency.raw, metadata, options)
-//       },
-//       (error) => {
-//         return Promise.reject(resolveError(dependency.raw, error, options))
-//       })
 // }
 
-// function resolveJspmDependencyInternal(name: string, raw: string, metadata: JspmMetadata, options: Options) {
-//     const value = metadata.map[name]
-//     const modulePath = resolveJspmPath(value, metadata)
-//     const { parent } = options
-//     options.emitter.emit('resolve', { name, modulePath, raw, parent })
-//     const tree = extend(DEFAULT_DEPENDENCY, {
-//       name: metadata.name,
-//       version: metadata.version,
-//       main: metadata.main,
-//       browser: metadata.browser,
-//       typings: metadata.typings,
-//       browserTypings: metadata.browserTypings,
-//       global: false,
-//       modulePath,
-//       raw,
-//       parent
-//     })
 
-//     const moduleDeps = metadata.dependencies[value]
-//     const dependencyMap = extend(moduleDeps.deps)
-//     const dependencyOptions = extend(options, { parent: tree })
-//     options.emitter.emit('resolved', { name, modulePath, tree, raw, parent })
-
-//     return Promise.all([
-//       resolveJspmDependencyMap(dependencyMap, metadata, dependencyOptions),
-//       maybeResolveTypeDependencyFrom(join(modulePath, CONFIG_FILE), raw, options)
-//     ])
-//       .then(([dependencies, typedPackage]) => {
-//         tree.dependencies = dependencies
-//         return mergeDependencies(tree, typedPackage)
-//       })
-//     .then(
-//       null,
-//       (error) => {
-//         return Promise.reject(resolveError(raw, error, options))
-//       }
-//     )
-// }
-
-// /**
-//  * Recursively resolve dependencies from a list and component path.
-//  */
-// function resolveJspmDependencyMap (
-//   dependencies: Dependencies,
-//   meta: JspmMetadata,
-//   options: Options
-// ): Promise<DependencyBranch> {
-//   const keys = Object.keys(dependencies)
-//   const { parent } = options
-
-//   return Promise.all(keys.map(function (name) {
-//     const value = dependencies[name]
-//     const modulePath = resolveJspmPath(value, meta)
-
-//     const tree = extend(DEFAULT_DEPENDENCY, {
-//       name: meta.name,
-//       version: meta.version,
-//       main: meta.main,
-//       browser: meta.browser,
-//       typings: meta.typings,
-//       browserTypings: meta.browserTypings,
-//       global: false,
-//       modulePath,
-//       parent
-//     })
-
-//     const moduleDeps = meta.dependencies[value]
-//     console.log(name, value, moduleDeps)
-//     const dependencyMap = extend(moduleDeps.deps)
-//     const dependencyOptions = extend(options, { parent: tree })
-//     options.emitter.emit('resolved', { name, modulePath, tree, value, parent })
-//     return Promise.all([
-//       resolveJspmDependencyMap(dependencyMap, meta, dependencyOptions),
-//       maybeResolveTypeDependencyFrom(join(modulePath, CONFIG_FILE), value, options)
-//     ])
-//       .then(([dependencies, typedPackage]) => {
-//         tree.dependencies = dependencies
-//         return mergeDependencies(tree, typedPackage)
-//       })
-//     .then(
-//       null,
-//       (error) => {
-//         return Promise.reject(resolveError(value, error, options))
-//       }
-//     )
-//   }))
-//     .then(results => zipObject(keys, results))
-// }

@@ -1,0 +1,12 @@
+{
+  "npm:unthenify@1.0.2": {
+    "deps": {
+      "util-arity": "npm:util-arity@^1.0.2"
+    },
+    "peerDeps": {}
+  },
+  "npm:util-arity@1.0.2": {
+    "deps": {},
+    "peerDeps": {}
+  }
+}

@@ -13,6 +13,7 @@ import { CONFIG_FILE, PROJECT_NAME } from '../utils/config'
 import { search } from '../search'
 import { Dependency, DependencyBranch, Dependencies, DependencyTree, Emitter } from '../interfaces'
 import TypingsError from './error'
+import { resolveDependency as resolveJspmDependency } from './jspm'
 
 /**
  * Default dependency config options.
@@ -79,8 +80,7 @@ export function resolveDependency (dependency: Dependency, options: Options): Pr
   // jspm Dependency does not have `location` info, need `dependency`.
   // thus not grouped inside `resolveDependencyInternally()` call.
   if (type === 'jspm') {
-    console.log(dependency);
-    // return resolveJspmDependency(dependency, options)
+    return resolveJspmDependency(dependency, options)
   }
 
   return resolveDependencyInternally(type, location, raw, options)
@@ -510,7 +510,7 @@ function resolveTypeDependencyFrom (src: string, raw: string, options: Options) 
 /**
  * Resolve type dependency ignoring not found issues (E.g. when mixed resolve NPM/Bower).
  */
-function maybeResolveTypeDependencyFrom (src: string, raw: string, options: Options) {
+export function maybeResolveTypeDependencyFrom (src: string, raw: string, options: Options) {
   return resolveTypeDependencyFrom(src, raw, options).catch(() => extend(DEFAULT_DEPENDENCY))
 }
 
@@ -547,7 +547,7 @@ function checkCircularDependency (tree: DependencyTree, filename: string) {
 /**
  * Create a resolved failure error message.
  */
-function resolveError (raw: string, cause: Error, options: Options) {
+export function resolveError (raw: string, cause: Error, options: Options) {
   const { name } = options
   let message = `Unable to resolve ${raw == null ? 'typings' : `"${raw}"`}`
 
@@ -561,7 +561,7 @@ function resolveError (raw: string, cause: Error, options: Options) {
 /**
  * Merge dependency trees together.
  */
-function mergeDependencies (root: DependencyTree, ...trees: DependencyTree[]): DependencyTree {
+export function mergeDependencies (root: DependencyTree, ...trees: DependencyTree[]): DependencyTree {
   const dependency = extend(root)
 
   for (const tree of trees) {

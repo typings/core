@@ -275,5 +275,3 @@ function resolveDependencyMap(
 //       return Promise.reject(new TypingsError(`Unable to resolve JSPM dependencies`, cause))
 //     })
 // }
-
-

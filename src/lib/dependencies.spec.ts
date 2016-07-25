@@ -2,7 +2,8 @@ import test = require('blue-tape')
 import { join } from 'path'
 import { EventEmitter } from 'events'
 import { resolveAllDependencies } from './dependencies'
-import { DependencyTree, DependencyBranch } from '../interfaces'
+import { DependencyTree } from '../interfaces'
+import { removeParentReference } from '../utils/spec'
 
 const RESOLVE_FIXTURE_DIR = join(__dirname, '__test__/fixtures/resolve')
 const emitter = new EventEmitter()
@@ -136,25 +137,6 @@ test('dependencies', t => {
         emitter
       })
         .then((result) => {
-          console.log(result)
-          function removeParentReferenceFromDependencies (dependencies: DependencyBranch) {
-            Object.keys(dependencies).forEach(function (key) {
-              removeParentReference(dependencies[key])
-            })
-          }
-
-          function removeParentReference (tree: DependencyTree) {
-            delete tree.parent
-
-            removeParentReferenceFromDependencies(tree.dependencies)
-            removeParentReferenceFromDependencies(tree.devDependencies)
-            removeParentReferenceFromDependencies(tree.peerDependencies)
-            removeParentReferenceFromDependencies(tree.globalDependencies)
-            removeParentReferenceFromDependencies(tree.globalDevDependencies)
-
-            return tree
-          }
-
           t.equal(result.parent, undefined)
           t.ok((result.dependencies as any).dep.parent != null)
           t.ok((result.dependencies as any)['npm-dep'].parent != null)

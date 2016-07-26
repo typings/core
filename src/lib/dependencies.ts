@@ -254,7 +254,6 @@ function resolveBowerDependencyFrom (
 ): Promise<DependencyTree> {
   const { name, parent } = options
 
-  console.log('bower: ', src)
   checkCircularDependency(parent, src)
 
   options.emitter.emit('resolve', { name, src, raw, parent })

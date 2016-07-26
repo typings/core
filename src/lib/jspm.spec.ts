@@ -11,7 +11,7 @@ const emitter = new EventEmitter()
 
 /* tslint:disable:max-line-length */
 
-ftest.only('dependencies resolve', 'jspm-typings-github', (t, cwd) => {
+ftest('dependencies resolve', 'jspm-typings-github', (t, cwd) => {
   const jspmDep = {
     raw: 'jspm:unthenify',
     type: 'jspm',

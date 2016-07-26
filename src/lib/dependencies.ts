@@ -13,7 +13,10 @@ import { CONFIG_FILE, PROJECT_NAME } from '../utils/config'
 import { search } from '../search'
 import { ConfigJson, Dependency, DependencyBranch, Dependencies, DependencyTree, Emitter } from '../interfaces'
 import TypingsError from './error'
-import { resolveDependency as resolveJspmDependency } from './jspm'
+import {
+  resolveDependency as resolveJspmDependency,
+  resolveDependencies as resolveJspmDependencies
+} from './jspm'
 
 /**
  * Default dependency config options.
@@ -61,6 +64,7 @@ export function resolveAllDependencies (options: Options): Promise<DependencyTre
   return Promise.all([
     resolveBowerDependencies(options).catch(() => extend(DEFAULT_DEPENDENCY)),
     resolveNpmDependencies(options).catch(() => extend(DEFAULT_DEPENDENCY)),
+    resolveJspmDependencies(options).catch(() => extend(DEFAULT_DEPENDENCY)),
     resolveTypeDependencies(options).catch(() => extend(DEFAULT_DEPENDENCY))
   ])
     .then((trees) => mergeDependencies(DEFAULT_DEPENDENCY, ...trees))

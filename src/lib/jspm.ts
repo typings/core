@@ -4,7 +4,7 @@ import pick = require('object.pick')
 import zipObject = require('zip-object')
 import extend = require('xtend')
 import {
-  // resolveAll,
+  resolveAll,
   resolve,
   DependencyTree as JspmDependencyTree,
   DependencyBranch as JspmDependencyBranch
@@ -41,31 +41,58 @@ interface Metadata {
 }
 
 /**
+ * Change config from 'npm:' to 'jspm:'.
+ */
+function readConfigFromOverride(src: string) {
+  return readConfigFrom(src)
+    .then(config => {
+      for (const key in config.dependencies) {
+        const value = config.dependencies[key]
+        if (value.indexOf('npm:') === 0) {
+          config.dependencies[key] = 'jspm:' + value.slice(4)
+        }
+      }
+
+      for (const key in config.devDependencies) {
+        const value = config.devDependencies[key]
+        if (value.indexOf('npm:') === 0) {
+          config.devDependencies[key] = 'jspm:' + value.slice(4)
+        }
+      }
+      return config
+    })
+}
+
+export function resolveDependencies(options: Options): Promise<DependencyTree> {
+  options.readConfigFrom = readConfigFromOverride
+  return findUp(options.cwd, 'package.json')
+    .then((packageJsonPath: string) => {
+      const cwd = dirname(packageJsonPath)
+      return resolveAll({ cwd })
+    })
+    .then(
+    branch => {
+      const queue = [] as Promise<DependencyTree>[]
+      for (let name in branch) {
+        const tree = branch[name]
+        const jspmOptions = extend(options, { tree })
+        queue.push(resolveJspmDependency(name, `jspm:${name}`, jspmOptions))
+      }
+
+      return Promise.all(queue)
+        .then(trees => mergeDependencies(DEFAULT_DEPENDENCY, ...trees))
+    },
+    error => {
+      return Promise.reject(error)
+    })
+}
+
+/**
  * Resolve a dependency in Jspm.
  */
 export function resolveDependency(dependency: Dependency, options: Options): Promise<DependencyTree> {
-  /**
-   * Change config from 'npm:' to 'jspm:'.
-   */
-  options.readConfigFrom = src => {
-    return readConfigFrom(src)
-      .then(config => {
-        for (const key in config.dependencies) {
-          const value = config.dependencies[key]
-          if (value.indexOf('npm:') === 0) {
-            config.dependencies[key] = 'jspm:' + value.slice(4)
-          }
-        }
+  options.readConfigFrom = readConfigFromOverride
 
-        for (const key in config.devDependencies) {
-          const value = config.devDependencies[key]
-          if (value.indexOf('npm:') === 0) {
-            config.devDependencies[key] = 'jspm:' + value.slice(4)
-          }
-        }
-        return config
-      })
-  }
   // console.log('resolveDependency starts', dependency)
   const name = dependency.meta.name
   const { raw } = dependency

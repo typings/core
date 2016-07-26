@@ -11,7 +11,168 @@ const emitter = new EventEmitter()
 
 /* tslint:disable:max-line-length */
 
-ftest('dependencies resolve', 'jspm-typings-github', (t, cwd) => {
+ftest.skip('jspm resolve', 'jspm-typings-registry', (t, cwd) => {
+  const jspmDep = {
+    raw: 'jspm:popsicle-retry',
+    type: 'jspm',
+    meta: {
+      name: 'popsicle-retry'
+    }
+  }
+  const xtendDep: DependencyTree = {
+    src: resolve(cwd, 'jspm_packages/npm/xtend@4.0.1/package.json'),
+    raw: 'jspm:xtend',
+    main: 'immutable',
+    browser: undefined,
+    typings: undefined,
+    browserTypings: undefined,
+    version: '4.0.1',
+    files: undefined,
+    global: false,
+    postmessage: undefined,
+    dependencies: {},
+    devDependencies: {},
+    peerDependencies: {},
+    globalDependencies: {},
+    globalDevDependencies: {},
+    name: 'xtend'
+  }
+
+  const xtendGithubDep: DependencyTree = {
+    src: 'https://raw.githubusercontent.com/typed-typings/npm-xtend/63cccadf3295b3c15561ee45617ac006edcca9e0/typings.json',
+    raw: 'registry:npm/xtend#4.0.0+20160211003958',
+    main: 'immutable.d.ts',
+    browser: undefined,
+    typings: undefined,
+    browserTypings: undefined,
+    version: undefined,
+    files: undefined,
+    global: false,
+    postmessage: undefined,
+    dependencies: {},
+    devDependencies: {},
+    peerDependencies: {},
+    globalDependencies: {},
+    globalDevDependencies: {},
+    name: 'xtend',
+    type: 'typings'
+  }
+
+  const xtendGithubParent: DependencyTree = {
+    src: resolve(cwd, 'jspm_packages/npm/popsicle-retry@3.2.1/typings.json'),
+    raw: 'jspm:popsicle-retry',
+    main: undefined,
+    browser: undefined,
+    typings: undefined,
+    browserTypings: undefined,
+    version: undefined,
+    files: undefined,
+    global: false,
+    postmessage: undefined,
+    dependencies: {
+      xtend: xtendGithubDep
+    },
+    devDependencies: {},
+    peerDependencies: {},
+    globalDependencies: {},
+    globalDevDependencies: {},
+    name: undefined,
+    type: 'typings'
+  }
+
+  const anyPromiseDep: DependencyTree = {
+    src: resolve(cwd, 'jspm_packages/npm/any-promise@1.3.0/package.json'),
+    raw: 'jspm:any-promise',
+    main: 'index.js',
+    browser: {
+      './register.js': './register-shim.js'
+    },
+    typings: 'index.d.ts',
+    browserTypings: undefined,
+    version: '1.3.0',
+    files: undefined,
+    global: false,
+    postmessage: undefined,
+    dependencies: {},
+    devDependencies: {},
+    peerDependencies: {},
+    globalDependencies: {},
+    globalDevDependencies: {},
+    name: 'any-promise'
+  }
+
+  const anyPromiseParent: DependencyTree = {
+    src: resolve(cwd, 'jspm_packages/npm/popsicle-retry@3.2.1/package.json'),
+    raw: 'jspm:popsicle-retry',
+    main: 'dist/index.js',
+    browser: undefined,
+    typings: undefined,
+    browserTypings: undefined,
+    version: '3.2.1',
+    files: undefined,
+    global: false,
+    postmessage: undefined,
+    dependencies: {
+      'any-promise': anyPromiseDep,
+      xtend: xtendDep
+    },
+    devDependencies: {},
+    peerDependencies: {},
+    globalDependencies: {},
+    globalDevDependencies: {},
+    name: 'popsicle-retry'
+  }
+
+  const popsicleRetryDep: DependencyTree = {
+    src: resolve(cwd, 'jspm_packages/npm/popsicle-retry@3.2.1/package.json'),
+    raw: 'jspm:popsicle-retry',
+    main: 'dist/index.js',
+    browser: undefined,
+    typings: undefined,
+    browserTypings: undefined,
+    version: '3.2.1',
+    files: undefined,
+    global: false,
+    postmessage: undefined,
+    dependencies: {
+      'any-promise': anyPromiseDep,
+      'xtend': xtendGithubDep
+    },
+    devDependencies: {},
+    peerDependencies: {},
+    globalDependencies: {},
+    globalDevDependencies: {},
+    name: 'popsicle-retry'
+  }
+
+  return resolveDependency(
+    jspmDep,
+    {
+      cwd,
+      emitter
+    })
+    .then(result => {
+      // console.log(result)
+      t.is(result.parent, undefined, 'top of result should have no parent')
+
+      t.true(result.dependencies['any-promise'], '`any-promise` is a dependency')
+      const actualAnyPromiseParent = result.dependencies['any-promise'].parent
+      // console.log(actualAnyPromiseParent)
+      removeParentReference(actualAnyPromiseParent)
+      t.deepEqual(actualAnyPromiseParent, anyPromiseParent, '`any-promise` has correct parent')
+
+      const actualXtendDep = (result.dependencies as any).xtend
+      t.true(actualXtendDep, '`xtend` is a dependency')
+      const actualXtendParent = actualXtendDep.parent
+      removeParentReference(actualXtendParent)
+      t.deepEqual(actualXtendParent, xtendGithubParent, '`xtend` has correct parent')
+
+      removeParentReference(result)
+      t.deepEqual(result, popsicleRetryDep, 'result as expected (after parent removed to avoid circular reference)')
+    })
+})
+
+ftest.skip('jspm resolve', 'jspm-typings-github', (t, cwd) => {
   const jspmDep = {
     raw: 'jspm:unthenify',
     type: 'jspm',

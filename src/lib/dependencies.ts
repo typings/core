@@ -449,7 +449,7 @@ function resolveTypeDependencyFrom (src: string, raw: string, options: Options) 
 
   options.emitter.emit('resolve', { name, src, raw, parent })
 
-  return readConfigFrom(src)
+  return (options.readConfigFrom ? options.readConfigFrom(src) : readConfigFrom(src))
     .then<DependencyTree>(
       function (config) {
         const tree = extend(DEFAULT_DEPENDENCY, {

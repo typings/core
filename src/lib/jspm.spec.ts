@@ -11,7 +11,7 @@ const emitter = new EventEmitter()
 
 /* tslint:disable:max-line-length */
 
-ftest('jspm resolve', 'jspm-typings-registry', (t, cwd) => {
+ftest.skip('jspm resolve', 'jspm-typings-registry', (t, cwd) => {
   const jspmDep = {
     raw: 'jspm:popsicle-retry',
     type: 'jspm',
@@ -172,7 +172,7 @@ ftest('jspm resolve', 'jspm-typings-registry', (t, cwd) => {
     })
 })
 
-ftest.skip('jspm resolve', 'jspm-typings-github', (t, cwd) => {
+ftest('jspm resolve', 'jspm-typings-github', (t, cwd) => {
   const jspmDep = {
     raw: 'jspm:unthenify',
     type: 'jspm',

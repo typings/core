@@ -10,7 +10,7 @@ import {
   DependencyBranch as JspmDependencyBranch
 } from 'jspm-config'
 
-import { readJson } from '../utils/fs'
+import { readJson, readConfigFrom } from '../utils/fs'
 import { CONFIG_FILE } from '../utils/config'
 import { Dependency, DependencyTree, DependencyBranch } from '../interfaces'
 import {
@@ -44,6 +44,28 @@ interface Metadata {
  * Resolve a dependency in Jspm.
  */
 export function resolveDependency(dependency: Dependency, options: Options): Promise<DependencyTree> {
+  /**
+   * Change config from 'npm:' to 'jspm:'.
+   */
+  options.readConfigFrom = src => {
+    return readConfigFrom(src)
+      .then(config => {
+        for (const key in config.dependencies) {
+          const value = config.dependencies[key]
+          if (value.indexOf('npm:') === 0) {
+            config.dependencies[key] = 'jspm:' + value.slice(4)
+          }
+        }
+
+        for (const key in config.devDependencies) {
+          const value = config.devDependencies[key]
+          if (value.indexOf('npm:') === 0) {
+            config.devDependencies[key] = 'jspm:' + value.slice(4)
+          }
+        }
+        return config
+      })
+  }
   // console.log('resolveDependency starts', dependency)
   const name = dependency.meta.name
   const { raw } = dependency

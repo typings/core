@@ -129,10 +129,6 @@ ftest.only('dependencies resolve', 'jspm-typings-github', (t, cwd) => {
       emitter
     })
     .then(result => {
-      // console.log(result)
-      console.log(result.dependencies['util-arity'].parent)
-      // console.log(result.dependencies['es6-promise'].parent)
-
       t.is(result.parent, undefined, 'top of result should have no parent')
 
       t.true(result.dependencies['util-arity'], '`util-arity` is a dependency')

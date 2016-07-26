@@ -1,4 +1,4 @@
-import { join, dirname, resolve as resolvePath } from 'path'
+import { dirname, resolve as resolvePath } from 'path'
 import Promise = require('any-promise')
 import pick = require('object.pick')
 import zipObject = require('zip-object')

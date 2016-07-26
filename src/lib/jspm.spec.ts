@@ -1,12 +1,15 @@
-// import { join } from 'path'
+import { resolve } from 'path'
 import test = require('blue-tape')
 import fixture from 'blue-tape-fixture'
 import { EventEmitter } from 'events'
 
 import { resolveDependency } from './jspm'
-
+import { DependencyTree } from '../interfaces'
+import { removeParentReference } from '../utils/spec'
 const ftest = fixture(test, 'src/lib/__test__/fixtures')
 const emitter = new EventEmitter()
+
+/* tslint:disable:max-line-length */
 
 ftest.only('dependencies resolve', 'jspm-typings-github', (t, cwd) => {
   const jspmDep = {
@@ -16,21 +19,139 @@ ftest.only('dependencies resolve', 'jspm-typings-github', (t, cwd) => {
       name: 'unthenify'
     }
   }
+
+  const utilArityDep: DependencyTree = {
+    src: resolve(cwd, 'jspm_packages/npm/util-arity@1.0.2/package.json'),
+    raw: 'jspm:util-arity',
+    main: 'arity.js',
+    browser: undefined,
+    typings: 'arity.d.ts',
+    browserTypings: undefined,
+    version: '1.0.2',
+    files: undefined,
+    global: false,
+    postmessage: undefined,
+    dependencies: {},
+    devDependencies: {},
+    peerDependencies: {},
+    globalDependencies: {},
+    globalDevDependencies: {},
+    name: 'util-arity'
+  }
+
+  const utilArityParent: DependencyTree = {
+    src: resolve(cwd, 'jspm_packages/npm/unthenify@1.0.2/package.json'),
+    raw: 'jspm:unthenify',
+    main: 'dist/index.js',
+    browser: undefined,
+    typings: undefined,
+    browserTypings: undefined,
+    version: '1.0.2',
+    files: undefined,
+    global: false,
+    postmessage: undefined,
+    dependencies: {
+      'util-arity': utilArityDep
+    },
+    devDependencies: {},
+    peerDependencies: {},
+    globalDependencies: {},
+    globalDevDependencies: {},
+    name: 'unthenify'
+  }
+
+  const es6PromiseDep: DependencyTree = {
+    src: 'https://raw.githubusercontent.com/typings/typed-es6-promise/94aac67ef7a14a8de8e9e1d3c1f9a26caa0d9fb1/typings.json',
+    raw: 'github:typings/typed-es6-promise#94aac67ef7a14a8de8e9e1d3c1f9a26caa0d9fb1',
+    main: 'dist/es6-promise.d.ts',
+    browser: undefined,
+    typings: undefined,
+    browserTypings: undefined,
+    version: undefined,
+    files: undefined,
+    global: false,
+    postmessage: undefined,
+    dependencies: {},
+    devDependencies: {},
+    peerDependencies: {},
+    globalDependencies: {},
+    globalDevDependencies: {},
+    name: 'es6-promise',
+    type: 'typings'
+  }
+
+  const es6PromiseParent: DependencyTree = {
+    src: resolve(cwd, 'jspm_packages/npm/unthenify@1.0.2/typings.json'),
+    raw: 'jspm:unthenify',
+    main: undefined,
+    browser: undefined,
+    typings: undefined,
+    browserTypings: undefined,
+    version: undefined,
+    files: undefined,
+    global: false,
+    postmessage: undefined,
+    dependencies: { 'es6-promise': es6PromiseDep },
+    devDependencies: {},
+    peerDependencies: {},
+    globalDependencies: {},
+    globalDevDependencies: {},
+    name: undefined,
+    type: 'typings'
+  }
+
+  const unthenifyDep: DependencyTree = {
+    src: resolve(cwd, 'jspm_packages/npm/unthenify@1.0.2/package.json'),
+    raw: 'jspm:unthenify',
+    main: 'dist/index.js',
+    browser: undefined,
+    typings: undefined,
+    browserTypings: undefined,
+    version: '1.0.2',
+    files: undefined,
+    global: false,
+    postmessage: undefined,
+    dependencies: {
+      'util-arity': utilArityDep,
+      'es6-promise': es6PromiseDep
+    },
+    devDependencies: {},
+    peerDependencies: {},
+    globalDependencies: {},
+    globalDevDependencies: {},
+    name: 'unthenify'
+  }
+
   return resolveDependency(
     jspmDep,
     {
       cwd,
       emitter
     })
-    .then(value => {
-      // console.log(value)
-      console.log(value.dependencies['util-arity'].parent)
-      console.log(value.dependencies['es6-promise'].parent)
+    .then(result => {
+      // console.log(result)
+      console.log(result.dependencies['util-arity'].parent)
+      // console.log(result.dependencies['es6-promise'].parent)
+
+      t.is(result.parent, undefined, 'top of result should have no parent')
+
+      t.true(result.dependencies['util-arity'], '`util-arity` is a dependency')
+      const actualUtilArityParent = result.dependencies['util-arity'].parent
+      removeParentReference(actualUtilArityParent)
+      t.deepEqual(actualUtilArityParent, utilArityParent, '`util-arity` has correct parent')
+
+      t.true(result.dependencies['es6-promise'], '`es6-promise` is a dependency')
+      const actualEs6PromiseParent = result.dependencies['es6-promise'].parent
+      removeParentReference(actualEs6PromiseParent)
+      t.deepEqual(actualEs6PromiseParent, es6PromiseParent, '`es6-promise` has correct parent')
+
+      removeParentReference(result)
+      t.deepEqual(result, unthenifyDep, 'result as expected (after parent removed to avoid circular reference)')
     })
 })
 
 // ftest('jspm readMetadata', 'jspm-0.17-custom', (t, fixturePath) => {
-//   return readMetadata(join(fixturePath, 'package.json'))
+//   return readMetadata(resolve(fixturePath, 'package.json'))
 //     .then((metadata) => {
 //       t.deepEqual(metadata, {
 //         name: undefined,

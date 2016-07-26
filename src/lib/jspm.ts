@@ -87,7 +87,6 @@ function resolveJspmDependency(
   const modulePath = tree.path
   const src = resolvePath(options.cwd, modulePath, 'package.json')
 
-  console.log('jspm: ', src)
   checkCircularDependency(parent, src)
 
   options.emitter.emit('resolve', { name, modulePath, raw, parent })
@@ -143,7 +142,7 @@ function resolveDependencyMap(
   return Promise
     .all(keys.map(function (name) {
       const depOptions = extend(options, { tree: dependencies[name] })
-      return resolveJspmDependency(name, null, depOptions)
+      return resolveJspmDependency(name, `jspm:${name}`, depOptions)
     }))
     .then(results => zipObject(keys, results))
 }

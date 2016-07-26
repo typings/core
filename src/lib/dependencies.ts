@@ -11,7 +11,7 @@ import { findUp, findConfigFile } from '../utils/find'
 import { isDefinition, isHttp } from '../utils/path'
 import { CONFIG_FILE, PROJECT_NAME } from '../utils/config'
 import { search } from '../search'
-import { Dependency, DependencyBranch, Dependencies, DependencyTree, Emitter } from '../interfaces'
+import { ConfigJson, Dependency, DependencyBranch, Dependencies, DependencyTree, Emitter } from '../interfaces'
 import TypingsError from './error'
 import { resolveDependency as resolveJspmDependency } from './jspm'
 
@@ -46,7 +46,12 @@ export interface Options {
   dev?: boolean
   peer?: boolean
   global?: boolean
-  parent?: DependencyTree
+  parent?: DependencyTree,
+  /**
+   * Optional `readConfigFrom` inject method.
+   * This is used by `jspm:` as it needs to
+   */
+  readConfigFrom?: (src: string) => Promise<ConfigJson>
 }
 
 /**
@@ -66,9 +71,13 @@ export function resolveAllDependencies (options: Options): Promise<DependencyTre
  */
 export function resolveDependency (dependency: Dependency, options: Options): Promise<DependencyTree> {
   const { type, location, raw, meta } = dependency
-
   if (type === 'registry') {
+    console.log('resolveDependency starts', location, raw)
     return resolveDependencyRegistry(dependency, options)
+      .then(result => {
+        console.log('resolveDependency returns', raw)
+        return result
+      })
   }
 
   if (type === 'github' || type === 'bitbucket') {
@@ -510,6 +519,7 @@ function resolveTypeDependencyFrom (src: string, raw: string, options: Options) 
  * Resolve type dependency ignoring not found issues (E.g. when mixed resolve NPM/Bower).
  */
 export function maybeResolveTypeDependencyFrom (src: string, raw: string, options: Options) {
+  // console.log('maybeResolve starts', src, raw)
   return resolveTypeDependencyFrom(src, raw, options).catch(() => extend(DEFAULT_DEPENDENCY))
 }
 
@@ -517,13 +527,14 @@ export function maybeResolveTypeDependencyFrom (src: string, raw: string, option
  * Resolve type dependency map from a cache directory.
  */
 function resolveTypeDependencyMap (src: string, dependencies: any, options: Options) {
+  // console.log('resolveTypeDepMap starts', src, dependencies)
   const cwd = dirname(src)
   const keys = Object.keys(dependencies)
 
   return Promise.all(keys.map(function (name) {
     const resolveOptions: Options = extend(options, { name, cwd, dev: false, global: false, peer: false })
-
-    return resolveDependency(parseDependency(dependencies[name]), resolveOptions)
+    const dep = parseDependency(dependencies[name])
+    return resolveDependency(dep, resolveOptions)
   }))
     .then(results => zipObject(keys, results))
 }

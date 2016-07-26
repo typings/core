@@ -44,6 +44,7 @@ interface Metadata {
  * Resolve a dependency in Jspm.
  */
 export function resolveDependency(dependency: Dependency, options: Options): Promise<DependencyTree> {
+  // console.log('resolveDependency starts', dependency)
   const name = dependency.meta.name
   const { raw } = dependency
   return findUp(options.cwd, 'package.json')
@@ -57,6 +58,7 @@ export function resolveDependency(dependency: Dependency, options: Options): Pro
       return resolveJspmDependency(name, raw, jspmOptions)
     },
     error => {
+      // console.error('error thrown', error)
       return Promise.reject(resolveError(raw, error, options))
     })
 }
@@ -65,6 +67,7 @@ function resolveJspmDependency(
   name: string,
   raw: string,
   options: JspmOptions): Promise<DependencyTree> {
+  // console.log('resolveJspmDependency starts', name, raw)
   const { parent, tree } = options
   const modulePath = tree.path
   const src = resolvePath(options.cwd, modulePath, 'package.json')
@@ -127,7 +130,12 @@ function resolveDependencyMap(
       const resolveOptions = extend(options, { dev: false, peer: false, global: false, tree: dependencies[name] })
       return resolveJspmDependency(name, `jspm:${name}`, resolveOptions)
     }))
-    .then(results => zipObject(keys, results))
+    .then(results => {
+      // console.log('before zipObject', results)
+      const result = zipObject(keys, results)
+      // console.log('after zipObject', result)
+      return result
+    })
 }
 
 // function resolveJspmDependencyInternal(name: string, raw: string, node: DependencyNode, options: Options) {

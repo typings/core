@@ -152,12 +152,10 @@ ftest.skip('jspm resolveDependency', 'jspm-typings-registry', (t, cwd) => {
       emitter
     })
     .then(result => {
-      // console.log(result)
       t.is(result.parent, undefined, 'top of result should have no parent')
 
       t.true(result.dependencies['any-promise'], '`any-promise` is a dependency')
       const actualAnyPromiseParent = result.dependencies['any-promise'].parent
-      // console.log(actualAnyPromiseParent)
       removeParentReference(actualAnyPromiseParent)
       t.deepEqual(actualAnyPromiseParent, anyPromiseParent, '`any-promise` has correct parent')
 

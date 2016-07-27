@@ -11,9 +11,6 @@ import {
   DependencyBranch as JspmDependencyBranch
 } from 'jspm-config'
 
-import { readJson, readConfigFrom } from '../utils/fs'
-import { CONFIG_FILE } from '../utils/config'
-import { Dependency, DependencyTree, DependencyBranch } from '../interfaces'
 import {
   DEFAULT_DEPENDENCY,
   Options,
@@ -22,6 +19,9 @@ import {
   maybeResolveTypeDependencyFrom,
   checkCircularDependency
 } from './dependencies'
+import { Dependency, DependencyTree, DependencyBranch } from '../interfaces'
+import { readJson, readConfigFrom } from '../utils/fs'
+import { CONFIG_FILE } from '../utils/config'
 import { findUp } from '../utils/find'
 
 interface JspmOptions extends Options {
@@ -113,7 +113,6 @@ export function resolveDependencies(options: Options): Promise<DependencyTree> {
 export function resolveDependency(dependency: Dependency, options: Options): Promise<DependencyTree> {
   options.readConfigFrom = readConfigFromOverride
 
-  // console.log('resolveDependency starts', dependency)
   const name = dependency.meta.name
   const { raw } = dependency
   return findUp(options.cwd, 'package.json')
@@ -127,7 +126,6 @@ export function resolveDependency(dependency: Dependency, options: Options): Pro
       return resolveJspmDependency(name, raw, jspmOptions)
     },
     error => {
-      // console.error('error thrown', error)
       return Promise.reject(resolveError(raw, error, options))
     })
 }
@@ -136,7 +134,6 @@ function resolveJspmDependency(
   name: string,
   raw: string,
   options: JspmOptions): Promise<DependencyTree> {
-  // console.log('resolveJspmDependency starts', name, raw)
   const { parent, tree } = options
   const modulePath = tree.path
   const src = resolvePath(options.cwd, modulePath, 'package.json')
@@ -200,9 +197,7 @@ function resolveDependencyMap(
       return resolveJspmDependency(name, `jspm:${name}`, resolveOptions)
     }))
     .then(results => {
-      // console.log('before zipObject', results)
       const result = zipObject(keys, results)
-      // console.log('after zipObject', result)
       return result
     })
 }

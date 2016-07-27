@@ -76,6 +76,7 @@ export function resolveAllDependencies (options: Options): Promise<DependencyTre
 export function resolveDependency (dependency: Dependency, options: Options): Promise<DependencyTree> {
   const { type, location, raw, meta } = dependency
   if (type === 'registry') {
+    // DEBUGGING
     console.log('resolveDependency starts', location, raw)
     return resolveDependencyRegistry(dependency, options)
       .then(result => {
@@ -523,7 +524,6 @@ function resolveTypeDependencyFrom (src: string, raw: string, options: Options) 
  * Resolve type dependency ignoring not found issues (E.g. when mixed resolve NPM/Bower).
  */
 export function maybeResolveTypeDependencyFrom (src: string, raw: string, options: Options) {
-  // console.log('maybeResolve starts', src, raw)
   return resolveTypeDependencyFrom(src, raw, options).catch(() => extend(DEFAULT_DEPENDENCY))
 }
 
@@ -531,7 +531,6 @@ export function maybeResolveTypeDependencyFrom (src: string, raw: string, option
  * Resolve type dependency map from a cache directory.
  */
 function resolveTypeDependencyMap (src: string, dependencies: any, options: Options) {
-  // console.log('resolveTypeDepMap starts', src, dependencies)
   const cwd = dirname(src)
   const keys = Object.keys(dependencies)
 

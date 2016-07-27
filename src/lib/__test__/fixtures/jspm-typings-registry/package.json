@@ -1,4 +1,6 @@
 {
+  "name": "my-module",
+  "version": "0.1.2",
   "jspm": {
     "dependencies": {
       "popsicle-retry": "npm:popsicle-retry@^3.2.1"

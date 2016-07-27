@@ -4,7 +4,8 @@ import pick = require('object.pick')
 import zipObject = require('zip-object')
 import extend = require('xtend')
 import {
-  resolveAll,
+  readJspmPackageJson,
+  resolveByPackageJson,
   resolve,
   DependencyTree as JspmDependencyTree,
   DependencyBranch as JspmDependencyBranch
@@ -68,21 +69,40 @@ export function resolveDependencies(options: Options): Promise<DependencyTree> {
   return findUp(options.cwd, 'package.json')
     .then((packageJsonPath: string) => {
       const cwd = dirname(packageJsonPath)
-      return resolveAll({ cwd })
-    })
-    .then(
-    branch => {
-      const queue = [] as Promise<DependencyTree>[]
-      for (let name in branch) {
-        const tree = branch[name]
-        const jspmOptions = extend(options, { tree })
-        queue.push(resolveJspmDependency(name, `jspm:${name}`, jspmOptions))
-      }
+      return readJspmPackageJson({ cwd })
+        .then(pjson => {
+          const branch = resolveByPackageJson(pjson, { cwd })
+          const queue = [] as Promise<DependencyTree>[]
+          for (let name in branch) {
+            const tree = branch[name]
+            const jspmOptions = extend(options, { tree })
+            queue.push(resolveJspmDependency(name, `jspm:${name}`, jspmOptions))
+          }
 
-      return Promise.all(queue)
-        .then(trees => mergeDependencies(DEFAULT_DEPENDENCY, ...trees))
-    },
-    error => {
+          return Promise.all(queue)
+            .then(trees => {
+              const dependencies: any = {}
+              trees.forEach(t => {
+                dependencies[t.name] = t
+              })
+
+              const tree: DependencyTree = extend(DEFAULT_DEPENDENCY, {
+                name: pjson.name,
+                version: pjson.version,
+                main: pjson.main,
+                browser: pjson.browser,
+                typings: pjson.typings,
+                browserTypings: pjson.browserTypings,
+                global: false,
+                src: packageJsonPath,
+                dependencies
+              })
+
+              return tree
+            })
+        })
+    })
+    .catch(error => {
       return Promise.reject(error)
     })
 }
@@ -186,60 +206,3 @@ function resolveDependencyMap(
       return result
     })
 }
-
-// function resolveJspmDependencyInternal(name: string, raw: string, node: DependencyNode, options: Options) {
-//   const modulePath = node.path
-//   const { parent } = options
-//   options.emitter.emit('resolve', { name, modulePath, raw, parent })
-//   const tree = extend(DEFAULT_DEPENDENCY, {
-//     name,
-//     version: metadata.version,
-//     main: metadata.main,
-//     browser: metadata.browser,
-//     typings: metadata.typings,
-//     browserTypings: metadata.browserTypings,
-//     global: false,
-//     modulePath,
-//     raw,
-//     parent
-//   })
-
-//   const moduleDeps = metadata.dependencies[value]
-//   const dependencyMap = extend(moduleDeps.deps)
-//   const dependencyOptions = extend(options, { parent: tree })
-//   options.emitter.emit('resolved', { name, modulePath, tree, raw, parent })
-
-//   return Promise.all([
-//     resolveJspmDependencyMap(dependencyMap, metadata, dependencyOptions),
-//     maybeResolveTypeDependencyFrom(join(modulePath, CONFIG_FILE), raw, options)
-//   ])
-//     .then(([dependencies, typedPackage]) => {
-//       tree.dependencies = dependencies
-//       return mergeDependencies(tree, typedPackage)
-//     })
-//     .then(
-//     null,
-//     (error) => {
-//       return Promise.reject(resolveError(raw, error, options))
-//     }
-//     )
-// }
-
-// Coming Soon
-// /**
-//  * Follow and resolve Jspm dependencies.
-//  */
-// export function resolveJspmDependencies(options: Options): Promise<DependencyTree> {
-//   return findUp(options.cwd, 'package.json')
-//     .then((packageJsonPath: string) => {
-//       const cwd = dirname(packageJsonPath)
-//       return resolveAll({ cwd })
-//     })
-//     .then(
-//     dependencyTree => {
-//       return resolveJspmDependencyInternal(undefined, undefined, metadata, options)
-//     },
-//     cause => {
-//       return Promise.reject(new TypingsError(`Unable to resolve JSPM dependencies`, cause))
-//     })
-// }

@@ -91,8 +91,6 @@ export function resolveDependency (dependency: Dependency, options: Options): Pr
     }
   }
 
-  // jspm Dependency does not have `location` info, need `dependency`.
-  // thus not grouped inside `resolveDependencyInternally()` call.
   if (type === 'jspm') {
     return resolveJspmDependency(dependency, options)
   }
@@ -536,8 +534,7 @@ function resolveTypeDependencyMap (src: string, dependencies: any, options: Opti
 
   return Promise.all(keys.map(function (name) {
     const resolveOptions: Options = extend(options, { name, cwd, dev: false, global: false, peer: false })
-    const dep = parseDependency(dependencies[name])
-    return resolveDependency(dep, resolveOptions)
+    return resolveDependency(parseDependency(dependencies[name]), resolveOptions)
   }))
     .then(results => zipObject(keys, results))
 }

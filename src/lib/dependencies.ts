@@ -443,7 +443,7 @@ function resolveTypeDependencyFrom (src: string, raw: string, options: Options) 
           browser: config.browser,
           files: Array.isArray(config.files) ? config.files : undefined,
           type: PROJECT_NAME,
-          global: !!config.global,
+          global: typeof config.global === 'boolean' ? !!config.global : undefined,
           postmessage: typeof config.postmessage === 'string' ? config.postmessage : undefined,
           src,
           raw,

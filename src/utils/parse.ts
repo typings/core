@@ -46,7 +46,7 @@ function splitProtocol (raw: string): [string, string] {
 /**
  * Parse the dependency string.
  */
-export function parseDependency (raw: string): Dependency {
+export function parseDependency (raw: string, options: { isJspm?: boolean} = {}): Dependency {
   const [type, src] = splitProtocol(raw)
 
   // `file:path/to/file.d.ts`
@@ -99,6 +99,19 @@ export function parseDependency (raw: string): Dependency {
     }
   }
 
+  // `jspm:dependency`
+  if (type === 'jspm' || (type === 'npm' && options.isJspm)) {
+    // jspm installs `npm` packages differently.
+    // They are installed as `jspm` packages.
+    return {
+      raw,
+      type: 'jspm',
+      meta: {
+        name: src
+      }
+    }
+  }
+
   // `npm:dependency`, `npm:@scoped/dependency`
   if (type === 'npm') {
     const parts = src.split('/')
@@ -136,17 +149,6 @@ export function parseDependency (raw: string): Dependency {
         path: join(...parts.slice(1))
       },
       location: join(...parts)
-    }
-  }
-
-  // `jspm:dependency`
-  if (type === 'jspm') {
-    return {
-      raw,
-      type: 'jspm',
-      meta: {
-        name: src
-      }
     }
   }
 

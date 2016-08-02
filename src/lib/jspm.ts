@@ -20,7 +20,7 @@ import {
   checkCircularDependency
 } from './dependencies'
 import { Dependency, DependencyTree, DependencyBranch } from '../interfaces'
-import { readJson, readConfigFrom } from '../utils/fs'
+import { readJson } from '../utils/fs'
 import { CONFIG_FILE } from '../utils/config'
 import { findUp } from '../utils/find'
 
@@ -41,31 +41,8 @@ interface Metadata {
   browserTypings: any
 }
 
-/**
- * Change config from 'npm:' to 'jspm:'.
- */
-function readConfigFromOverride(src: string) {
-  return readConfigFrom(src)
-    .then(config => {
-      for (const key in config.dependencies) {
-        const value = config.dependencies[key]
-        if (value.indexOf('npm:') === 0) {
-          config.dependencies[key] = 'jspm:' + value.slice(4)
-        }
-      }
-
-      for (const key in config.devDependencies) {
-        const value = config.devDependencies[key]
-        if (value.indexOf('npm:') === 0) {
-          config.devDependencies[key] = 'jspm:' + value.slice(4)
-        }
-      }
-      return config
-    })
-}
-
 export function resolveDependencies(options: Options): Promise<DependencyTree> {
-  options.readConfigFrom = readConfigFromOverride
+  options.isJspm = true
   return findUp(options.cwd, 'package.json')
     .then((packageJsonPath: string) => {
       const cwd = dirname(packageJsonPath)
@@ -111,7 +88,7 @@ export function resolveDependencies(options: Options): Promise<DependencyTree> {
  * Resolve a dependency in Jspm.
  */
 export function resolveDependency(dependency: Dependency, options: Options): Promise<DependencyTree> {
-  options.readConfigFrom = readConfigFromOverride
+  options.isJspm = true
 
   const name = dependency.meta.name
   const { raw } = dependency

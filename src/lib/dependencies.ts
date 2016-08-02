@@ -11,7 +11,7 @@ import { findUp, findConfigFile } from '../utils/find'
 import { isDefinition, isHttp } from '../utils/path'
 import { CONFIG_FILE, PROJECT_NAME } from '../utils/config'
 import { search } from '../search'
-import { ConfigJson, Dependency, DependencyBranch, Dependencies, DependencyTree, Emitter } from '../interfaces'
+import { Dependency, DependencyBranch, Dependencies, DependencyTree, Emitter } from '../interfaces'
 import TypingsError from './error'
 import {
   resolveDependency as resolveJspmDependency,
@@ -51,10 +51,9 @@ export interface Options {
   global?: boolean
   parent?: DependencyTree,
   /**
-   * Optional `readConfigFrom` inject method.
-   * This is used by `jspm:` as it needs to
+   * Indicates currently resolving jspm dependencies.
    */
-  readConfigFrom?: (src: string) => Promise<ConfigJson>
+  isJspm?: boolean
 }
 
 /**
@@ -89,6 +88,10 @@ export function resolveDependency (dependency: Dependency, options: Options): Pr
     if (meta.sha === 'master') {
       options.emitter.emit('badlocation', { type, raw, location })
     }
+  }
+
+  if (type === 'npm' && options.isJspm) {
+    dependency.type = 'jspm'
   }
 
   if (type === 'jspm') {
@@ -452,7 +455,7 @@ function resolveTypeDependencyFrom (src: string, raw: string, options: Options) 
 
   options.emitter.emit('resolve', { name, src, raw, parent })
 
-  return (options.readConfigFrom ? options.readConfigFrom(src) : readConfigFrom(src))
+  return readConfigFrom(src)
     .then<DependencyTree>(
       function (config) {
         const tree = extend(DEFAULT_DEPENDENCY, {
@@ -534,7 +537,7 @@ function resolveTypeDependencyMap (src: string, dependencies: any, options: Opti
 
   return Promise.all(keys.map(function (name) {
     const resolveOptions: Options = extend(options, { name, cwd, dev: false, global: false, peer: false })
-    return resolveDependency(parseDependency(dependencies[name]), resolveOptions)
+    return resolveDependency(parseDependency(dependencies[name], options), resolveOptions)
   }))
     .then(results => zipObject(keys, results))
 }

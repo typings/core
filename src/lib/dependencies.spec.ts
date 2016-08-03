@@ -13,7 +13,7 @@ test('dependencies', t => {
     t.test('resolve a dependency tree', t => {
       const expected: DependencyTree = {
         raw: undefined,
-        global: false,
+        global: undefined,
         postmessage: undefined,
         name: 'foobar',
         src: join(RESOLVE_FIXTURE_DIR, 'typings.json'),
@@ -32,7 +32,7 @@ test('dependencies', t => {
 
       const bowerDep: DependencyTree = {
         raw: 'bower:bower-dep',
-        global: false,
+        global: undefined,
         postmessage: undefined,
         src: join(RESOLVE_FIXTURE_DIR, 'bower_components/bower-dep/bower.json'),
         typings: 'bower-dep.d.ts',
@@ -51,7 +51,7 @@ test('dependencies', t => {
 
       const exampleDep: DependencyTree = {
         raw: 'bower:example',
-        global: false,
+        global: undefined,
         postmessage: undefined,
         src: join(RESOLVE_FIXTURE_DIR, 'bower_components/example/bower.json'),
         main: undefined,
@@ -88,7 +88,7 @@ test('dependencies', t => {
 
       const npmDep: DependencyTree = {
         raw: 'npm:npm-dep',
-        global: false,
+        global: undefined,
         postmessage: undefined,
         src: join(RESOLVE_FIXTURE_DIR, 'node_modules/npm-dep/package.json'),
         main: './index.js',
@@ -116,7 +116,7 @@ test('dependencies', t => {
         main: undefined,
         name: 'dep',
         raw: 'bower:dep',
-        global: false,
+        global: undefined,
         postmessage: undefined,
         src: join(RESOLVE_FIXTURE_DIR, 'bower_components/dep/bower.json'),
         typings: undefined,

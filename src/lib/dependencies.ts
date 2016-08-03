@@ -283,7 +283,6 @@ function resolveBowerDependencyFrom (
           browser: bowerJson.browser,
           typings: bowerJson.typings,
           browserTypings: bowerJson.browserTypings,
-          global: false,
           src,
           raw,
           parent
@@ -382,7 +381,6 @@ function resolveNpmDependencyFrom (src: string, raw: string, options: Options): 
           browser: packageJson.browser,
           typings: packageJson.typings,
           browserTypings: packageJson.browserTypings,
-          global: false,
           src,
           raw,
           parent

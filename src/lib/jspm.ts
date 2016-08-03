@@ -70,7 +70,6 @@ export function resolveDependencies(options: Options): Promise<DependencyTree> {
                 browser: pjson.browser,
                 typings: pjson.typings,
                 browserTypings: pjson.browserTypings,
-                global: false,
                 src: packageJsonPath,
                 dependencies
               })
@@ -124,7 +123,6 @@ function resolveJspmDependency(
       const resultTree = extend(
         DEFAULT_DEPENDENCY, {
           name,
-          global: false,
           src,
           raw,
           parent

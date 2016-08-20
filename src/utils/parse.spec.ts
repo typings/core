@@ -4,19 +4,6 @@ import { parseDependency, resolveDependency, expandRegistry } from './parse'
 import { CONFIG_FILE } from './config'
 import { Dependency } from '../interfaces'
 
-test('parse jspm:domready', (t) => {
-  const actual = parseDependency('jspm:domready')
-  const expected: Dependency = {
-    raw: 'jspm:domready',
-    type: 'jspm',
-    meta: {
-      name: 'domready'
-    }
-  }
-  t.deepEqual(actual, expected)
-  t.end()
-})
-
 test('parse', t => {
   t.test('parse dependency', t => {
     t.test('parse filename', t => {
@@ -323,6 +310,20 @@ test('parse', t => {
         type: 'registry',
         meta: { name: 'dep', source: 'npm', tag: undefined as string, version: '^4.0' },
         location: 'https://api.typings.org/entries/npm/dep/versions/%5E4.0/latest'
+      }
+
+      t.deepEqual(actual, expected)
+      t.end()
+    })
+
+    t.test('parse jspm', t => {
+      const actual = parseDependency('jspm:domready')
+      const expected: Dependency = {
+        raw: 'jspm:domready',
+        type: 'jspm',
+        meta: {
+          name: 'domready'
+        }
       }
 
       t.deepEqual(actual, expected)

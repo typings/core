@@ -5,6 +5,7 @@ import zipObject = require('zip-object')
 import Promise = require('any-promise')
 import { resolve, dirname, join } from 'path'
 import { resolve as resolveUrl } from 'url'
+import { readJspmPackageJson, resolveByPackageJson, resolve as resolveJspm } from 'jspm-config'
 import { readJson, readConfigFrom, readJsonFrom } from '../utils/fs'
 import { parseDependency } from '../utils/parse'
 import { findUp, findConfigFile } from '../utils/find'
@@ -13,10 +14,6 @@ import { CONFIG_FILE, PROJECT_NAME } from '../utils/config'
 import { search } from '../search'
 import { Dependency, DependencyBranch, Dependencies, DependencyTree, Emitter } from '../interfaces'
 import TypingsError from './error'
-import {
-  resolveDependency as resolveJspmDependency,
-  resolveDependencies as resolveJspmDependencies
-} from './jspm'
 
 /**
  * Default dependency config options.
@@ -49,11 +46,9 @@ export interface Options {
   dev?: boolean
   peer?: boolean
   global?: boolean
-  parent?: DependencyTree,
-  /**
-   * Indicates currently resolving jspm dependencies.
-   */
-  isJspm?: boolean
+  parent?: DependencyTree
+  bowerComponentPath?: string
+  jspmConfig?: any
 }
 
 /**
@@ -74,28 +69,15 @@ export function resolveAllDependencies (options: Options): Promise<DependencyTre
  */
 export function resolveDependency (dependency: Dependency, options: Options): Promise<DependencyTree> {
   const { type, location, raw, meta } = dependency
+
   if (type === 'registry') {
-    // DEBUGGING
-    console.log('resolveDependency starts', location, raw)
     return resolveDependencyRegistry(dependency, options)
-      .then(result => {
-        console.log('resolveDependency returns', raw)
-        return result
-      })
   }
 
   if (type === 'github' || type === 'bitbucket') {
     if (meta.sha === 'master') {
       options.emitter.emit('badlocation', { type, raw, location })
     }
-  }
-
-  if (type === 'npm' && options.isJspm) {
-    dependency.type = 'jspm'
-  }
-
-  if (type === 'jspm') {
-    return resolveJspmDependency(dependency, options)
   }
 
   return resolveDependencyInternally(type, location, raw, options)
@@ -105,6 +87,10 @@ export function resolveDependency (dependency: Dependency, options: Options): Pr
  * Internal version of `resolveDependency`, skipping the registry handling.
  */
 function resolveDependencyInternally (type: string, location: string, raw: string, options: Options) {
+  if (type === 'jspm') {
+    return resolveJspmDependency(location, raw, options)
+  }
+
   if (type === 'npm') {
     return resolveNpmDependency(location, raw, options)
   }
@@ -170,6 +156,10 @@ function resolveDependencyRegistry (dependency: Dependency, options: Options) {
  * Resolve a dependency in NPM.
  */
 function resolveNpmDependency (pkgName: string, raw: string, options: Options) {
+  if (options.jspmConfig) {
+    return resolveJspmDependency(pkgName, raw, options)
+  }
+
   return findUp(options.cwd, join('node_modules', pkgName))
     .then(
       function (modulePath: string) {
@@ -191,14 +181,14 @@ function resolveNpmDependency (pkgName: string, raw: string, options: Options) {
 function resolveBowerDependency (name: string, raw: string, options: Options) {
   return resolveBowerComponentPath(options.cwd)
     .then(
-      function (componentPath: string) {
-        const modulePath = resolve(componentPath, name)
+      function (bowerComponentPath: string) {
+        const modulePath = resolve(bowerComponentPath, name)
 
         if (isDefinition(modulePath)) {
           return resolveFileDependency(modulePath, raw, options)
         }
 
-        return resolveBowerDependencyFrom(modulePath, raw, componentPath, options)
+        return resolveBowerDependencyFrom(modulePath, raw, extend(options, { bowerComponentPath }))
       },
       function (error) {
         return Promise.reject(resolveError(raw, error, options))
@@ -248,8 +238,8 @@ export function resolveBowerDependencies (options: Options): Promise<DependencyT
     .then(
       function (bowerJsonPath: string) {
         return resolveBowerComponentPath(dirname(bowerJsonPath))
-          .then(function (componentPath: string) {
-            return resolveBowerDependencyFrom(bowerJsonPath, undefined, componentPath, options)
+          .then(function (bowerComponentPath: string) {
+            return resolveBowerDependencyFrom(bowerJsonPath, undefined, extend(options, { bowerComponentPath }))
           })
       },
       function (cause) {
@@ -261,12 +251,7 @@ export function resolveBowerDependencies (options: Options): Promise<DependencyT
 /**
  * Resolve bower dependencies from a path.
  */
-function resolveBowerDependencyFrom (
-  src: string,
-  raw: string,
-  componentPath: string,
-  options: Options
-): Promise<DependencyTree> {
+function resolveBowerDependencyFrom (src: string, raw: string, options: Options): Promise<DependencyTree> {
   const { name, parent } = options
 
   checkCircularDependency(parent, src)
@@ -295,8 +280,8 @@ function resolveBowerDependencyFrom (
         options.emitter.emit('resolved', { name: name || tree.name, src, tree, raw, parent })
 
         return Promise.all([
-          resolveBowerDependencyMap(componentPath, dependencyMap, dependencyOptions),
-          resolveBowerDependencyMap(componentPath, devDependencyMap, dependencyOptions),
+          resolveBowerDependencyMap(dependencyMap, dependencyOptions),
+          resolveBowerDependencyMap(devDependencyMap, dependencyOptions),
           maybeResolveTypeDependencyFrom(join(src, '..', CONFIG_FILE), raw, options)
         ])
           .then(function ([dependencies, devDependencies, typedPackage]) {
@@ -330,18 +315,14 @@ function resolveBowerComponentPath (path: string): Promise<string> {
 /**
  * Recursively resolve dependencies from a list and component path.
  */
-function resolveBowerDependencyMap (
-  componentPath: string,
-  dependencies: Dependencies,
-  options: Options
-): Promise<DependencyBranch> {
+function resolveBowerDependencyMap (dependencies: Dependencies, options: Options): Promise<DependencyBranch> {
   const keys = Object.keys(dependencies)
 
   return Promise.all(keys.map(function (name) {
-    const modulePath = resolve(componentPath, name, 'bower.json')
+    const modulePath = resolve(options.bowerComponentPath, name, 'bower.json')
     const resolveOptions: Options = extend(options, { name, dev: false, global: false, peer: false })
 
-    return resolveBowerDependencyFrom(modulePath, `bower:${name}`, componentPath, resolveOptions)
+    return resolveBowerDependencyFrom(modulePath, `bower:${name}`, resolveOptions)
   }))
     .then(results => zipObject(keys, results))
 }
@@ -352,13 +333,49 @@ function resolveBowerDependencyMap (
 export function resolveNpmDependencies (options: Options): Promise<DependencyTree> {
   return findUp(options.cwd, 'package.json')
     .then(
-      function (packgeJsonPath: string) {
-        return resolveNpmDependencyFrom(packgeJsonPath, undefined, options)
+      function (packageJsonPath: string) {
+        return resolveNpmDependencyFrom(packageJsonPath, undefined, options)
       },
       function (cause) {
         return Promise.reject(new TypingsError(`Unable to resolve NPM dependencies`, cause))
       }
     )
+}
+
+/**
+ * Follow and resolve JSPM dependencies.
+ */
+export function resolveJspmDependencies (options: Options): Promise<DependencyTree> {
+  return findUp(options.cwd, 'package.json')
+    .then(function (packageJsonPath: string) {
+      const cwd = dirname(packageJsonPath)
+
+      return readJspmPackageJson({ cwd })
+        .then(function (packageJson) {
+          const config = resolveByPackageJson(packageJson, { cwd })
+          const keys = Object.keys(config)
+
+          return Promise.all(keys.map(function (name) {
+            const jspmConfig = config[name]
+
+            return resolveJspmDependencyFrom(name, `jspm:${name}`, extend(options, { jspmConfig }))
+          }))
+            .then(results => {
+              const tree: DependencyTree = extend(DEFAULT_DEPENDENCY, {
+                name: packageJson.name,
+                version: packageJson.version,
+                main: packageJson.main,
+                browser: packageJson.browser,
+                typings: packageJson.typings,
+                browserTypings: packageJson.browserTypings,
+                src: packageJsonPath,
+                dependencies: zipObject(keys, results)
+              })
+
+              return tree
+            })
+        })
+    })
 }
 
 /**
@@ -522,7 +539,7 @@ function resolveTypeDependencyFrom (src: string, raw: string, options: Options) 
 /**
  * Resolve type dependency ignoring not found issues (E.g. when mixed resolve NPM/Bower).
  */
-export function maybeResolveTypeDependencyFrom (src: string, raw: string, options: Options) {
+function maybeResolveTypeDependencyFrom (src: string, raw: string, options: Options) {
   return resolveTypeDependencyFrom(src, raw, options).catch(() => extend(DEFAULT_DEPENDENCY))
 }
 
@@ -535,7 +552,81 @@ function resolveTypeDependencyMap (src: string, dependencies: any, options: Opti
 
   return Promise.all(keys.map(function (name) {
     const resolveOptions: Options = extend(options, { name, cwd, dev: false, global: false, peer: false })
-    return resolveDependency(parseDependency(dependencies[name], options), resolveOptions)
+    return resolveDependency(parseDependency(dependencies[name]), resolveOptions)
+  }))
+    .then(results => zipObject(keys, results))
+}
+
+/**
+ * Resolve a dependency from JSPM.
+ */
+export function resolveJspmDependency (pkgName: string, raw: string, options: Options): Promise<DependencyTree> {
+  return findUp(options.cwd, 'package.json')
+    .then(function (packageJsonPath) {
+      return resolveJspm(pkgName, { cwd: dirname(packageJsonPath) })
+    })
+    .then(
+      function (jspmConfig) {
+        return resolveJspmDependencyFrom(pkgName, raw, extend(options, { jspmConfig }))
+      },
+      function (error) {
+        return Promise.reject(resolveError(raw, error, options))
+      }
+    )
+}
+
+/**
+ * Resolve JSPM dependency.
+ */
+function resolveJspmDependencyFrom (name: string, raw: string, options: Options): Promise<DependencyTree> {
+  const { parent, jspmConfig } = options
+  const modulePath = jspmConfig.path
+  const src = resolve(options.cwd, modulePath, 'package.json')
+
+  checkCircularDependency(parent, src)
+
+  options.emitter.emit('resolve', { name, src, raw, parent })
+
+  return readJson(src)
+    .then(function (meta) {
+      const tree = extend(DEFAULT_DEPENDENCY, {
+        src,
+        raw,
+        parent,
+        name: meta.name,
+        version: meta.version,
+        main: meta.main,
+        browser: meta.browser,
+        typings: meta.typings,
+        browserTypings: meta.browserTypings
+      })
+
+      options.emitter.emit('resolved', { name, src, tree, raw, parent })
+
+      const dependencyOptions = extend(options, { parent: tree })
+      const configPath = resolve(options.cwd, modulePath, CONFIG_FILE)
+
+      return Promise.all([
+        resolveJspmDependencyMap(jspmConfig.map, dependencyOptions),
+        maybeResolveTypeDependencyFrom(configPath, raw, options)
+      ])
+        .then(([dependencies, typedPackage]) => {
+          tree.dependencies = dependencies
+
+          return mergeDependencies(tree, typedPackage)
+        })
+    })
+}
+
+/**
+ * Recursively resolve dependencies from a list and component path.
+ */
+function resolveJspmDependencyMap (dependencies: DependencyBranch, options: Options): Promise<DependencyBranch> {
+  const keys = Object.keys(dependencies)
+
+  return Promise.all(keys.map(function (name) {
+    const resolveOptions = extend(options, { dev: false, peer: false, global: false, jspmConfig: dependencies[name] })
+    return resolveJspmDependencyFrom(name, `jspm:${name}`, resolveOptions)
   }))
     .then(results => zipObject(keys, results))
 }
@@ -543,7 +634,7 @@ function resolveTypeDependencyMap (src: string, dependencies: any, options: Opti
 /**
  * Check whether the filename is a circular dependency.
  */
-export function checkCircularDependency (tree: DependencyTree, filename: string) {
+function checkCircularDependency (tree: DependencyTree, filename: string) {
   if (tree) {
     const currentSrc = tree.src
 
@@ -558,7 +649,7 @@ export function checkCircularDependency (tree: DependencyTree, filename: string)
 /**
  * Create a resolved failure error message.
  */
-export function resolveError (raw: string, cause: Error, options: Options) {
+function resolveError (raw: string, cause: Error, options: Options) {
   const { name } = options
   let message = `Unable to resolve ${raw == null ? 'typings' : `"${raw}"`}`
 
@@ -572,7 +663,7 @@ export function resolveError (raw: string, cause: Error, options: Options) {
 /**
  * Merge dependency trees together.
  */
-export function mergeDependencies (root: DependencyTree, ...trees: DependencyTree[]): DependencyTree {
+function mergeDependencies (root: DependencyTree, ...trees: DependencyTree[]): DependencyTree {
   const dependency = extend(root)
 
   for (const tree of trees) {

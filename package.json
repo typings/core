@@ -70,7 +70,7 @@
     "thenify": "^3.1.0",
     "throat": "^3.0.0",
     "touch": "^1.0.0",
-    "typescript": "1.8.7",
+    "typescript": "1.8.9",
     "xtend": "^4.0.0",
     "zip-object": "^0.1.0"
   },

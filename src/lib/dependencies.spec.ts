@@ -125,12 +125,12 @@ test('dependencies', t => {
         version: undefined
       }
 
-      ;(expected as any).dependencies['bower-dep'] = bowerDep
-      ;(expected as any).dependencies.dep = typedDep
-      ;(expected as any).dependencies['npm-dep'] = npmDep
-      ;(expected as any).devDependencies['dev-dep'] = typedDevDep
+        ; (expected as any).dependencies['bower-dep'] = bowerDep
+        ; (expected as any).dependencies.dep = typedDep
+        ; (expected as any).dependencies['npm-dep'] = npmDep
+        ; (expected as any).devDependencies['dev-dep'] = typedDevDep
 
-      ;(bowerDep as any).dependencies.example = exampleDep
+        ; (bowerDep as any).dependencies.example = exampleDep
 
       return resolveAllDependencies({
         cwd: RESOLVE_FIXTURE_DIR,
@@ -148,170 +148,6 @@ test('dependencies', t => {
         })
     })
   })
-
-  // test.skip('jspm resolveDependency', 'jspm-typings-registry', (t, cwd) => {
-  //   const jspmDep = {
-  //     raw: 'jspm:popsicle-retry',
-  //     type: 'jspm',
-  //     meta: {
-  //       name: 'popsicle-retry'
-  //     }
-  //   }
-  //   const xtendDep: DependencyTree = {
-  //     src: resolve(cwd, 'jspm_packages/npm/xtend@4.0.1/package.json'),
-  //     raw: 'jspm:xtend',
-  //     main: 'immutable',
-  //     browser: undefined,
-  //     typings: undefined,
-  //     browserTypings: undefined,
-  //     version: '4.0.1',
-  //     files: undefined,
-  //     global: undefined,
-  //     postmessage: undefined,
-  //     dependencies: {},
-  //     devDependencies: {},
-  //     peerDependencies: {},
-  //     globalDependencies: {},
-  //     globalDevDependencies: {},
-  //     name: 'xtend'
-  //   }
-
-  //   const xtendGithubDep: DependencyTree = {
-  //     src: 'https://raw.githubusercontent.com/typed-typings/npm-xtend/' +
-  //       '63cccadf3295b3c15561ee45617ac006edcca9e0/typings.json',
-  //     raw: 'registry:npm/xtend#4.0.0+20160211003958',
-  //     main: 'immutable.d.ts',
-  //     browser: undefined,
-  //     typings: undefined,
-  //     browserTypings: undefined,
-  //     version: undefined,
-  //     files: undefined,
-  //     global: undefined,
-  //     postmessage: undefined,
-  //     dependencies: {},
-  //     devDependencies: {},
-  //     peerDependencies: {},
-  //     globalDependencies: {},
-  //     globalDevDependencies: {},
-  //     name: 'xtend',
-  //     type: 'typings'
-  //   }
-
-  //   const xtendGithubParent: DependencyTree = {
-  //     src: resolve(cwd, 'jspm_packages/npm/popsicle-retry@3.2.1/typings.json'),
-  //     raw: 'jspm:popsicle-retry',
-  //     main: undefined,
-  //     browser: undefined,
-  //     typings: undefined,
-  //     browserTypings: undefined,
-  //     version: undefined,
-  //     files: undefined,
-  //     global: undefined,
-  //     postmessage: undefined,
-  //     dependencies: {
-  //       xtend: xtendGithubDep
-  //     },
-  //     devDependencies: {},
-  //     peerDependencies: {},
-  //     globalDependencies: {},
-  //     globalDevDependencies: {},
-  //     name: undefined,
-  //     type: 'typings'
-  //   }
-
-  //   const anyPromiseDep: DependencyTree = {
-  //     src: resolve(cwd, 'jspm_packages/npm/any-promise@1.3.0/package.json'),
-  //     raw: 'jspm:any-promise',
-  //     main: 'index.js',
-  //     browser: {
-  //       './register.js': './register-shim.js'
-  //     },
-  //     typings: 'index.d.ts',
-  //     browserTypings: undefined,
-  //     version: '1.3.0',
-  //     files: undefined,
-  //     global: undefined,
-  //     postmessage: undefined,
-  //     dependencies: {},
-  //     devDependencies: {},
-  //     peerDependencies: {},
-  //     globalDependencies: {},
-  //     globalDevDependencies: {},
-  //     name: 'any-promise'
-  //   }
-
-  //   const anyPromiseParent: DependencyTree = {
-  //     src: resolve(cwd, 'jspm_packages/npm/popsicle-retry@3.2.1/package.json'),
-  //     raw: 'jspm:popsicle-retry',
-  //     main: 'dist/index.js',
-  //     browser: undefined,
-  //     typings: undefined,
-  //     browserTypings: undefined,
-  //     version: '3.2.1',
-  //     files: undefined,
-  //     global: undefined,
-  //     postmessage: undefined,
-  //     dependencies: {
-  //       'any-promise': anyPromiseDep,
-  //       xtend: xtendDep
-  //     },
-  //     devDependencies: {},
-  //     peerDependencies: {},
-  //     globalDependencies: {},
-  //     globalDevDependencies: {},
-  //     name: 'popsicle-retry'
-  //   }
-
-  //   const popsicleRetryDep: DependencyTree = {
-  //     src: resolve(cwd, 'jspm_packages/npm/popsicle-retry@3.2.1/package.json'),
-  //     raw: 'jspm:popsicle-retry',
-  //     main: 'dist/index.js',
-  //     browser: undefined,
-  //     typings: undefined,
-  //     browserTypings: undefined,
-  //     version: '3.2.1',
-  //     files: undefined,
-  //     global: undefined,
-  //     postmessage: undefined,
-  //     dependencies: {
-  //       'any-promise': anyPromiseDep,
-  //       'xtend': xtendGithubDep
-  //     },
-  //     devDependencies: {},
-  //     peerDependencies: {},
-  //     globalDependencies: {},
-  //     globalDevDependencies: {},
-  //     name: 'popsicle-retry'
-  //   }
-
-  //   return resolveDependency(
-  //     jspmDep,
-  //     {
-  //       cwd,
-  //       emitter
-  //     })
-  //     .then(result => {
-  //       t.is(result.parent, undefined, 'top of result should have no parent')
-
-  //       t.true(result.dependencies['any-promise'], '`any-promise` is a dependency')
-  //       const actualAnyPromiseParent = result.dependencies['any-promise'].parent
-  //       removeParentReference(actualAnyPromiseParent)
-  //       t.deepEqual(actualAnyPromiseParent, anyPromiseParent, '`any-promise` has correct parent')
-
-  //       const actualXtendDep = (result.dependencies as any).xtend
-  //       t.true(actualXtendDep, '`xtend` is a dependency')
-  //       const actualXtendParent = actualXtendDep.parent
-  //       removeParentReference(actualXtendParent)
-  //       t.deepEqual(actualXtendParent, xtendGithubParent, '`xtend` has correct parent')
-
-  //       removeParentReference(result)
-  //       t.deepEqual(
-  //         result,
-  //         popsicleRetryDep,
-  //         'result as expected (after parent removed to avoid circular reference)'
-  //       )
-  //     })
-  // })
 
   t.test('jspm resolve dependency', t => {
     const cwd = join(FIXTURE_DIR, 'jspm-typings-github')
@@ -366,7 +202,7 @@ test('dependencies', t => {
 
     const es6PromiseDep: DependencyTree = {
       src: 'https://raw.githubusercontent.com/typings/typed-es6-promise/' +
-        '94aac67ef7a14a8de8e9e1d3c1f9a26caa0d9fb1/typings.json',
+      '94aac67ef7a14a8de8e9e1d3c1f9a26caa0d9fb1/typings.json',
       raw: 'github:typings/typed-es6-promise#94aac67ef7a14a8de8e9e1d3c1f9a26caa0d9fb1',
       main: 'dist/es6-promise.d.ts',
       browser: undefined,
@@ -445,121 +281,9 @@ test('dependencies', t => {
         t.deepEqual(actual, unthenifyDep, 'result as expected (after parent removed to avoid circular reference)')
       })
   })
-
-  // ftest.skip('jspm resolveDependencies', 'jspm-typings-registry', (t, cwd) => {
-  //   return resolveDependencies({ cwd, emitter })
-  //     .then(actual => {
-  //       const xtendGithubDep: DependencyTree = {
-  //         src: 'https://raw.githubusercontent.com/typed-typings/npm-xtend/' +
-  //           '63cccadf3295b3c15561ee45617ac006edcca9e0/typings.json',
-  //         raw: 'registry:npm/xtend#4.0.0+20160211003958',
-  //         main: 'immutable.d.ts',
-  //         browser: undefined,
-  //         typings: undefined,
-  //         browserTypings: undefined,
-  //         version: undefined,
-  //         files: undefined,
-  //         global: undefined,
-  //         postmessage: undefined,
-  //         dependencies: {},
-  //         devDependencies: {},
-  //         peerDependencies: {},
-  //         globalDependencies: {},
-  //         globalDevDependencies: {},
-  //         name: 'xtend',
-  //         type: 'typings'
-  //       }
-
-  //       const anyPromiseDep: DependencyTree = {
-  //         src: resolve(cwd, 'jspm_packages/npm/any-promise@1.3.0/package.json'),
-  //         raw: 'jspm:any-promise',
-  //         main: 'index.js',
-  //         browser: {
-  //           './register.js': './register-shim.js'
-  //         },
-  //         typings: 'index.d.ts',
-  //         browserTypings: undefined,
-  //         version: '1.3.0',
-  //         files: undefined,
-  //         global: undefined,
-  //         postmessage: undefined,
-  //         dependencies: {},
-  //         devDependencies: {},
-  //         peerDependencies: {},
-  //         globalDependencies: {},
-  //         globalDevDependencies: {},
-  //         name: 'any-promise'
-  //       }
-
-  //       const popsicleRetryDep: DependencyTree = {
-  //         src: resolve(cwd, 'jspm_packages/npm/popsicle-retry@3.2.1/package.json'),
-  //         raw: 'jspm:popsicle-retry',
-  //         main: 'dist/index.js',
-  //         browser: undefined,
-  //         typings: undefined,
-  //         browserTypings: undefined,
-  //         version: '3.2.1',
-  //         files: undefined,
-  //         global: false,
-  //         postmessage: undefined,
-  //         dependencies: {
-  //           'any-promise': anyPromiseDep,
-  //           'xtend': xtendGithubDep
-  //         },
-  //         devDependencies: {},
-  //         peerDependencies: {},
-  //         globalDependencies: {},
-  //         globalDevDependencies: {},
-  //         name: 'popsicle-retry'
-  //       }
-
-  //       const processDep: DependencyTree = {
-  //         src: '/Users/hwong/github/typings/core/src/lib/__test__/fixtures/' +
-  //           'jspm-typings-registry/jspm_packages/github/jspm/nodelibs-process@0.2.0-alpha/package.json',
-  //         raw: 'jspm:process',
-  //         main: './process.js',
-  //         browser: undefined,
-  //         typings: undefined,
-  //         browserTypings: undefined,
-  //         version: undefined,
-  //         files: undefined,
-  //         global: undefined,
-  //         postmessage: undefined,
-  //         dependencies: {},
-  //         devDependencies: {},
-  //         peerDependencies: {},
-  //         globalDependencies: {},
-  //         globalDevDependencies: {},
-  //         name: 'process'
-  //       }
-  //       const myModuleNode: DependencyTree = {
-  //         src: 'src/lib/__test__/fixtures/jspm-typings-registry/package.json',
-  //         raw: undefined,
-  //         main: undefined,
-  //         browser: undefined,
-  //         typings: undefined,
-  //         browserTypings: undefined,
-  //         version: '0.1.2',
-  //         files: undefined,
-  //         global: undefined,
-  //         postmessage: undefined,
-  //         dependencies: {
-  //           'popsicle-retry': popsicleRetryDep,
-  //           process: processDep
-  //         },
-  //         devDependencies: {},
-  //         peerDependencies: {},
-  //         globalDependencies: {},
-  //         globalDevDependencies: {},
-  //         name: 'my-module'
-  //       }
-  //       removeParentReference(actual)
-  //       t.deepEqual(actual, myModuleNode, 'result as expected (after parent removed to avoid circular reference)')
-  //     })
-  // })
 })
 
-function removeParentReference (tree: DependencyTree) {
+function removeParentReference(tree: DependencyTree) {
   delete tree.parent
 
   removeParentReferenceFromDependencies(tree.dependencies)
@@ -571,7 +295,7 @@ function removeParentReference (tree: DependencyTree) {
   return tree
 }
 
-function removeParentReferenceFromDependencies (dependencies: DependencyBranch) {
+function removeParentReferenceFromDependencies(dependencies: DependencyBranch) {
   Object.keys(dependencies).forEach(function (key) {
     removeParentReference(dependencies[key])
   })

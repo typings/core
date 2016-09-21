@@ -80,6 +80,10 @@ export function resolveDependency (dependency: Dependency, options: Options): Pr
     }
   }
 
+  if (type === 'jspm' || (type === 'npm' && options.jspmConfig)) {
+    return resolveJspmDependency(dependency, options)
+  }
+
   return resolveDependencyInternally(type, location, raw, options)
 }
 
@@ -87,9 +91,6 @@ export function resolveDependency (dependency: Dependency, options: Options): Pr
  * Internal version of `resolveDependency`, skipping the registry handling.
  */
 function resolveDependencyInternally (type: string, location: string, raw: string, options: Options) {
-  if (type === 'jspm') {
-    return resolveJspmDependency(location, raw, options)
-  }
 
   if (type === 'npm') {
     return resolveNpmDependency(location, raw, options)
@@ -156,10 +157,6 @@ function resolveDependencyRegistry (dependency: Dependency, options: Options) {
  * Resolve a dependency in NPM.
  */
 function resolveNpmDependency (pkgName: string, raw: string, options: Options) {
-  if (options.jspmConfig) {
-    return resolveJspmDependency(pkgName, raw, options)
-  }
-
   return findUp(options.cwd, join('node_modules', pkgName))
     .then(
       function (modulePath: string) {
@@ -560,14 +557,16 @@ function resolveTypeDependencyMap (src: string, dependencies: any, options: Opti
 /**
  * Resolve a dependency from JSPM.
  */
-export function resolveJspmDependency (pkgName: string, raw: string, options: Options): Promise<DependencyTree> {
+export function resolveJspmDependency (dependency: Dependency, options: Options): Promise<DependencyTree> {
+  const name = dependency.meta.name
+  const { raw } = dependency
   return findUp(options.cwd, 'package.json')
     .then(function (packageJsonPath) {
-      return resolveJspm(pkgName, { cwd: dirname(packageJsonPath) })
+      return resolveJspm(name, { cwd: dirname(packageJsonPath) })
     })
     .then(
       function (jspmConfig) {
-        return resolveJspmDependencyFrom(pkgName, raw, extend(options, { jspmConfig }))
+        return resolveJspmDependencyFrom(name, raw, extend(options, { jspmConfig }))
       },
       function (error) {
         return Promise.reject(resolveError(raw, error, options))
@@ -582,7 +581,6 @@ function resolveJspmDependencyFrom (name: string, raw: string, options: Options)
   const { parent, jspmConfig } = options
   const modulePath = jspmConfig.path
   const src = resolve(options.cwd, modulePath, 'package.json')
-
   checkCircularDependency(parent, src)
 
   options.emitter.emit('resolve', { name, src, raw, parent })
@@ -621,7 +619,7 @@ function resolveJspmDependencyFrom (name: string, raw: string, options: Options)
 /**
  * Recursively resolve dependencies from a list and component path.
  */
-function resolveJspmDependencyMap (dependencies: DependencyBranch, options: Options): Promise<DependencyBranch> {
+function resolveJspmDependencyMap (dependencies: DependencyBranch = {}, options: Options): Promise<DependencyBranch> {
   const keys = Object.keys(dependencies)
 
   return Promise.all(keys.map(function (name) {

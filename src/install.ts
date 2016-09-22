@@ -17,12 +17,12 @@ import {
   treeToJson
 } from './utils/fs'
 import { resolveFrom, normalizeResolutions, getDependencyPath, getDefinitionPath } from './utils/path'
-import { parseDependency, parseDependencyExpression, buildDependencyExpression } from './utils/parse'
+import { parseDependency, expandRegistry, parseDependencyExpression, buildDependencyExpression } from './utils/parse'
 import { DependencyTree, Dependency, DependencyBranch, Emitter, ResolutionMap } from './interfaces'
 import { CONFIG_FILE } from './utils/config'
 
 // Re-export useful expression building functions.
-export { parseDependencyExpression, buildDependencyExpression }
+export { parseDependency, expandRegistry, parseDependencyExpression, buildDependencyExpression }
 
 /**
  * Options for installing a new dependency.

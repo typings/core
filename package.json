@@ -1,6 +1,6 @@
 {
   "name": "typings-core",
-  "version": "1.4.1",
+  "version": "1.5.0",
   "description": "The logic of Typings",
   "main": "dist/typings.js",
   "files": [
@@ -73,7 +73,7 @@
     "thenify": "^3.1.0",
     "throat": "^3.0.0",
     "touch": "^1.0.0",
-    "typescript": "1.8.7",
+    "typescript": "^2.0.3",
     "xtend": "^4.0.0",
     "zip-object": "^0.1.0"
   },

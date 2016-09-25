@@ -5,7 +5,7 @@
     "module": "commonjs",
     "rootDir": "src",
     "moduleResolution": "node",
-    "noLib": true,
+    "lib": ["es5"],
     "declaration": true,
     "noImplicitAny": true,
     "removeComments": true,

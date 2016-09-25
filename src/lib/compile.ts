@@ -60,7 +60,7 @@ export function compile (
   options: Options
 ): Promise<CompileResult> {
   const { name, cwd, global } = options
-  const readFiles: ts.Map<Promise<string>> = {}
+  const readFiles: ts.MapLike<Promise<string>> = {}
 
   // Ensure the global installation is valid.
   if (tree.global && !global) {
@@ -80,7 +80,7 @@ export function compile (
   }
 
   return Promise.all(resolutions.map(resolution => {
-    const imported: ts.Map<boolean> = {}
+    const imported: ts.MapLike<boolean> = {}
 
     return compileDependencyTree(tree, extend(options, {
       resolution,
@@ -110,8 +110,8 @@ export function compile (
  */
 interface CompileOptions extends Options {
   resolution: string
-  readFiles: ts.Map<Promise<string>>
-  imported: ts.Map<boolean>
+  readFiles: ts.MapLike<Promise<string>>
+  imported: ts.MapLike<boolean>
   name: string
   emitter: Emitter
 }
@@ -175,8 +175,8 @@ function getStringifyOptions (
     }
   }
 
-  const referenced: ts.Map<boolean> = {}
-  const dependencies: ts.Map<StringifyOptions> = {}
+  const referenced: ts.MapLike<boolean> = {}
+  const dependencies: ts.MapLike<StringifyOptions> = {}
   const entry = main == null ? undefined : normalizeToDefinition(main)
   const prefix = `${parent ? parent.prefix : ''}${DEPENDENCY_SEPARATOR}${options.name}`
 
@@ -233,8 +233,8 @@ interface StringifyOptions extends CompileOptions {
   entry: string
   prefix: string
   overrides: Overrides
-  referenced: ts.Map<boolean>
-  dependencies: ts.Map<StringifyOptions>
+  referenced: ts.MapLike<boolean>
+  dependencies: ts.MapLike<StringifyOptions>
   tree: DependencyTree
   parent: StringifyOptions
 }

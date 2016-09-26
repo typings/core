@@ -349,27 +349,29 @@ export function resolveJspmDependencies (options: Options): Promise<DependencyTr
 
       return readJspmPackageJson({ cwd })
         .then(function (packageJson) {
-          const config = resolveByPackageJson(packageJson, { cwd })
-          const keys = Object.keys(config)
+          return resolveByPackageJson(packageJson, { cwd })
+            .then(function (config) {
+              const keys = Object.keys(config)
 
-          return Promise.all(keys.map(function (name) {
-            const jspmConfig = config[name]
+              return Promise.all(keys.map(function (name) {
+                const jspmConfig = config[name]
 
-            return resolveJspmDependencyFrom(name, `jspm:${name}`, extend(options, { jspmConfig }))
-          }))
-            .then(results => {
-              const tree: DependencyTree = extend(DEFAULT_DEPENDENCY, {
-                name: packageJson.name,
-                version: packageJson.version,
-                main: packageJson.main,
-                browser: packageJson.browser,
-                typings: packageJson.typings,
-                browserTypings: packageJson.browserTypings,
-                src: packageJsonPath,
-                dependencies: zipObject(keys, results)
-              })
+                return resolveJspmDependencyFrom(name, `jspm:${name}`, extend(options, { jspmConfig }))
+              }))
+                .then(results => {
+                  const tree: DependencyTree = extend(DEFAULT_DEPENDENCY, {
+                    name: packageJson.name,
+                    version: packageJson.version,
+                    main: packageJson.main,
+                    browser: packageJson.browser,
+                    typings: packageJson.typings,
+                    browserTypings: packageJson.browserTypings,
+                    src: packageJsonPath,
+                    dependencies: zipObject(keys, results)
+                  })
 
-              return tree
+                  return tree
+                })
             })
         })
     })

@@ -78,7 +78,7 @@ test('install', t => {
       .get('/DefinitelyTyped/DefinitelyTyped/48c1e3c1d6baefa4f1a126f188c27c4fefd36bff/node/node.d.ts')
       .reply(200, '// Type definitions for Node.js v4.x')
 
-    rc.urlRewrites = { "(.*)content(.*)": "$1stuff$2" }
+    rc.urlRewrites = { '(.*)content(.*)': '$1stuff$2' }
 
     return writeFile(CONFIG, '{}')
       .then(function () {

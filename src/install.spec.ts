@@ -74,9 +74,11 @@ test('install', t => {
         updated: '2016-02-26T13:23:28.000Z'
       })
 
-    nock('http://raw.githubusercontent.com/')
+    nock('https://raw.githubuserstuff.com/')
       .get('/DefinitelyTyped/DefinitelyTyped/48c1e3c1d6baefa4f1a126f188c27c4fefd36bff/node/node.d.ts')
       .reply(200, '// Type definitions for Node.js v4.x')
+
+    rc.urlRewrites = { "(.*)content(.*)": "$1stuff$2" }
 
     return writeFile(CONFIG, '{}')
       .then(function () {

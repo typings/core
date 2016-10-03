@@ -50,4 +50,8 @@ export interface RcConfig {
    * Override the default installation source (E.g. when doing `typings install debug`) (default: `npm`).
    */
   defaultSource?: string
+  /**
+   * Defines URL rewrites. May be useful when using corporate registries.
+   */
+  urlRewrites?: { [pattern: string]: string }
 }

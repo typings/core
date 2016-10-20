@@ -46,7 +46,7 @@
     "array-uniq": "^1.0.2",
     "configstore": "^2.0.0",
     "debug": "^2.2.0",
-    "detect-indent": "^4.0.0",
+    "detect-indent": "^5.0.0",
     "graceful-fs": "^4.1.2",
     "has": "^1.0.1",
     "invariant": "^2.2.0",

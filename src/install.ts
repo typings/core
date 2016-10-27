@@ -343,7 +343,7 @@ function checkTypings (dependency: Dependency, options: InstallDependencyOptions
             }
           })
       })
-      .catch(err => undefined)
+      .catch(() => undefined)
   }
 
   return Promise.resolve()

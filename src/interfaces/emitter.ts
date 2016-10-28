@@ -13,6 +13,7 @@ export interface Emitter extends EventEmitter {
   on (event: 'enoent', listener: (e: EnoentEvent) => any): this
   on (event: 'compile', listener: (e: CompileEvent) => any): this
   on (event: 'compiled', listener: (e: CompiledEvent) => any): this
+  on (event: 'compiledependency', listener: (e: CompileDependencyEvent) => any): this
   on (event: 'hastypings', listener: (e: HasTypingsEvent) => any): this
   on (event: 'postmessage', listener: (e: PostMessageEvent) => any): this
   on (event: 'globaldependencies', listener: (e: GlobalDependenciesEvent) => any): this
@@ -27,6 +28,7 @@ export interface Emitter extends EventEmitter {
   emit (event: 'enoent', e: EnoentEvent): boolean
   emit (event: 'compile', e: CompileEvent): boolean
   emit (event: 'compiled', e: CompiledEvent): boolean
+  emit (event: 'compiledependency', e: CompileDependencyEvent): boolean
   emit (event: 'hastypings', e: HasTypingsEvent): boolean
   emit (event: 'postmessage', e: PostMessageEvent): boolean
   emit (event: 'globaldependencies', e: GlobalDependenciesEvent): boolean
@@ -76,6 +78,7 @@ export interface EnoentEvent {
  */
 export interface CompileEvent {
   name: string
+  prefix: string
   path: string
   tree: DependencyTree
   resolution: boolean
@@ -139,5 +142,15 @@ export interface DeprecatedEvent {
 export interface PruneEvent {
   name: string
   global: boolean
+  resolution: string
+}
+
+/**
+ * Emitted when a dependency is being compiled.
+ */
+export interface CompileDependencyEvent {
+  tree: DependencyTree
+  global: boolean
+  name: string
   resolution: string
 }

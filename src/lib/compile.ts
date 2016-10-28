@@ -112,7 +112,6 @@ interface CompileOptions extends Options {
   resolution: string
   readFiles: ts.MapLike<Promise<string>>
   imported: ts.MapLike<boolean>
-  name: string
   emitter: Emitter
 }
 
@@ -197,6 +196,9 @@ function getStringifyOptions (
 function compileDependencyTree (tree: DependencyTree, options: CompileOptions): Promise<string> {
   const stringifyOptions = getStringifyOptions(tree, options, undefined)
   const contents: Array<Promise<string>> = []
+  const { name, global, resolution } = options
+
+  options.emitter.emit('compiledependency', { tree, global, name, resolution })
 
   if (Array.isArray(tree.files)) {
     for (const file of tree.files) {
@@ -313,7 +315,7 @@ function stringifyDependencyPath (
   moduleOptions: ModuleOptions
 ): Promise<string> {
   const path = getPath(rawPath, options)
-  const { tree, global, cwd, resolution, name, readFiles, imported, meta, emitter } = options
+  const { tree, global, cwd, resolution, name, prefix, readFiles, imported, meta, emitter } = options
   const importedPath = importPath(rawPath, pathFromDefinition(rawPath), options)
 
   // Return `null` to skip the dependency writing, could have the same import twice.
@@ -325,7 +327,7 @@ function stringifyDependencyPath (
   imported[importedPath] = true
 
   // Emit compile events for progression.
-  emitter.emit('compile', { name, rawPath, tree, resolution })
+  emitter.emit('compile', { name, prefix, path, tree, resolution })
 
   // Load a dependency path.
   function loadByModuleName (path: string) {
@@ -382,14 +384,14 @@ function stringifyDependencyPath (
             const stringified = stringifySourceFile(sourceFile, originalPath, options, childModuleOptions)
 
             for (const reference of referencedFiles) {
-              emitter.emit('reference', { name, rawPath, reference, tree, resolution })
+              emitter.emit('reference', { name, prefix, path, reference, tree, resolution })
             }
 
             const out = imports.filter(x => x != null)
             out.push(stringified)
             const contents = out.join(EOL)
 
-            emitter.emit('compiled', { name, rawPath, tree, resolution, contents })
+            emitter.emit('compiled', { name, prefix, path, tree, resolution, contents })
 
             return contents
           })

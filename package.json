@@ -14,7 +14,7 @@
     "dependency-check": "dependency-check . --unused --no-dev && dependency-check . --missing --no-dev",
     "test-spec": "ts-node node_modules/blue-tape/bin/blue-tape.js \"src/**/*.spec.ts\" | tap-diff",
     "test-cov": "ts-node node_modules/istanbul/lib/cli.js cover -e .ts --print none -x \"*.d.ts\" -x \"*.spec.ts\" node_modules/blue-tape/bin/blue-tape.js -- \"src/**/*.spec.ts\" | tap-diff",
-    "test": "npm run lint && npm run build && npm run dependency-check && npm run test-cov",
+    "test": "npm run build && npm run dependency-check && npm run test-cov && npm run lint",
     "test-spec+lint": "npm run test-spec && npm run lint",
     "watch": "onchange -w -i \"src/**/*.ts\" -e \"**/__test__/**\" -- npm run test-spec+lint",
     "bootstrap": "npm install shelljs && node scripts/bootstrap.js",

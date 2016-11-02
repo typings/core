@@ -162,7 +162,7 @@ export const readHttp = throat(5, function readHttp (url: string): Promise<strin
     // Check responses are "200 OK".
     .use(popsicleStatus(200))
     // Enable URL rewrite
-    .use(popsicleRewrite({} || rc.urlRewrites || {})) // Remove `{} ||` to restore
+    .use(popsicleRewrite(rc.urlRewrites || {}))
     // Enable tracking of repeat users on the registry.
     .use(function (request, next) {
       if (request.Url.host === registryURL.host) {

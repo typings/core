@@ -129,6 +129,13 @@ test('install', t => {
           }
         })
       })
+      .then(
+        () => {
+          rc.urlRewrites = {}
+        },
+        () => {
+          rc.urlRewrites = {}
+      })
   })
 
   t.test('install empty', t => {

@@ -591,9 +591,13 @@ function resolveJspmDependencyFrom (name: string, raw: string, options: Options)
   options.emitter.emit('resolve', { name, src, raw, parent })
 
   return readJson(src)
-    .catch(() => {
+    .catch((err) => {
       // ignore FileNotFound error
-      return
+      if (err.code === 'ENOENT') {
+        return
+      }
+
+      return Promise.reject(err)
     })
     .then(function (meta: any = {}) {
       const tree = extend(DEFAULT_DEPENDENCY, {

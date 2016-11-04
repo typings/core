@@ -5,7 +5,7 @@ import zipObject = require('zip-object')
 import Promise = require('any-promise')
 import { resolve, dirname, join } from 'path'
 import { resolve as resolveUrl } from 'url'
-import { readJspmPackageJson, resolveByPackageJson, resolve as resolveJspm } from 'jspm-config'
+import { readJspmPackageJson, resolveByPackageJson, resolve as resolveJspm, ModuleNotFoundError } from 'jspm-config'
 import { readJson, readConfigFrom, readJsonFrom } from '../utils/fs'
 import { parseDependency } from '../utils/parse'
 import { findUp, findConfigFile } from '../utils/find'
@@ -571,6 +571,9 @@ export function resolveJspmDependency (dependency: Dependency, options: Options)
         return resolveJspmDependencyFrom(name, raw, extend(options, { jspmConfig }))
       },
       function (error) {
+        if (error instanceof ModuleNotFoundError) {
+          return resolveJspmDependencyFrom(name, raw, options)
+        }
         return Promise.reject(resolveError(raw, error, options))
       }
     )
@@ -588,7 +591,11 @@ function resolveJspmDependencyFrom (name: string, raw: string, options: Options)
   options.emitter.emit('resolve', { name, src, raw, parent })
 
   return readJson(src)
-    .then(function (meta) {
+    .catch(() => {
+      // ignore FileNotFound error
+      return
+    })
+    .then(function (meta: any = {}) {
       const tree = extend(DEFAULT_DEPENDENCY, {
         src,
         raw,

@@ -149,6 +149,42 @@ test('dependencies', t => {
     })
   })
 
+  t.test('jspm module without package.json', t => {
+    const cwd = join(FIXTURE_DIR, 'jspm-typings-registry')
+
+    const jspmDep = {
+      raw: 'jspm:make-error',
+      type: 'jspm',
+      meta: {
+        name: 'make-error'
+      }
+    }
+
+   const makeErrorDep: DependencyTree = {
+      src: join(cwd, 'jspm_packages/npm/make-error@1.2.0/package.json'),
+      raw: 'jspm:make-error',
+      main: undefined,
+      browser: undefined,
+      typings: undefined,
+      browserTypings: undefined,
+      version: undefined,
+      files: undefined,
+      global: undefined,
+      postmessage: undefined,
+      dependencies: {},
+      devDependencies: {},
+      peerDependencies: {},
+      globalDependencies: {},
+      globalDevDependencies: {},
+      parent: undefined,
+      name: undefined
+    }
+    return resolveDependency(jspmDep, { cwd, emitter })
+      .then(actual => {
+        t.deepEqual(actual, makeErrorDep)
+      })
+  })
+
   t.test('jspm resolve dependency', t => {
     const cwd = join(FIXTURE_DIR, 'jspm-typings-github')
 

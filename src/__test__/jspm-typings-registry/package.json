@@ -1,0 +1,9 @@
+{
+  "name": "my-module",
+  "version": "0.1.2",
+  "jspm": {
+    "dependencies": {
+      "make-error": "npm:make-error@^1.2.0"
+    }
+  }
+}

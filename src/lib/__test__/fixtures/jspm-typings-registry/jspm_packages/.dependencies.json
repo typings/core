@@ -1,4 +1,8 @@
 {
+  "npm:make-error@1.2.0": {
+    "deps": {},
+    "peerDeps": {}
+  },
   "npm:popsicle-retry@3.2.1": {
     "deps": {
       "any-promise": "npm:any-promise@^1.1.0",

@@ -15,6 +15,7 @@ SystemJS.config({
     "github:*/*.json"
   ],
   map: {
+    "make-error": "npm:make-error@1.2.0",
     "popsicle-retry": "npm:popsicle-retry@3.2.1",
     "process": "github:jspm/nodelibs-process@0.2.0-alpha"
   },

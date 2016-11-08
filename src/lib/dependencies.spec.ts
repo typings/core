@@ -155,6 +155,7 @@ test('dependencies', t => {
     const jspmDep = {
       raw: 'jspm:make-error',
       type: 'jspm',
+      location: 'make-error',
       meta: {
         name: 'make-error'
       }
@@ -191,6 +192,7 @@ test('dependencies', t => {
     const jspmDep = {
       raw: 'jspm:unthenify',
       type: 'jspm',
+      location: 'unthenify',
       meta: {
         name: 'unthenify'
       }
@@ -253,8 +255,7 @@ test('dependencies', t => {
       peerDependencies: {},
       globalDependencies: {},
       globalDevDependencies: {},
-      name: 'es6-promise',
-      type: 'typings'
+      name: 'es6-promise'
     }
 
     const es6PromiseParent: DependencyTree = {
@@ -273,8 +274,7 @@ test('dependencies', t => {
       peerDependencies: {},
       globalDependencies: {},
       globalDevDependencies: {},
-      name: undefined,
-      type: 'typings'
+      name: undefined
     }
 
     const unthenifyDep: DependencyTree = {

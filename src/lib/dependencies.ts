@@ -10,7 +10,7 @@ import { readJson, readConfigFrom, readJsonFrom } from '../utils/fs'
 import { parseDependency } from '../utils/parse'
 import { findUp, findConfigFile } from '../utils/find'
 import { isDefinition, isHttp } from '../utils/path'
-import { CONFIG_FILE, PROJECT_NAME } from '../utils/config'
+import { CONFIG_FILE } from '../utils/config'
 import { search } from '../search'
 import { Dependency, DependencyBranch, Dependencies, DependencyTree, Emitter } from '../interfaces'
 import TypingsError from './error'
@@ -80,10 +80,6 @@ export function resolveDependency (dependency: Dependency, options: Options): Pr
     }
   }
 
-  if (type === 'jspm' || (type === 'npm' && options.jspmConfig)) {
-    return resolveJspmDependency(dependency, options)
-  }
-
   return resolveDependencyInternally(type, location, raw, options)
 }
 
@@ -91,6 +87,9 @@ export function resolveDependency (dependency: Dependency, options: Options): Pr
  * Internal version of `resolveDependency`, skipping the registry handling.
  */
 function resolveDependencyInternally (type: string, location: string, raw: string, options: Options) {
+  if (type === 'jspm' || (type === 'npm' && options.jspmConfig)) {
+    return resolveJspmDependency(location, raw, options)
+  }
 
   if (type === 'npm') {
     return resolveNpmDependency(location, raw, options)
@@ -478,7 +477,6 @@ function resolveTypeDependencyFrom (src: string, raw: string, options: Options) 
           version: config.version,
           browser: config.browser,
           files: Array.isArray(config.files) ? config.files : undefined,
-          type: PROJECT_NAME,
           global: typeof config.global === 'boolean' ? !!config.global : undefined,
           postmessage: typeof config.postmessage === 'string' ? config.postmessage : undefined,
           src,
@@ -551,6 +549,7 @@ function resolveTypeDependencyMap (src: string, dependencies: any, options: Opti
 
   return Promise.all(keys.map(function (name) {
     const resolveOptions: Options = extend(options, { name, cwd, dev: false, global: false, peer: false })
+
     return resolveDependency(parseDependency(dependencies[name]), resolveOptions)
   }))
     .then(results => zipObject(keys, results))
@@ -559,20 +558,18 @@ function resolveTypeDependencyMap (src: string, dependencies: any, options: Opti
 /**
  * Resolve a dependency from JSPM.
  */
-export function resolveJspmDependency (dependency: Dependency, options: Options): Promise<DependencyTree> {
-  const name = dependency.meta.name
-  const { raw } = dependency
+export function resolveJspmDependency (pkgName: string, raw: string, options: Options): Promise<DependencyTree> {
   return findUp(options.cwd, 'package.json')
     .then(function (packageJsonPath) {
-      return resolveJspm(name, { cwd: dirname(packageJsonPath) })
+      return resolveJspm(pkgName, { cwd: dirname(packageJsonPath) })
     })
     .then(
       function (jspmConfig) {
-        return resolveJspmDependencyFrom(name, raw, extend(options, { jspmConfig }))
+        return resolveJspmDependencyFrom(pkgName, raw, extend(options, { jspmConfig }))
       },
       function (error) {
         if (error instanceof ModuleNotFoundError) {
-          return resolveJspmDependencyFrom(name, raw, options)
+          return resolveJspmDependencyFrom(pkgName, raw, options)
         }
         return Promise.reject(resolveError(raw, error, options))
       }
@@ -586,13 +583,14 @@ function resolveJspmDependencyFrom (name: string, raw: string, options: Options)
   const { parent, jspmConfig } = options
   const modulePath = jspmConfig.path
   const src = resolve(options.cwd, modulePath, 'package.json')
+
   checkCircularDependency(parent, src)
 
   options.emitter.emit('resolve', { name, src, raw, parent })
 
   return readJson(src)
-    .catch((err) => {
-      // ignore FileNotFound error
+    .catch(function (err) {
+      // Ignore `FileNotFound` errors.
       if (err.code === 'ENOENT') {
         return
       }
@@ -637,6 +635,7 @@ function resolveJspmDependencyMap (dependencies: DependencyBranch = {}, options:
 
   return Promise.all(keys.map(function (name) {
     const resolveOptions = extend(options, { dev: false, peer: false, global: false, jspmConfig: dependencies[name] })
+
     return resolveJspmDependencyFrom(name, `jspm:${name}`, resolveOptions)
   }))
     .then(results => zipObject(keys, results))

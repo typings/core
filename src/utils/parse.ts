@@ -104,6 +104,7 @@ export function parseDependency (raw: string): Dependency {
     return {
       raw,
       type: 'jspm',
+      location: src,
       meta: {
         name: src
       }

@@ -321,6 +321,7 @@ test('parse', t => {
       const expected: Dependency = {
         raw: 'jspm:domready',
         type: 'jspm',
+        location: 'domready',
         meta: {
           name: 'domready'
         }

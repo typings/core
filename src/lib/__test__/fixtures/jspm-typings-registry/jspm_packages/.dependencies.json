@@ -1,0 +1,29 @@
+{
+  "npm:make-error@1.2.0": {
+    "deps": {},
+    "peerDeps": {}
+  },
+  "npm:popsicle-retry@3.2.1": {
+    "deps": {
+      "any-promise": "npm:any-promise@^1.1.0",
+      "xtend": "npm:xtend@^4.0.1"
+    },
+    "peerDeps": {
+      "process": "github:jspm/nodelibs-process@^0.2.0-alpha"
+    }
+  },
+  "npm:any-promise@1.3.0": {
+    "deps": {},
+    "peerDeps": {
+      "process": "github:jspm/nodelibs-process@^0.2.0-alpha"
+    }
+  },
+  "npm:xtend@4.0.1": {
+    "deps": {},
+    "peerDeps": {}
+  },
+  "github:jspm/nodelibs-process@0.2.0-alpha": {
+    "deps": {},
+    "peerDeps": {}
+  }
+}

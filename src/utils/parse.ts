@@ -99,6 +99,17 @@ export function parseDependency (raw: string): Dependency {
     }
   }
 
+  // `jspm:dependency`
+  if (type === 'jspm') {
+    return {
+      raw,
+      type: 'jspm',
+      meta: {
+        name: src
+      }
+    }
+  }
+
   // `npm:dependency`, `npm:@scoped/dependency`
   if (type === 'npm') {
     const parts = src.split('/')

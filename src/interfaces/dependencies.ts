@@ -6,7 +6,7 @@ import { Browser } from './config'
 export interface Dependency {
   type: string
   raw: string
-  location: string
+  location?: string
   meta: DependencyMeta
 }
 
@@ -41,6 +41,7 @@ export interface DependencyTree {
   parent?: DependencyTree
   files?: string[]
   postmessage?: string
+  type?: string
   src: string
   raw: string
   global: boolean

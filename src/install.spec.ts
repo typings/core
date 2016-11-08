@@ -129,6 +129,13 @@ test('install', t => {
           }
         })
       })
+      .then(
+      () => {
+        rc.urlRewrites = {}
+      },
+      () => {
+        rc.urlRewrites = {}
+      })
   })
 
   t.test('install empty', t => {
@@ -149,4 +156,19 @@ test('install', t => {
         t.equal(browser, '')
       })
   })
+})
+
+test('install jspm module without package.json', t => {
+  const emitter = new EventEmitter()
+  const FIXTURE_DIR = join(__dirname, '__test__/jspm-typings-registry')
+  return installDependencyRaw('jspm:make-error', {
+    cwd: FIXTURE_DIR,
+    emitter
+  })
+    .then(function () {
+      return readFile(join(FIXTURE_DIR, 'typings/index.d.ts'), 'utf8')
+    })
+    .then(index => {
+      t.equal(index, '/// <reference path="modules/make-error/index.d.ts" />\n')
+    })
 })

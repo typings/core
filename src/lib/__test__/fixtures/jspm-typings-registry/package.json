@@ -1,0 +1,13 @@
+{
+  "name": "my-module",
+  "version": "0.1.2",
+  "jspm": {
+    "dependencies": {
+      "make-error": "npm:make-error@^1.2.0",
+      "popsicle-retry": "npm:popsicle-retry@^3.2.1"
+    },
+    "peerDependencies": {
+      "process": "github:jspm/nodelibs-process@^0.2.0-alpha"
+    }
+  }
+}

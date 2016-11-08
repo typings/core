@@ -316,6 +316,20 @@ test('parse', t => {
       t.end()
     })
 
+    t.test('parse jspm', t => {
+      const actual = parseDependency('jspm:domready')
+      const expected: Dependency = {
+        raw: 'jspm:domready',
+        type: 'jspm',
+        meta: {
+          name: 'domready'
+        }
+      }
+
+      t.deepEqual(actual, expected)
+      t.end()
+    })
+
     t.test('expand registry with default source', t => {
       const actual = expandRegistry('domready')
       const expected = 'registry:npm/domready'

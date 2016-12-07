@@ -517,8 +517,10 @@ function stringifySourceFile (
       hasDefaultExport = hasDefaultExport || (node as ts.ExportSpecifier).name.getText() === 'default'
     }
 
-    hasExports = hasExports || !!(node.flags & ts.NodeFlags.Export)
-    hasDefaultExport = hasDefaultExport || !!(node.flags & ts.NodeFlags.Default)
+    const flags = ts.getCombinedModifierFlags(node)
+
+    hasExports = hasExports || !!(flags & ts.ModifierFlags.Export)
+    hasDefaultExport = hasDefaultExport || !!(flags & ts.ModifierFlags.Default)
 
     if (
       node.kind === ts.SyntaxKind.StringLiteral &&

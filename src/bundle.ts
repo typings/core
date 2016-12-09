@@ -1,10 +1,9 @@
-import Promise = require('any-promise')
 import { resolve, dirname } from 'path'
 import { EventEmitter } from 'events'
 import { resolveAllDependencies } from './lib/dependencies'
 import { CompileResult, compile } from './lib/compile'
 import { writeFile, mkdirp } from './utils/fs'
-import { Emitter } from './interfaces'
+import { Emitter, DependencyTree } from './interfaces'
 import { InstallResult } from './install'
 
 /**
@@ -32,7 +31,7 @@ export function bundle (options: BundleOptions): Promise<InstallResult> {
   }
 
   return resolveAllDependencies({ cwd, dev: false, global: false, emitter })
-    .then(tree => {
+    .then<CompileResult>(tree => {
       const name = options.name || tree.name
 
       if (name == null) {
@@ -43,7 +42,7 @@ export function bundle (options: BundleOptions): Promise<InstallResult> {
 
       return compile(tree, [resolution], { cwd, name, global, emitter, meta: true })
     })
-    .then((output: CompileResult) => {
+    .then<{ tree: DependencyTree }>((output) => {
       const path = resolve(cwd, out)
 
       return mkdirp(dirname(path))

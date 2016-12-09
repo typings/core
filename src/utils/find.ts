@@ -1,5 +1,4 @@
 import { join, dirname } from 'path'
-import Promise = require('any-promise')
 import { isFile } from '../utils/fs'
 import { CONFIG_FILE } from './config'
 

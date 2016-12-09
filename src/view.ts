@@ -1,4 +1,3 @@
-import Promise = require('any-promise')
 import { joinUrl } from './utils/path'
 import { readJsonFrom } from './utils/fs'
 import { expandRegistry, parseDependency } from './utils/parse'

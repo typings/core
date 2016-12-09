@@ -1,5 +1,4 @@
 import extend = require('xtend')
-import Promise = require('any-promise')
 import { EventEmitter } from 'events'
 import { dirname } from 'path'
 import { transformConfig, transformDtsFile, rmdirUntil, unlink, isFile, readConfig } from './utils/fs'

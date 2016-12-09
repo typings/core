@@ -1,5 +1,4 @@
 import { dirname } from 'path'
-import Promise = require('any-promise')
 import extend = require('xtend')
 import { EventEmitter } from 'events'
 import { Emitter } from './interfaces'
@@ -35,7 +34,7 @@ export function prune (options: PruneOptions): Promise<void> {
 /**
  * Read the bundle and remove typings not in config file.
  */
-function transformBundles (config: ConfigJson, options: PruneOptions) {
+function transformBundles (config: ConfigJson, options: PruneOptions): Promise<void> {
   const { production } = options
   const resolutions = normalizeResolutions(config.resolution, options)
   const dependencies = extend(config.dependencies, config.peerDependencies, production ? {} : config.devDependencies)

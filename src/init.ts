@@ -1,4 +1,3 @@
-import Promise = require('any-promise')
 import extend = require('xtend')
 import { join, basename } from 'path'
 import { ConfigJson } from './interfaces'

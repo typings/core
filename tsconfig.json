@@ -5,7 +5,10 @@
     "module": "commonjs",
     "rootDir": "src",
     "moduleResolution": "node",
-    "lib": ["es5"],
+    "lib": [
+      "es5",
+      "es2015.promise"
+    ],
     "declaration": true,
     "noImplicitAny": true,
     "removeComments": true,

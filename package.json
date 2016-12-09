@@ -42,7 +42,6 @@
   },
   "homepage": "https://github.com/typings/core",
   "dependencies": {
-    "any-promise": "^1.3.0",
     "array-uniq": "^1.0.2",
     "configstore": "^2.0.0",
     "debug": "^2.2.0",
@@ -58,7 +57,7 @@
     "mkdirp": "^0.5.1",
     "object.pick": "^1.1.1",
     "parse-json": "^2.2.0",
-    "popsicle": "^8.0.2",
+    "popsicle": "^9.0.0",
     "popsicle-proxy-agent": "^3.0.0",
     "popsicle-retry": "^3.2.0",
     "popsicle-rewrite": "^1.0.0",

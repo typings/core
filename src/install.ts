@@ -1,5 +1,4 @@
 import extend = require('xtend')
-import Promise = require('any-promise')
 import { dirname, join } from 'path'
 import { EventEmitter } from 'events'
 import { resolveDependency, resolveTypeDependencies, DEFAULT_DEPENDENCY } from './lib/dependencies'

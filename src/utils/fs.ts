@@ -1,6 +1,5 @@
 import * as fs from 'graceful-fs'
 import extend = require('xtend')
-import Promise = require('any-promise')
 import thenify = require('thenify')
 import stripBom = require('strip-bom')
 import parse = require('parse-json')

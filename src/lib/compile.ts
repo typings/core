@@ -1,7 +1,6 @@
 import * as ts from 'typescript'
 import extend = require('xtend')
 import has = require('has')
-import Promise = require('any-promise')
 import { join, relative, basename } from 'path'
 import { DependencyTree, Overrides, Emitter } from '../interfaces'
 import { readFileFrom } from '../utils/fs'

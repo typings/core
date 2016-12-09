@@ -2,7 +2,6 @@ import extend = require('xtend')
 import listify = require('listify')
 import invariant = require('invariant')
 import zipObject = require('zip-object')
-import Promise = require('any-promise')
 import { resolve, dirname, join } from 'path'
 import { resolve as resolveUrl } from 'url'
 import { readJspmPackageJson, resolveByPackageJson, resolve as resolveJspm, ModuleNotFoundError } from 'jspm-config'

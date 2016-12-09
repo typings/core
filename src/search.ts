@@ -1,5 +1,4 @@
 import extend = require('xtend')
-import Promise = require('any-promise')
 import pick = require('object.pick')
 import { stringify } from 'querystring'
 import { resolve } from 'url'

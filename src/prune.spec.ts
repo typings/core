@@ -1,5 +1,4 @@
 import test = require('blue-tape')
-import Promise = require('any-promise')
 import { join } from 'path'
 import { prune } from './prune'
 import { readFile, writeFile, mkdirp, isFile } from './utils/fs'

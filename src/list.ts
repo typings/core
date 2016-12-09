@@ -1,5 +1,4 @@
 import { EventEmitter } from 'events'
-import Promise = require('any-promise')
 import { Emitter, DependencyTree } from './interfaces'
 import { resolveTypeDependencies } from './lib/dependencies'
 

@@ -125,12 +125,12 @@ test('dependencies', t => {
         version: undefined
       }
 
-        ; (expected as any).dependencies['bower-dep'] = bowerDep
-        ; (expected as any).dependencies.dep = typedDep
-        ; (expected as any).dependencies['npm-dep'] = npmDep
-        ; (expected as any).devDependencies['dev-dep'] = typedDevDep
+      ;(expected as any).dependencies['bower-dep'] = bowerDep
+      ;(expected as any).dependencies.dep = typedDep
+      ;(expected as any).dependencies['npm-dep'] = npmDep
+      ;(expected as any).devDependencies['dev-dep'] = typedDevDep
 
-        ; (bowerDep as any).dependencies.example = exampleDep
+      ;(bowerDep as any).dependencies.example = exampleDep
 
       return resolveAllDependencies({
         cwd: RESOLVE_FIXTURE_DIR,
@@ -161,7 +161,7 @@ test('dependencies', t => {
       }
     }
 
-   const makeErrorDep: DependencyTree = {
+    const makeErrorDep: DependencyTree = {
       src: join(cwd, 'jspm_packages/npm/make-error@1.2.0/package.json'),
       raw: 'jspm:make-error',
       main: undefined,

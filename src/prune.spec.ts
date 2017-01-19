@@ -16,7 +16,7 @@ test('prune', t => {
 
     return generateTestDefinitions(FIXTURE_DIR)
       .then(() => {
-         return prune({ cwd: FIXTURE_DIR })
+        return prune({ cwd: FIXTURE_DIR })
       })
       .then(() => {
         return Promise.all([
@@ -60,10 +60,10 @@ test('prune', t => {
 
     return generateTestDefinitions(FIXTURE_DIR)
       .then(() => {
-         return prune({
-            cwd: FIXTURE_DIR,
-            production: true
-         })
+        return prune({
+          cwd: FIXTURE_DIR,
+          production: true
+        })
       })
       .then(() => {
         return Promise.all([

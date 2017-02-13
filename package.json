@@ -43,7 +43,7 @@
   "homepage": "https://github.com/typings/core",
   "dependencies": {
     "array-uniq": "^1.0.2",
-    "configstore": "^2.0.0",
+    "configstore": "^3.0.0",
     "debug": "^2.2.0",
     "detect-indent": "^5.0.0",
     "graceful-fs": "^4.1.2",

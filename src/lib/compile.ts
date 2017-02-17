@@ -1,7 +1,7 @@
 import * as ts from 'typescript'
 import extend = require('xtend')
 import has = require('has')
-import { join, relative, basename } from 'path'
+import { join, relative, resolve, basename } from 'path'
 import { DependencyTree, Overrides, Emitter } from '../interfaces'
 import { readFileFrom } from '../utils/fs'
 import { EOL, normalizeEOL } from '../utils/path'
@@ -132,6 +132,23 @@ function resolveFromOverride (src: string, to: string | boolean, tree: Dependenc
 }
 
 /**
+ * Resolve definition path using Typescript
+ */
+function resolveDefinition (src: string, to: string): string {
+  const resolutionResult = ts.resolveModuleName(
+    to, normalizeSlashes(src),
+    {moduleResolution: ts.ModuleResolutionKind.NodeJs},
+    {directoryExists: ts.sys.directoryExists, fileExists: ts.sys.fileExists, readFile: ts.sys.readFile}
+    )
+
+  if (resolutionResult.resolvedModule) {
+    return resolve(resolutionResult.resolvedModule.resolvedFileName)
+  }
+
+  return resolveFrom(src, toDefinition(to))
+}
+
+/**
  * Resolve module locations (appending `.d.ts` to paths).
  */
 function resolveFromWithModuleName (src: string, to: string, tree: DependencyTree): string {
@@ -141,7 +158,11 @@ function resolveFromWithModuleName (src: string, to: string, tree: DependencyTre
     return modulePath ? toDefinition(to) : moduleName
   }
 
-  return resolveFrom(src, toDefinition(to))
+  if (isHttp(src) || isHttp(to)) {
+    return resolveFrom(src, toDefinition(to))
+  }
+
+  return resolveDefinition(src, to)
 }
 
 /**

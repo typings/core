@@ -2,7 +2,7 @@
   "name": "test",
   "main": "index.js",
   "browser": {
-    "./imported.js": "dep"
+    "./imported/index.js": "dep"
   },
   "dependencies": {
     "dep": "0.0.0"

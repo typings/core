@@ -319,7 +319,7 @@ test('dependencies', t => {
   })
 })
 
-function removeParentReference(tree: DependencyTree) {
+function removeParentReference (tree: DependencyTree) {
   delete tree.parent
 
   removeParentReferenceFromDependencies(tree.dependencies)
@@ -331,7 +331,7 @@ function removeParentReference(tree: DependencyTree) {
   return tree
 }
 
-function removeParentReferenceFromDependencies(dependencies: DependencyBranch) {
+function removeParentReferenceFromDependencies (dependencies: DependencyBranch) {
   Object.keys(dependencies).forEach(function (key) {
     removeParentReference(dependencies[key])
   })

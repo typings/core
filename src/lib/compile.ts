@@ -13,7 +13,7 @@ import {
   normalizeSlashes,
   pathFromDefinition,
   normalizeToDefinition,
-  toDefinition
+  appendToPath
 } from '../utils/path'
 import { REFERENCE_REGEXP } from '../utils/references'
 import { PROJECT_NAME, DEPENDENCY_SEPARATOR } from '../utils/config'
@@ -53,13 +53,9 @@ export interface CompileResult {
 /**
  * Compile a dependency tree using a root name.
  */
-export function compile (
-  tree: DependencyTree,
-  resolutions: string[],
-  options: Options
-): Promise<CompileResult> {
+export function compile (tree: DependencyTree, resolutions: string[], options: Options): Promise<CompileResult> {
   const { name, cwd, global } = options
-  const readFiles: ts.MapLike<Promise<string>> = {}
+  const fileCache: ts.MapLike<Promise<string>> = {}
 
   // Ensure the global installation is valid.
   if (tree.global && !global) {
@@ -79,12 +75,14 @@ export function compile (
   }
 
   return Promise.all(resolutions.map(resolution => {
-    const imported: ts.MapLike<boolean> = {}
+    const resolved: ts.MapLike<string> = {}
+    const imported: ts.MapLike<Promise<ModuleInfo>> = {}
 
     return compileDependencyTree(tree, extend(options, {
       resolution,
-      readFiles,
-      imported
+      fileCache,
+      imported,
+      resolved
     }))
   }))
     .then((output) => {
@@ -109,15 +107,23 @@ export function compile (
  */
 interface CompileOptions extends Options {
   resolution: string
-  readFiles: ts.MapLike<Promise<string>>
-  imported: ts.MapLike<boolean>
+  fileCache: ts.MapLike<Promise<string>>
+  resolved: ts.MapLike<string>
+  imported: ts.MapLike<Promise<ModuleInfo>>
   emitter: Emitter
+}
+
+/**
+ * Resolve import.
+ */
+function resolveImportFrom (from: string, to: string) {
+  return isModuleName(to) ? to : resolveFrom(from, to)
 }
 
 /**
  * Resolve override paths.
  */
-function resolveFromOverride (src: string, to: string | boolean, tree: DependencyTree): string {
+function resolveOverride (src: string, to: string | boolean, tree: DependencyTree): string {
   if (typeof to === 'string') {
     if (isModuleName(to)) {
       const [moduleName, modulePath] = getModuleNameParts(to, tree)
@@ -129,19 +135,6 @@ function resolveFromOverride (src: string, to: string | boolean, tree: Dependenc
   }
 
   return to ? src : undefined
-}
-
-/**
- * Resolve module locations (appending `.d.ts` to paths).
- */
-function resolveFromWithModuleName (src: string, to: string, tree: DependencyTree): string {
-  if (isModuleName(to)) {
-    const [moduleName, modulePath] = getModuleNameParts(to, tree)
-
-    return modulePath ? toDefinition(to) : moduleName
-  }
-
-  return resolveFrom(src, toDefinition(to))
 }
 
 /**
@@ -165,8 +158,8 @@ function getStringifyOptions (
       overrides[mainDefinition] = browserDefinition
     } else {
       for (const key of Object.keys(browser)) {
-        const from = resolveFromOverride(tree.src, key, tree) as string
-        const to = resolveFromOverride(tree.src, browser[key], tree)
+        const from = resolveOverride(tree.src, key, tree) as string
+        const to = resolveOverride(tree.src, browser[key], tree)
 
         overrides[from] = to
       }
@@ -201,30 +194,19 @@ function compileDependencyTree (tree: DependencyTree, options: CompileOptions): 
 
   if (Array.isArray(tree.files)) {
     for (const file of tree.files) {
-      contents.push(compileDependencyPath(file, stringifyOptions))
+      contents.push(stringifyDependencyImport(resolveFrom(tree.src, file), DependencyImport.ALL_PATHS, false, stringifyOptions))
     }
   }
 
-  // Supports only having `files` specified.
-  if (stringifyOptions.entry || contents.length === 0) {
-    contents.push(compileDependencyPath(null, stringifyOptions))
+  if (stringifyOptions.entry) {
+    contents.push(stringifyDependencyImport(resolveFrom(tree.src, stringifyOptions.entry), DependencyImport.ALL_PATHS, true, stringifyOptions))
+  }
+
+  if (contents.length === 0) {
+    contents.push(stringifyDependencyImport(resolveFrom(tree.src, 'index.d.ts'), DependencyImport.DEFAULT_ONLY, true, stringifyOptions))
   }
 
   return Promise.all(contents).then(out => out.join(EOL))
-}
-
-/**
- * Compile a dependency for a path, with pre-created stringify options.
- */
-function compileDependencyPath (
-  path: string,
-  options: StringifyOptions,
-  parentModule?: ModuleOptions
-): Promise<string> {
-  const { tree, entry } = options
-  const dependencyPath = resolveFrom(tree.src, path || entry || 'index.d.ts')
-
-  return stringifyDependencyPath(dependencyPath, path, options, parentModule)
 }
 
 /**
@@ -244,22 +226,22 @@ interface StringifyOptions extends CompileOptions {
  * Read a file with a backup cache object.
  */
 function cachedReadFileFrom (path: string, options: StringifyOptions) {
-  if (!has(options.readFiles, path)) {
-    options.readFiles[path] = readFileFrom(path)
+  if (!has(options.fileCache, path)) {
+    options.fileCache[path] = readFileFrom(path)
   }
 
-  return options.readFiles[path]
+  return options.fileCache[path]
 }
 
 /**
  * Return cached stringify options from the current options object.
  */
 function cachedStringifyOptions (name: string, compileOptions: CompileOptions, options: StringifyOptions) {
-  const tree = getDependency(name, options)
-
   if (!has(options.dependencies, name)) {
-    if (tree) {
-      options.dependencies[name] = getStringifyOptions(tree, compileOptions, options)
+    const branch = options.tree.dependencies[name]
+
+    if (branch) {
+      options.dependencies[name] = getStringifyOptions(branch, compileOptions, options)
     } else {
       options.dependencies[name] = null
     }
@@ -280,141 +262,187 @@ function getPath (path: string, options: StringifyOptions) {
 }
 
 /**
- * Get dependency from stringify options.
+ * Track options per-file.
  */
-function getDependency (name: string, options: StringifyOptions): DependencyTree {
-  const { tree, overrides } = options
+interface ModuleInfo {
+  parent?: ModuleInfo
+  path: string
+  originalPath: string
+  isEntry: boolean
+  options: StringifyOptions
+  sourceFile: ts.SourceFile
+  fileInfo: ts.PreProcessedFileInfo
+}
 
-  if (has(overrides, name)) {
-    if (overrides[name]) {
-      return tree.dependencies[overrides[name] as string]
-    }
-  } else if (has(tree.dependencies, name)) {
-    return tree.dependencies[name]
-  }
+enum DependencyImport {
+  DEFAULT_ONLY,
+  SUFFIXES_ONLY,
+  ALL_PATHS
 }
 
 /**
- * Track options per-file.
+ * Try to resolve a dependency import.
  */
-interface ModuleOptions {
-  path: string
-  rawPath: string
-  parent?: ModuleOptions
-  isExternal: boolean
+function readDependencyImport (originalPath: string, mode: DependencyImport, isEntry: boolean, options: StringifyOptions, parent?: ModuleInfo) {
+  const paths: string[] = []
+  const { cwd, tree, resolution, fileCache, resolved, imported, emitter, meta } = options
+
+  // Handle various file loading situations effeciently.
+  if (mode === DependencyImport.DEFAULT_ONLY || mode === DependencyImport.ALL_PATHS) {
+    paths.push(originalPath)
+  }
+
+  if (mode === DependencyImport.SUFFIXES_ONLY || mode === DependencyImport.ALL_PATHS) {
+    paths.push(appendToPath(originalPath, '.d.ts'), appendToPath(originalPath, '/index.d.ts'))
+  }
+
+  // Make an attempt at compiling the raw path and mapping module imports.
+  function attempt (cause: Error, index: number): Promise<ModuleInfo | null> {
+    // Skip future resolution attempts.
+    if (index >= paths.length) {
+      const authorPhrase = options.parent ? `The author of "${options.parent.name}" needs to` : 'You should'
+      const relativePath = isModuleName(originalPath) ? originalPath : relativeTo(options.tree.src, originalPath)
+
+      if (isEntry) {
+        return Promise.reject(new TypingsError(
+          `Unable to read typings for "${options.name}". ` +
+          `${authorPhrase} check the entry paths in "${basename(options.tree.src)}" are up to date`,
+          cause
+        ))
+      }
+
+      return Promise.reject(new TypingsError(
+        `Unable to read "${relativePath}" from "${options.name}". ` +
+        `${authorPhrase} validate all import paths are accurate (case sensitive and relative)`,
+        cause
+      ))
+    }
+
+    const path = getPath(paths[index], options)
+
+    if (isModuleName(path)) {
+      const [moduleName, modulePath] = getModuleNameParts(path, tree)
+
+      const childOptions = cachedStringifyOptions(moduleName, {
+        cwd,
+        resolution,
+        fileCache,
+        emitter,
+        imported,
+        resolved,
+        name: moduleName,
+        global: false,
+        meta
+      }, options)
+
+      // When no options are returned, the dependency is missing and should be ignored.
+      if (!childOptions) {
+        return Promise.resolve(null)
+      }
+
+      if (modulePath) {
+        return readDependencyImport(resolveFrom(childOptions.tree.src, modulePath), DependencyImport.SUFFIXES_ONLY, false, childOptions, parent)
+      }
+
+      if (childOptions.entry) {
+        return readDependencyImport(resolveFrom(childOptions.tree.src, childOptions.entry), DependencyImport.ALL_PATHS, true, childOptions, parent)
+      }
+
+      return readDependencyImport(resolveFrom(childOptions.tree.src, 'index.d.ts'), DependencyImport.DEFAULT_ONLY, true, childOptions, parent)
+    }
+
+    // Avoid rendering the same file twice.
+    if (options.imported[path]) {
+      return options.imported[path].then(() => null)
+    }
+
+    return options.imported[path] = readFileFrom(path).then(
+      function (contents) {
+        const fileInfo = ts.preProcessFile(contents)
+        const sourceFile = ts.createSourceFile(path, contents.replace(REFERENCE_REGEXP, ''), ts.ScriptTarget.Latest, true)
+        const moduleInfo: ModuleInfo = { path, originalPath, isEntry, parent, sourceFile, options, fileInfo }
+
+        return moduleInfo
+      },
+      function (err) {
+        if (err.code === 'ENOENT' || err.code === 'ENOTDIR' || err.code === 'EISDIR' || err.code === 'EINVALIDSTATUS') {
+          return attempt(err, index + 1)
+        }
+
+        return Promise.reject(err)
+      }
+    )
+  }
+
+  return attempt(null, 0).then(function (moduleInfo) {
+    if (moduleInfo) {
+      options.resolved[getCachePath(originalPath, options, false)] = getCachePath(moduleInfo.path, moduleInfo.options, true)
+    }
+
+    return moduleInfo
+  })
+}
+
+/**
+ * Return the path for the module.
+ */
+function getCachePath (originalPath: string, options: StringifyOptions, strip: boolean) {
+  const path = strip ? pathFromDefinition(originalPath) : originalPath
+
+  if (isModuleName(path)) {
+    return normalizeSlashes(`${options.prefix}${DEPENDENCY_SEPARATOR}${path}`)
+  }
+
+  return normalizeSlashes(join(options.prefix, relativeTo(options.tree.src, path)))
+}
+
+/**
+ * Try to stringify a dependency import.
+ */
+function stringifyDependencyImport (importPath: string, mode: DependencyImport, isEntry: boolean, options: StringifyOptions, parent?: ModuleInfo) {
+  return readDependencyImport(importPath, mode, isEntry, options, parent)
+    .then(function (info) {
+      return info ? stringifyDependencyPath(info) : undefined
+    })
 }
 
 /**
  * Stringify a dependency file.
  */
-function stringifyDependencyPath (
-  rawPath: string,
-  originalPath: string,
-  options: StringifyOptions,
-  moduleOptions: ModuleOptions
-): Promise<string> {
-  const path = getPath(rawPath, options)
-  const { tree, global, cwd, resolution, name, prefix, readFiles, imported, meta, emitter } = options
-  const importedPath = importPath(rawPath, pathFromDefinition(rawPath), options)
-
-  // Return `null` to skip the dependency writing, could have the same import twice.
-  if (has(imported, importedPath)) {
-    return Promise.resolve<string>(null)
-  }
-
-  // Set the file to "already imported" to avoid duplication.
-  imported[importedPath] = true
+function stringifyDependencyPath (moduleInfo: ModuleInfo): Promise<string> {
+  const { path, options, sourceFile, fileInfo } = moduleInfo
+  const { tree, global, resolution, name, prefix, emitter } = options
 
   // Emit compile events for progression.
   emitter.emit('compile', { name, prefix, path, tree, resolution })
 
-  // Load a dependency path.
-  function loadByModuleName (path: string) {
-    const [moduleName, modulePath] = getModuleNameParts(path, tree)
-    const compileOptions = { cwd, resolution, readFiles, imported, emitter, name: moduleName, global: false, meta }
-    const stringifyOptions = cachedStringifyOptions(moduleName, compileOptions, options)
+  const importedFiles = fileInfo.importedFiles.map(x => resolveImportFrom(path, x.fileName))
+  const referencedFiles = fileInfo.referencedFiles.map(x => resolveFrom(path, x.fileName))
 
-    // When no options are returned, the dependency is missing.
-    if (!stringifyOptions) {
-      return Promise.resolve<string>(null)
+  // All dependencies MUST be imported for global modules.
+  if (global) {
+    Object.keys(tree.dependencies).forEach(x => importedFiles.push(x))
+  }
+
+  const imports = importedFiles.map(importedFile => {
+    const mode = isModuleName(importedFile) ? DependencyImport.DEFAULT_ONLY : DependencyImport.SUFFIXES_ONLY
+
+    return stringifyDependencyImport(importedFile, mode, false, options, moduleInfo)
+  })
+
+  return Promise.all(imports).then(imports => {
+    const stringified = stringifyModuleFile(moduleInfo)
+
+    for (const reference of referencedFiles) {
+      emitter.emit('reference', { name, prefix, path, reference, tree, resolution })
     }
 
-    return compileDependencyPath(modulePath, stringifyOptions, moduleOptions)
-  }
+    const contents = imports.filter(x => x != null).concat(stringified).join(EOL)
 
-  // Check if the path is resolving to a module name before reading.
-  if (isModuleName(path)) {
-    return loadByModuleName(path)
-  }
+    emitter.emit('compiled', { name, prefix, path, tree, resolution, contents })
 
-  return cachedReadFileFrom(path, options)
-    .then(
-      function (rawContents) {
-        const info = ts.preProcessFile(rawContents)
-        const contents = rawContents.replace(REFERENCE_REGEXP, '')
-        const sourceFile = ts.createSourceFile(rawPath, contents, ts.ScriptTarget.Latest, true)
-        const importedFiles = info.importedFiles.map(x => resolveFromWithModuleName(path, x.fileName, tree))
-        const referencedFiles = info.referencedFiles.map(x => resolveFrom(path, x.fileName))
-
-        const childModuleOptions: ModuleOptions = {
-          path: path,
-          rawPath: rawPath,
-          parent: moduleOptions,
-          isExternal: (ts as any).isExternalModule(sourceFile)
-        }
-
-        // All dependencies MUST be imported for global modules.
-        if (global) {
-          Object.keys(tree.dependencies).forEach(x => importedFiles.push(x))
-        }
-
-        const imports = importedFiles.map(importedFile => {
-          const path = getPath(importedFile, options)
-
-          if (isModuleName(path)) {
-            return loadByModuleName(path)
-          }
-
-          return stringifyDependencyPath(path, importedFile, options, childModuleOptions)
-        })
-
-        return Promise.all(imports)
-          .then<string>(imports => {
-            const stringified = stringifySourceFile(sourceFile, originalPath, options, childModuleOptions)
-
-            for (const reference of referencedFiles) {
-              emitter.emit('reference', { name, prefix, path, reference, tree, resolution })
-            }
-
-            const out = imports.filter(x => x != null)
-            out.push(stringified)
-            const contents = out.join(EOL)
-
-            emitter.emit('compiled', { name, prefix, path, tree, resolution, contents })
-
-            return contents
-          })
-      },
-      function (cause) {
-        const authorPhrase = options.parent ? `The author of "${options.parent.name}" needs to` : 'You should'
-        const relativePath = relativeTo(tree.src, path)
-
-        // Provide better errors for the entry path.
-        if (originalPath == null) {
-          return Promise.reject(new TypingsError(
-            `Unable to read typings for "${options.name}". ` +
-            `${authorPhrase} check the entry paths in "${basename(tree.src)}" are up to date`,
-            cause
-          ))
-        }
-
-        return Promise.reject(new TypingsError(
-          `Unable to read "${relativePath}" from "${options.name}". ` +
-          `${authorPhrase} validate all import paths are accurate (case sensitive and relative)`,
-          cause
-        ))
-      }
-    )
+    return contents
+  })
 }
 
 /**
@@ -441,45 +469,23 @@ function getModuleNameParts (name: string, tree: DependencyTree): [string, strin
 /**
  * Normalize import paths against the prefix.
  */
-function importPath (path: string, name: string, options: StringifyOptions) {
-  const { prefix, tree } = options
-  const resolved = getPath(resolveFromWithModuleName(path, name, tree), options)
-
-  if (isModuleName(resolved)) {
-    const [moduleName, modulePath] = getModuleNameParts(resolved, tree)
-
-    // If the dependency is not available, *do not* transform - it's probably global.
-    if (tree.dependencies[moduleName] == null) {
-      return name
-    }
-
-    return `${prefix}${DEPENDENCY_SEPARATOR}${modulePath ? pathFromDefinition(resolved) : resolved}`
-  }
-
-  const relativePath = relativeTo(tree.src, pathFromDefinition(resolved))
-
-  return normalizeSlashes(join(prefix, relativePath))
+function getImportPath (path: string, options: StringifyOptions) {
+  return options.resolved[getCachePath(path, options, false)] || path
 }
 
 /**
  * Stringify a dependency file contents.
  */
-function stringifySourceFile (
-  sourceFile: ts.SourceFile,
-  originalPath: string,
-  options: StringifyOptions,
-  moduleOptions: ModuleOptions
-) {
-  const { isExternal, path } = moduleOptions
+function stringifyModuleFile (info: ModuleInfo) {
+  const { options } = info
   const { tree, name, prefix, parent, cwd, global } = options
-  const parentModule = moduleOptions.parent
 
   // Output information for the original type source.
-  const source = isHttp(path) ? path : normalizeSlashes(relative(cwd, path))
+  const source = isHttp(info.path) ? info.path : normalizeSlashes(relative(cwd, info.path))
   const meta = options.meta ? `// Generated by ${PROJECT_NAME}${EOL}// Source: ${source}${EOL}` : ''
 
   if (global) {
-    if (isExternal) {
+    if (ts.isExternalModule(info.sourceFile)) {
       throw new TypingsError(
         `Attempted to compile "${name}" as a global ` +
         `module, but it looks like an external module. ` +
@@ -487,9 +493,9 @@ function stringifySourceFile (
       )
     }
 
-    return `${meta}${normalizeEOL(sourceFile.getText().trim(), EOL)}${EOL}`
+    return `${meta}${normalizeEOL(info.sourceFile.getText().trim(), EOL)}${EOL}`
   } else {
-    if (!isExternal && !(parentModule && parentModule.isExternal)) {
+    if (!ts.isExternalModule(info.sourceFile) && !(info.parent && ts.isExternalModule(info.parent.sourceFile))) {
       throw new TypingsError(
         `Attempted to compile "${name}" as an external module, ` +
         `but it looks like a global module. ` +
@@ -531,18 +537,18 @@ function stringifySourceFile (
     ) {
       hasLocalImports = hasLocalImports || !isModuleName((node as ts.StringLiteral).text)
 
-      return ` '${importPath(path, (node as ts.StringLiteral).text, options)}'`
+      return ` '${getImportPath(resolveImportFrom(info.path, (node as ts.StringLiteral).text), options)}'`
     }
 
     if (node.kind === ts.SyntaxKind.DeclareKeyword) {
       // Notify the reader to remove leading trivia.
       wasDeclared = true
 
-      return sourceFile.text.slice(node.getFullStart(), node.getStart())
+      return info.sourceFile.text.slice(node.getFullStart(), node.getStart())
     }
 
     if (node.kind === ts.SyntaxKind.ExternalModuleReference) {
-      const requirePath = importPath(path, (node as any).expression.text, options)
+      const requirePath = getImportPath(resolveImportFrom(info.path, (node as any).expression.text), options)
 
       return ` require('${requirePath}')`
     }
@@ -550,7 +556,7 @@ function stringifySourceFile (
 
   // Read through the file.
   function read (start: number, end: number) {
-    const text = sourceFile.text.slice(start, end)
+    const text = info.sourceFile.text.slice(start, end)
 
     // Trim leading whitespace.
     if (start === 0) {
@@ -571,6 +577,18 @@ function stringifySourceFile (
 
     return text
   }
+
+  const moduleText = normalizeEOL(processTree(info.sourceFile, replacer, read), EOL)
+  const modulePath = getImportPath(info.originalPath, options)
+  const moduleName = parent && parent.global ? name : modulePath
+
+  // Direct usage of definition/typings. This is *not* a psuedo-module.
+  if (info.isEntry && !hasLocalImports) {
+    return meta + declareText(parent ? moduleName : name, moduleText)
+  }
+
+  const prettyPath = normalizeSlashes(join(name, relativeTo(tree.src, pathFromDefinition(info.path))))
+  const declared = declareText(modulePath, moduleText)
 
   // Create an alias/proxy module namespace to expose the implementation.
   function alias (name: string) {
@@ -597,24 +615,11 @@ function stringifySourceFile (
     return declareText(name, imports.join(EOL))
   }
 
-  const isEntry = originalPath == null
-  const moduleText = normalizeEOL(processTree(sourceFile, replacer, read), EOL)
-  const moduleName = parent && parent.global ? name : prefix
-
-  // Direct usage of definition/typings. This is *not* a psuedo-module.
-  if (isEntry && !hasLocalImports) {
-    return meta + declareText(parent ? moduleName : name, moduleText)
+  if (info.isEntry && !parent) {
+    return meta + declared + alias(prettyPath) + alias(name)
   }
 
-  const modulePath = importPath(path, pathFromDefinition(path), options)
-  const prettyPath = normalizeSlashes(join(name, relativeTo(tree.src, pathFromDefinition(path))))
-  const declared = declareText(modulePath, moduleText)
-
-  if (!isEntry) {
-    return meta + declared + (parent ? '' : alias(prettyPath))
-  }
-
-  return meta + declared + (parent ? '' : alias(prettyPath)) + alias(parent ? moduleName : name)
+  return meta + declared + (parent ? '' : alias(prettyPath))
 }
 
 /**

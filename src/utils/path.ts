@@ -1,4 +1,4 @@
-import { resolve, dirname, relative, extname, join, sep } from 'path'
+import { resolve, dirname, relative, extname, join, sep, normalize } from 'path'
 import { resolve as resolveUrl, parse as parseUrl, format as formatUrl } from 'url'
 import isAbsolute = require('is-absolute')
 import { DEFAULT_TYPINGS_DIR } from './config'
@@ -101,16 +101,16 @@ export function relativeTo (from: string, to: string): string {
 }
 
 /**
- * Append `.d.ts` to a path.
+ * Append a suffix to the path.
  */
-export function toDefinition (path: string) {
+export function appendToPath (path: string, suffix: string) {
   if (isHttp(path)) {
     const url = parseUrl(path)
-    url.pathname = toDefinition(url.pathname)
+    url.pathname = appendToPath(url.pathname, suffix)
     return formatUrl(url)
   }
 
-  return `${path}.d.ts`
+  return path + normalize(suffix)
 }
 
 /**
@@ -140,7 +140,7 @@ export function normalizeToDefinition (path: string) {
 
   const ext = extname(path)
 
-  return toDefinition(ext ? path.slice(0, -ext.length) : path)
+  return appendToPath(ext ? path.slice(0, -ext.length) : path, '.d.ts')
 }
 
 /**

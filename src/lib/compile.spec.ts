@@ -310,7 +310,9 @@ test('compile', t => {
         .then(out => {
           t.equal(out.results.main, [
             'declare module \'~test~foo/x\' {',
-            'export const wow: boolean',
+            'import * as bar from \'~test~foo/index\'',
+            '',
+            'export { bar }',
             '}',
             '',
             'declare module \'~test~foo/index\' {',
@@ -412,7 +414,7 @@ test('compile', t => {
 
       const emitter = new EventEmitter()
 
-      return compile(node, ['main'], { name: 'name', cwd: __dirname, global: true, meta: false, emitter })
+      return compile(node, ['main'], { name: 'node', cwd: __dirname, global: true, meta: false, emitter })
         .then(out => {
           t.equal(out.results.main, [
             'declare module \'fs\' {',

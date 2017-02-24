@@ -1,1 +1,3 @@
-export const wow: boolean
+import * as bar from './index'
+
+export { bar }

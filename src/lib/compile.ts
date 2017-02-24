@@ -267,13 +267,16 @@ function getPath (path: string, options: StringifyOptions) {
 interface ModuleInfo {
   parent?: ModuleInfo
   path: string
-  originalPath: string
+  modulePath: string
   isEntry: boolean
   options: StringifyOptions
   sourceFile: ts.SourceFile
   fileInfo: ts.PreProcessedFileInfo
 }
 
+/**
+ * Valid dependency import path resolution methods.
+ */
 enum DependencyImport {
   DEFAULT_ONLY,
   SUFFIXES_ONLY,
@@ -281,27 +284,34 @@ enum DependencyImport {
 }
 
 /**
- * Try to resolve a dependency import.
+ * Transform a path and dependency import mode into the list of paths to test.
  */
-function readDependencyImport (originalPath: string, mode: DependencyImport, isEntry: boolean, options: StringifyOptions, parent?: ModuleInfo) {
+function getDependencyImportPaths (importPath: string, mode: DependencyImport) {
   const paths: string[] = []
-  const { cwd, tree, resolution, fileCache, resolved, imported, emitter, meta } = options
 
-  // Handle various file loading situations effeciently.
   if (mode === DependencyImport.DEFAULT_ONLY || mode === DependencyImport.ALL_PATHS) {
-    paths.push(originalPath)
+    paths.push(importPath)
   }
 
   if (mode === DependencyImport.SUFFIXES_ONLY || mode === DependencyImport.ALL_PATHS) {
-    paths.push(appendToPath(originalPath, '.d.ts'), appendToPath(originalPath, '/index.d.ts'))
+    paths.push(appendToPath(importPath, '.d.ts'), appendToPath(importPath, '/index.d.ts'))
   }
 
+  return paths
+}
+
+/**
+ * Try to resolve a dependency import.
+ */
+function readDependencyImport (importPath: string, mode: DependencyImport, isEntry: boolean, stringifyOptions: StringifyOptions, parent?: ModuleInfo) {
   // Make an attempt at compiling the raw path and mapping module imports.
-  function attempt (cause: Error, index: number): Promise<ModuleInfo | null> {
+  function attempt (cause: Error, paths: string[], index: number, isEntry: boolean, options: StringifyOptions): Promise<ModuleInfo | null> {
+    const { cwd, tree, resolution, fileCache, resolved, imported, emitter, meta } = options
+
     // Skip future resolution attempts.
     if (index >= paths.length) {
       const authorPhrase = options.parent ? `The author of "${options.parent.name}" needs to` : 'You should'
-      const relativePath = isModuleName(originalPath) ? originalPath : relativeTo(options.tree.src, originalPath)
+      const relativePath = isModuleName(importPath) ? importPath : relativeTo(options.tree.src, importPath)
 
       if (isEntry) {
         return Promise.reject(new TypingsError(
@@ -335,52 +345,61 @@ function readDependencyImport (originalPath: string, mode: DependencyImport, isE
         meta
       }, options)
 
-      // When no options are returned, the dependency is missing and should be ignored.
+      // When no options are returned, the dependency is a global and should be ignored.
       if (!childOptions) {
+        stringifyOptions.resolved[getCachePath(importPath, stringifyOptions, false)] = path
+
         return Promise.resolve(null)
       }
 
-      if (modulePath) {
-        return readDependencyImport(resolveFrom(childOptions.tree.src, modulePath), DependencyImport.SUFFIXES_ONLY, false, childOptions, parent)
-      }
+      const paths = getDependencyImportPaths(
+        resolveFrom(childOptions.tree.src, modulePath || childOptions.entry || 'index.d.ts'),
+        modulePath ? DependencyImport.SUFFIXES_ONLY : (childOptions.entry ? DependencyImport.ALL_PATHS : DependencyImport.DEFAULT_ONLY)
+      )
 
-      if (childOptions.entry) {
-        return readDependencyImport(resolveFrom(childOptions.tree.src, childOptions.entry), DependencyImport.ALL_PATHS, true, childOptions, parent)
-      }
-
-      return readDependencyImport(resolveFrom(childOptions.tree.src, 'index.d.ts'), DependencyImport.DEFAULT_ONLY, true, childOptions, parent)
+      return attempt(null, paths, 0, true, childOptions)
     }
 
-    // Avoid rendering the same file twice.
-    if (options.imported[path]) {
-      return options.imported[path].then(() => null)
-    }
+    const cached = has(options.imported, path)
 
-    return options.imported[path] = readFileFrom(path).then(
-      function (contents) {
-        const fileInfo = ts.preProcessFile(contents)
-        const sourceFile = ts.createSourceFile(path, contents.replace(REFERENCE_REGEXP, ''), ts.ScriptTarget.Latest, true)
-        const moduleInfo: ModuleInfo = { path, originalPath, isEntry, parent, sourceFile, options, fileInfo }
+    // Avoid loading the same path twice.
+    if (!cached) {
+      options.imported[path] = readFileFrom(path).then(
+        function (contents) {
+          const fileInfo = ts.preProcessFile(contents)
+          const sourceFile = ts.createSourceFile(path, contents.replace(REFERENCE_REGEXP, ''), ts.ScriptTarget.Latest, true)
+          const modulePath = getCachePath(path, options, true)
+          const moduleInfo: ModuleInfo = { path, modulePath, isEntry, parent, sourceFile, options, fileInfo }
 
-        return moduleInfo
-      },
-      function (err) {
-        if (err.code === 'ENOENT' || err.code === 'ENOTDIR' || err.code === 'EISDIR' || err.code === 'EINVALIDSTATUS') {
-          return attempt(err, index + 1)
+          return moduleInfo
+        },
+        function (err) {
+          if (err.code === 'ENOENT' || err.code === 'ENOTDIR' || err.code === 'EISDIR' || err.code === 'EINVALIDSTATUS') {
+            return attempt(err, paths, index + 1, isEntry, options)
+          }
+
+          return Promise.reject(err)
         }
+      )
+    }
 
-        return Promise.reject(err)
-      }
-    )
+    return options.imported[path].then((moduleInfo) => {
+      // Cache at the original import path.
+      stringifyOptions.resolved[getCachePath(importPath, stringifyOptions, false)] = moduleInfo.modulePath
+
+      return !cached ? moduleInfo : undefined
+    })
   }
 
-  return attempt(null, 0).then(function (moduleInfo) {
-    if (moduleInfo) {
-      options.resolved[getCachePath(originalPath, options, false)] = getCachePath(moduleInfo.path, moduleInfo.options, true)
-    }
+  return attempt(null, getDependencyImportPaths(importPath, mode), 0, isEntry, stringifyOptions)
+}
 
-    return moduleInfo
-  })
+/**
+ * Try to stringify a dependency import.
+ */
+function stringifyDependencyImport (importPath: string, mode: DependencyImport, isEntry: boolean, options: StringifyOptions, parent?: ModuleInfo) {
+  return readDependencyImport(importPath, mode, isEntry, options, parent)
+    .then((info) => info ? stringifyDependencyPath(info) : undefined)
 }
 
 /**
@@ -394,16 +413,6 @@ function getCachePath (originalPath: string, options: StringifyOptions, strip: b
   }
 
   return normalizeSlashes(join(options.prefix, relativeTo(options.tree.src, path)))
-}
-
-/**
- * Try to stringify a dependency import.
- */
-function stringifyDependencyImport (importPath: string, mode: DependencyImport, isEntry: boolean, options: StringifyOptions, parent?: ModuleInfo) {
-  return readDependencyImport(importPath, mode, isEntry, options, parent)
-    .then(function (info) {
-      return info ? stringifyDependencyPath(info) : undefined
-    })
 }
 
 /**
@@ -470,14 +479,14 @@ function getModuleNameParts (name: string, tree: DependencyTree): [string, strin
  * Normalize import paths against the prefix.
  */
 function getImportPath (path: string, options: StringifyOptions) {
-  return options.resolved[getCachePath(path, options, false)] || path
+  return options.resolved[getCachePath(path, options, false)]
 }
 
 /**
  * Stringify a dependency file contents.
  */
 function stringifyModuleFile (info: ModuleInfo) {
-  const { options } = info
+  const { options, modulePath } = info
   const { tree, name, prefix, parent, cwd, global } = options
 
   // Output information for the original type source.
@@ -579,7 +588,6 @@ function stringifyModuleFile (info: ModuleInfo) {
   }
 
   const moduleText = normalizeEOL(processTree(info.sourceFile, replacer, read), EOL)
-  const modulePath = getImportPath(info.originalPath, options)
   const moduleName = parent && parent.global ? name : modulePath
 
   // Direct usage of definition/typings. This is *not* a psuedo-module.
@@ -588,7 +596,7 @@ function stringifyModuleFile (info: ModuleInfo) {
   }
 
   const prettyPath = normalizeSlashes(join(name, relativeTo(tree.src, pathFromDefinition(info.path))))
-  const declared = declareText(modulePath, moduleText)
+  const declared = meta + declareText(modulePath, moduleText)
 
   // Create an alias/proxy module namespace to expose the implementation.
   function alias (name: string) {
@@ -616,10 +624,10 @@ function stringifyModuleFile (info: ModuleInfo) {
   }
 
   if (info.isEntry && !parent) {
-    return meta + declared + alias(prettyPath) + alias(name)
+    return declared + alias(prettyPath) + alias(name)
   }
 
-  return meta + declared + (parent ? '' : alias(prettyPath))
+  return declared + (parent ? '' : alias(prettyPath))
 }
 
 /**

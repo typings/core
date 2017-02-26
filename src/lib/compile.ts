@@ -384,8 +384,14 @@ function readDependencyImport (importPath: string, mode: DependencyImport, isEnt
     }
 
     return options.imported[path].then((moduleInfo) => {
-      // Cache at the original import path.
-      stringifyOptions.resolved[getCachePath(importPath, stringifyOptions, false)] = moduleInfo.modulePath
+      // When `moduleInfo` is defined, set the resolution path. It can sometimes
+      // be undefined in the case when subsequent resolution attempts have resulted
+      // in a different resolution method but the same cache hit.
+      // Example: `./foo -> ./bar` and `./foo/bar/baz -> ./index`.
+      if (moduleInfo) {
+        // Cache at the original import path.
+        stringifyOptions.resolved[getCachePath(importPath, stringifyOptions, false)] = moduleInfo.modulePath
+      }
 
       return !cached ? moduleInfo : undefined
     })

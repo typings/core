@@ -85,6 +85,6 @@
     "tap-diff": "^0.1.1",
     "ts-node": "^3.0.0",
     "tslint": "^5.0.0",
-    "tslint-config-standard": "^4.0.0"
+    "tslint-config-standard": "^5.0.0"
   }
 }

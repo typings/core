@@ -53,7 +53,7 @@ export function uninstallDependencies (names: string[], options: UninstallDepend
       return Promise.all(names.map(x => uninstallFrom(x, options)))
         .then(() => writeBundle(names, options))
         .then(() => writeToConfig(names, options))
-        .then(() => undefined)
+        .then(() => options)
     })
 }
 

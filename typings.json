@@ -1,4 +1,5 @@
 {
+  "name": "typings-core",
   "dependencies": {
     "archy": "registry:npm/archy#1.0.0+20160211003958",
     "array-uniq": "registry:npm/array-uniq#1.0.0+20160211003958",

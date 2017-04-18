@@ -7,6 +7,7 @@ notifications:
 
 before_install:
   - npm run bootstrap
+  - npm run lint
 
 node_js:
   - '4'

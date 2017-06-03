@@ -1,19 +1,20 @@
 require('shelljs/global')
 
+echo('npm install')
+exec('npm install')
+echo('')
+
+echo('Using PATH:')
+echo(process.env.PATH)
+echo(ls('node_modules/.bin'))
+echo('')
+
 echo('mkdir typings')
 mkdir('-p', 'typings')
 echo('')
 
 echo('touch typings/index.d.ts')
 touch('typings/index.d.ts')
-echo('')
-
-echo('SKIP_PREPUBLISH=true')
-env['SKIP_PREPUBLISH'] = true
-echo('')
-
-echo('npm install')
-exec('npm install')
 echo('')
 
 echo('rimraf dist')

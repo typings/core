@@ -15,8 +15,8 @@
     "test-spec": "ts-node node_modules/blue-tape/bin/blue-tape.js \"src/**/*.spec.ts\" | tap-diff",
     "test-cov": "ts-node node_modules/istanbul/lib/cli.js cover -e .ts --print none -x \"*.d.ts\" -x \"*.spec.ts\" node_modules/blue-tape/bin/blue-tape.js -- \"src/**/*.spec.ts\"",
     "test": "npm run build && npm run dependency-check && npm run test-cov && npm run lint",
-    "bootstrap": "npm install shelljs && node scripts/bootstrap.js",
-    "prepublish": "node scripts/prepublish.js"
+    "bootstrap": "npm install shelljs --no-save && node scripts/bootstrap.js",
+    "prepublishOnly": "npm run build"
   },
   "repository": {
     "type": "git",
@@ -81,7 +81,7 @@
     "dependency-check": "^2.5.1",
     "istanbul": "1.0.0-alpha.2",
     "nock": "^9.0.0",
-    "shelljs": "^0.7.0",
+    "shelljs": "^0.7.7",
     "tap-diff": "^0.1.1",
     "ts-node": "^3.0.0",
     "tslint": "^5.0.0",

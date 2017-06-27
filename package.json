@@ -70,7 +70,7 @@
     "strip-bom": "^3.0.0",
     "thenify": "^3.1.0",
     "throat": "^4.0.0",
-    "touch": "^1.0.0",
+    "touch": "^2.0.2",
     "typescript": "^2.1.4",
     "xtend": "^4.0.0",
     "zip-object": "^0.1.0"

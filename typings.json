@@ -1,9 +1,7 @@
 {
   "dependencies": {
-    "archy": "registry:npm/archy#1.0.0+20160211003958",
     "array-uniq": "registry:npm/array-uniq#1.0.0+20160211003958",
     "configstore": "registry:npm/configstore#2.0.0+20160307015146",
-    "debug": "registry:npm/debug#2.0.0+20160511151334",
     "detect-indent": "registry:npm/detect-indent#4.0.0+20160211003958",
     "graceful-fs": "registry:npm/graceful-fs#4.0.0+20160211003958",
     "has": "registry:npm/has#1.0.0+20160211003958",
@@ -26,7 +24,7 @@
     "string-template": "registry:npm/string-template#1.0.0+20160211003958",
     "strip-bom": "registry:npm/strip-bom#2.0.0+20160211003958",
     "thenify": "registry:npm/thenify#3.1.0+20160211003958",
-    "throat": "registry:npm/throat#2.0.0+20160404004338",
+    "throat": "registry:npm/throat#2.0.0+20160723033700",
     "touch": "registry:npm/touch#1.0.0+20160211003958",
     "xtend": "registry:npm/xtend#4.0.0+20160211003958",
     "zip-object": "registry:npm/zip-object#0.1.0+20160211003958"

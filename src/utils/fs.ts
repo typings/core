@@ -261,7 +261,7 @@ export function transformFile (path: string, transform: (contents: string) => st
 /**
  * Transform a JSON file in a single operation.
  */
-export function transformJson <T> (path: string, transform: (json: T) => T, allowEmpty?: boolean) {
+export function transformJson <T> (path: string, transform: (json: T) => Promise<T>, allowEmpty?: boolean) {
   return transformFile(path, (contents) => {
     const indent = contents ? detectIndent(contents).indent : undefined
     const json = contents ? parseJson(stripBom(contents), path, allowEmpty) : undefined
@@ -275,7 +275,7 @@ export function transformJson <T> (path: string, transform: (json: T) => T, allo
 /**
  * Transform a configuration file in a single operation.
  */
-export function transformConfig (cwd: string, transform: (config: ConfigJson) => ConfigJson) {
+export function transformConfig (cwd: string, transform: (config: ConfigJson) => Promise<ConfigJson>) {
   const path = join(cwd, CONFIG_FILE)
 
   return transformJson<ConfigJson>(

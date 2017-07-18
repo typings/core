@@ -71,20 +71,22 @@
     "thenify": "^3.1.0",
     "throat": "^4.0.0",
     "touch": "^1.0.0",
-    "typescript": "^2.1.4",
+    "typescript": "^2.4.1",
     "xtend": "^4.0.0",
     "zip-object": "^0.1.0"
   },
   "devDependencies": {
+    "@types/archy": "0.0.30",
+    "@types/debug": "0.0.29",
     "blue-tape": "^1.0.0",
     "bluebird": "^3.3.4",
     "dependency-check": "^2.5.1",
     "istanbul": "1.0.0-alpha.2",
-    "nock": "^9.0.0",
-    "shelljs": "^0.7.7",
+    "nock": "^9.0.14",
+    "shelljs": "^0.7.8",
     "tap-diff": "^0.1.1",
-    "ts-node": "^3.0.0",
-    "tslint": "^5.0.0",
-    "tslint-config-standard": "^6.0.0"
+    "ts-node": "^3.2.0",
+    "tslint": "^5.5.0",
+    "tslint-config-standard": "^6.0.1"
   }
 }
